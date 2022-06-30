@@ -1,0 +1,8 @@
+name = "SpectralFitting"
+uuid = "f2c56810-742e-4b72-8bf4-27af3bb81a12"
+authors = ["Fergus Baker <fergusbkr@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+LibXSPEC_jll = "50917eeb-3e3c-5f3a-99bd-93e1c30e1561"
+Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"

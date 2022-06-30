@@ -1,0 +1,3 @@
+# SpectralFitting.jl
+
+Work in progress...
