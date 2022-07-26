@@ -32,7 +32,6 @@ end
     z::Float64 = 1.0
 end
 
-
 @xspecmodel :C_srcut struct XS_SynchrotronCutoff{Additive}
     "Normalisation."
     K::Float64 = 1.0
@@ -42,4 +41,5 @@ end
     cutoff::Float64 = 2.42e17
 end
 
-export XS_ComptonizationBlackBody, XS_ThermalBrems, XS_PowerLaw, XS_RedshiftPowerLaw, XS_SynchrotronCutoff
+export XS_ComptonizationBlackBody,
+    XS_ThermalBrems, XS_PowerLaw, XS_RedshiftPowerLaw, XS_SynchrotronCutoff
