@@ -32,7 +32,6 @@ end
     z::Float64 = 1.0
 end
 
-
 @xspecmodel :C_srcut struct XS_SynchrotronCutoff{Additive}
     "Normalisation."
     K::Float64 = 1.0
