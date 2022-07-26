@@ -10,7 +10,7 @@ struct CompositeSpectralModel{K1,K2,M1,M2} <: AbstractSpectralModel{K2}
     m1::M1
     m2::M2
     function CompositeSpectralModel(m1::AbstractSpectralModel, m2::AbstractSpectralModel)
-        new{modelkind(m1), modelkind(m2), typeof(m1), typeof(m2)}(m1, m2)
+        new{modelkind(m1),modelkind(m2),typeof(m1),typeof(m2)}(m1, m2)
     end
 end
 
@@ -95,22 +95,21 @@ modelparams(m::AbstractSpectralModel) = [getproperty(m, fn) for fn in fieldnames
 knorm(::AbstractSpectralModel) = error("Only defined for Additive models.")
 knorm(m::AbstractSpectralModel{Additive}) = m.K
 
-modelkind(cm::CompositeSpectralModel{K1, K2}) where {K1, K2} = modelkind(cm.m2)
+modelkind(cm::CompositeSpectralModel{K1,K2}) where {K1,K2} = modelkind(cm.m2)
 modelkind(::AbstractSpectralModel{K}) where {K} = K
 
 # model algebra
-Base.:*(::AbstractSpectralModel, ::AbstractSpectralModel) = error("Left model must be Multiplicative")
-Base.:*(m1::AbstractSpectralModel{Multiplicative}, m2::AbstractSpectralModel) = CompositeSpectralModel(m1, m2)
+Base.:*(::AbstractSpectralModel, ::AbstractSpectralModel) =
+    error("Left model must be Multiplicative")
+Base.:*(m1::AbstractSpectralModel{Multiplicative}, m2::AbstractSpectralModel) =
+    CompositeSpectralModel(m1, m2)
 
-Base.:+(::AbstractSpectralModel, ::AbstractSpectralModel) = error("Both models must be Additive.")
-Base.:+(m1::AbstractSpectralModel{Additive}, m2::AbstractSpectralModel{Additive}) = CompositeSpectralModel(m1, m2)
+Base.:+(::AbstractSpectralModel, ::AbstractSpectralModel) =
+    error("Both models must be Additive.")
+Base.:+(m1::AbstractSpectralModel{Additive}, m2::AbstractSpectralModel{Additive}) =
+    CompositeSpectralModel(m1, m2)
 
 # Base.:∘()
 
 export AbstractModelKind,
-    AbstractSpectralModel,
-    Multiplicative,
-    Additive,
-    Convolutional,
-    params,
-    modelkind
+    AbstractSpectralModel, Multiplicative, Additive, Convolutional, params, modelkind

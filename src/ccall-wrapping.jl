@@ -1,5 +1,13 @@
 
-macro wrap_xspec_model_ccall(func_name, input, output, err, parameters, spec_number, init_string)
+macro wrap_xspec_model_ccall(
+    func_name,
+    input,
+    output,
+    err,
+    parameters,
+    spec_number,
+    init_string,
+)
     quote
         ccall(
             ($(func_name), libXSFunctions),

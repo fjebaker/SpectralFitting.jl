@@ -8,7 +8,10 @@ end
 
 function Base.show(io::IO, m::ProcessedSpectralModel)
     if get(io, :compact, false) || get(io, :typeinfo, nothing) == ProcessedSpectralModel
-        print(io, "ProcessedSpectralModel(M=$(length(m.multiplicatives)),A=$(length(m.additives)),C=$(length(m.convolutionals)))")
+        print(
+            io,
+            "ProcessedSpectralModel(M=$(length(m.multiplicatives)),A=$(length(m.additives)),C=$(length(m.convolutionals)))",
+        )
     else
         print(io, "ProcessedSpectralModel:\n   $(m.expression)\n")
         println(io, "  Models:")
@@ -85,19 +88,17 @@ function processmodel(cm::AbstractSpectralModel)
     tracker = (
         additive = AbstractSpectralModel{Additive}[],
         multiplicative = AbstractSpectralModel{Multiplicative}[],
-        convolutional = AbstractSpectralModel{Convolutional}[]
+        convolutional = AbstractSpectralModel{Convolutional}[],
     )
 
     expr = assemblefunc!(tracker, cm)
-    all_params = Pair{Symbol, Float64}[]
+    all_params = Pair{Symbol,Float64}[]
 
     mults = parse_models_with_params!(all_params, tracker.multiplicative, 'm')
     adds = parse_models_with_params!(all_params, tracker.additive, 'a')
     convs = parse_models_with_params!(all_params, tracker.convolutional, 'c')
 
-    ProcessedSpectralModel(
-        expr, all_params, mults, adds, convs
-    )
+    ProcessedSpectralModel(expr, all_params, mults, adds, convs)
 end
 
 export processmodel, ProcessedSpectralModel
