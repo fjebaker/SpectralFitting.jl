@@ -108,14 +108,12 @@ end
 function build_lsqfit(pm::ProcessedSpectralModel)
     flux_calls = [:($name = $(model)(energy)) for (name, model) in getmodels(pm)]
     params = [:($p = params[$i]) for (i, p) in enumerate(first.(pm.parameters))]
-    model = :(
-        (energy, params) -> begin
-            $(params...)
-            $(flux_calls...)
-            res = @. $(pm.expression)
-            @view res[1:end-1]
-        end
-    )
+    model = :((energy, params) -> begin
+        $(params...)
+        $(flux_calls...)
+        res = @. $(pm.expression)
+        @view res[1:end-1]
+    end)
     func = eval(model)
     p0 = last.(pm.parameters)
     func, p0

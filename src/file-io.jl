@@ -13,7 +13,11 @@ function energybins(rmf::ResponseMatrix{T}) where {T}
     energy
 end
 
-function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rmf::ResponseMatrix{E,M}) where {E,M}
+function Base.show(
+    io::IO,
+    ::MIME{Symbol("text/plain")},
+    rmf::ResponseMatrix{E,M},
+) where {E,M}
     nchans = nrow(rmf.ebins)
     println(io, "ReponseMatrix with $nchans channels:")
     Base.print_array(io, rmf.matrix)
@@ -71,7 +75,7 @@ end
 
 # can we do this without copying?
 function augment_energy_channel(grp, rmf::ResponseMatrix)
-    joined = innerjoin(grp, rmf.ebins, on=:CHANNEL)
+    joined = innerjoin(grp, rmf.ebins, on = :CHANNEL)
     joined.E_DELTA = joined.E_MAX .- joined.E_MIN
     joined
 end
