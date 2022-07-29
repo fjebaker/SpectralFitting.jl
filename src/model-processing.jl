@@ -1,9 +1,13 @@
 struct ProcessedSpectralModel{V}
     expression::Expr
     parameters::V
-    multiplicatives::Vector{Expr}
-    additives::Vector{Expr}
-    convolutionals::Vector{Expr}
+    multiplicatives::Vector{Pair{Symbol,Expr}}
+    additives::Vector{Pair{Symbol,Expr}}
+    convolutionals::Vector{Pair{Symbol,Expr}}
+end
+
+function getmodels(pm::ProcessedSpectralModel)
+    Iterators.flatten((pm.multiplicatives, pm.additives, pm.convolutionals))
 end
 
 function Base.show(io::IO, m::ProcessedSpectralModel)
@@ -53,22 +57,22 @@ function assemblefunc!(tracker, cm::CompositeSpectralModel{K1,K2}) where {K1,K2}
     # )
     a = assemblefunc!(tracker, cm.m1)
     b = assemblefunc!(tracker, cm.m2)
-    :($a .* $b)
+    :($a * $b)
 end
 
 function assemblefunc!(tracker, cm::CompositeSpectralModel{Additive,Additive})
     a = assemblefunc!(tracker, cm.m1)
     b = assemblefunc!(tracker, cm.m2)
-    :($a .+ $b)
+    :($a + $b)
 end
 
 function addparams!(all_params, m::AbstractSpectralModel)
     map(fieldnames(typeof(m))) do p
         i = 1
-        symb = Symbol(p, i)
+        symb = Symbol(p, '_', i)
         while symb in first.(all_params)
             i += 1
-            symb = Symbol(p, i)
+            symb = Symbol(p, '_', i)
         end
         push!(all_params, symb => getproperty(m, p))
         symb
@@ -79,7 +83,7 @@ function parse_models_with_params!(all_params, models, root_symb::Char)
     map(enumerate(models)) do (i, m)
         params = addparams!(all_params, m)
         instance = Expr(:call, typeof(m), params...)
-        Expr(:call, :(=), Symbol(root_symb, i), instance)
+        Symbol(root_symb, i) => instance
     end
 end
 
@@ -101,4 +105,20 @@ function processmodel(cm::AbstractSpectralModel)
     ProcessedSpectralModel(expr, all_params, mults, adds, convs)
 end
 
-export processmodel, ProcessedSpectralModel
+function build_lsqfit(pm::ProcessedSpectralModel)
+    flux_calls = [:($name = $(model)(energy)) for (name, model) in getmodels(pm)]
+    params = [:($p = params[$i]) for (i, p) in enumerate(first.(pm.parameters))]
+    model = :(
+        (energy, params) -> begin
+            $(params...)
+            $(flux_calls...)
+            res = @. $(pm.expression)
+            @view res[1:end-1]
+        end
+    )
+    func = eval(model)
+    p0 = last.(pm.parameters)
+    func, p0
+end
+
+export processmodel, ProcessedSpectralModel, getmodels, build_lsqfit
