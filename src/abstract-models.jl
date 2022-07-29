@@ -112,4 +112,4 @@ Base.:+(m1::AbstractSpectralModel{Additive}, m2::AbstractSpectralModel{Additive}
 # Base.:∘()
 
 export AbstractModelKind,
-    AbstractSpectralModel, Multiplicative, Additive, Convolutional, params, modelkind
+    AbstractSpectralModel, Multiplicative, Additive, Convolutional, params, modelkind, invokemodel, invokemodel!
