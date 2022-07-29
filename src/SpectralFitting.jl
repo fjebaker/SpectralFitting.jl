@@ -2,6 +2,10 @@ module SpectralFitting
 
 using LibXSPEC_jll
 
+using FITSIO
+using DataFrames
+using SparseArrays
+
 import Crayons
 
 import Parameters: @with_kw
@@ -10,6 +14,7 @@ import Base
 include("abstract-models.jl")
 include("ccall-wrapping.jl")
 include("model-processing.jl")
+include("file-io.jl")
 
 for xspec_model in readdir(joinpath(@__DIR__, "xspec-models"); join = true)
     if last(splitext(xspec_model)) == ".jl"
