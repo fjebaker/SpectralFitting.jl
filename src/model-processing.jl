@@ -1,121 +1,106 @@
-mutable struct FitParameter{T}
-    val::T
-    lower_bound::T
-    upper_bound::T
-    frozen::Bool
+export processmodel
 
-    FitParameter(val::T; lower_bound::T = T(0.0), upper_bound::T = T(Inf), frozen::Bool = false) where {T} = new{T}(val, lower_bound, upper_bound, frozen)
+struct ProcessedSpectralModel{E,M,P,L}
+    expression::E
+    models::M
+    parameters::P
+    modelparams::L
 end
 
-value(f::FitParameter) = f.val
-lowerbound(f::FitParameter) = f.lower_bound
-upperbound(f::FitParameter) = f.upper_bound
-
-function Base.show(io::IO, ::MIME{Symbol("text/plain")}, m::FitParameter{T}) where {T}
-    Base.show(io, m)
-end
-
-function Base.show(io::IO, m::FitParameter{T}) where {T}
-    s = "$(m.val) (lb: $(m.lower_bound), ub: $(m.upper_bound))"
-    if m.frozen
-        s *= " [frozen]"
-    end
-    print(io, s)
-end
-
-struct ProcessedSpectralModel{V}
-    expression::Expr
-    parameters::V
-    multiplicatives::Vector{Pair{Symbol,Expr}}
-    additives::Vector{Pair{Symbol,Expr}}
-    convolutionals::Vector{Pair{Symbol,Expr}}
-end
-
-function getmodels(pm::ProcessedSpectralModel)
-    Iterators.flatten((pm.multiplicatives, pm.additives, pm.convolutionals))
-end
-
-function getparams(pm::ProcessedSpectralModel)
-    pm.parameters
-end
-
-function getfreeparams(pm::ProcessedSpectralModel)
-    filter(p -> !last(p).frozen, pm.parameters)
-end
-
-function getfrozenparams(pm::ProcessedSpectralModel)
-    filter(p -> last(p).frozen, pm.parameters)
-end
-
-function freeze!(pm::ProcessedSpectralModel, p::Symbol)
-    index = findfirst(i -> first(i) == p, pm.parameters)
-    last(pm.parameters[index]).frozen = true
-end
-
-freeze!(pm::ProcessedSpectralModel, ps::Symbol...) = foreach(p -> freeze!(pm, p), ps)
-
-function unfreeze!(pm::ProcessedSpectralModel, p::Symbol)
-    index = findfirst(i -> first(i) == p, pm.parameters)
-    last(pm.parameters[index]).frozen = false
-end
-
-unfreeze!(pm::ProcessedSpectralModel, ps::Symbol...) = foreach(p -> unfreeze!(pm, p), ps)
-
-
-function Base.show(io::IO, m::ProcessedSpectralModel)
+function modelinfo(m::ProcessedSpectralModel)
+    io = IOBuffer()
     if get(io, :compact, false) || get(io, :typeinfo, nothing) == ProcessedSpectralModel
         print(
             io,
-            "ProcessedSpectralModel(M=$(length(m.multiplicatives)),A=$(length(m.additives)),C=$(length(m.convolutionals)))",
+            "ProcessedSpectralModel(#Models=$(length(m.models)),#Params=$(length(m.parameters)))",
         )
     else
-        print(io, "ProcessedSpectralModel:\n   $(m.expression)\n")
-        println(io, "  Models:")
-        for m in m.multiplicatives
-            print(io, "   - $m\n")
+        write(
+            io,
+            "ProcessedSpectralModel:\n   $(readable_model_expression(m.expression))\n",
+        )
+
+        write(io, "  Models:\n")
+        model_infos = map(m.models) do (s, model)
+            params = join(m.modelparams[s], ", ")
+            Base.typename(typeof(model)).name, s, params
         end
-        for m in m.additives
-            print(io, "   - $m\n")
+
+        model_pad = maximum(length.(String.(first.(model_infos))))
+        for (name, s, info) in model_infos
+            write(io, "     . $s => $(rpad(name, model_pad))   : $info\n")
         end
-        for m in m.convolutionals
-            print(io, "   - $m\n")
+
+        write(io, "  Parameters:\n")
+        param_pad = maximum(length.(String.(first.(m.parameters)))) + 1
+        for (s, p) in m.parameters
+            write(io, "     . $(rpad(s, param_pad)) => $p\n")
         end
-        println(io, "  Parameters:")
-        for p in m.parameters
-            print(io, "   - $p\n")
+    end
+    String(take!(io))
+end
+
+function readable_model_expression(expr::Pair)
+    right_expr, (op, left_expr) = expr
+
+    if typeof(right_expr) !== Symbol
+        right = readable_model_expression(right_expr)
+    else
+        right = right_expr
+    end
+    if typeof(left_expr) !== Symbol
+        left = readable_model_expression(left_expr)
+    else
+        left = left_expr
+    end
+
+    if isnothing(op)
+        :($(left)($right))
+    else
+        if op == :*
+            :($left * $right)
+        else
+            :($left + $right)
         end
     end
 end
 
-function assemblefunc!(tracker, m::AbstractSpectralModel{Additive})
-    push!(tracker.additive, m)
-    Symbol('a', length(tracker.additive))
-end
-function assemblefunc!(tracker, m::AbstractSpectralModel{Multiplicative})
-    push!(tracker.multiplicative, m)
-    Symbol('m', length(tracker.multiplicative))
-end
-function assemblefunc!(tracker, m::AbstractSpectralModel{Convolutional})
-    push!(tracker.convolutional, m)
-    Symbol('c', length(tracker.convolutional))
+function Base.show(io::IO, ::MIME{Symbol("text/plain")}, m::ProcessedSpectralModel)
+    print(io, modelinfo(m))
 end
 
-function assemblefunc!(tracker, cm::CompositeSpectralModel{K1,K2}) where {K1,K2}
-    # Expr(
-    #     :call,
-    #     :(.*),
-    #     assemblefunc!(tracker, cm.m1),
-    #     assemblefunc!(tracker, cm.m2)
-    # )
-    a = assemblefunc!(tracker, cm.m1)
-    b = assemblefunc!(tracker, cm.m2)
-    :($a * $b)
+# ..... #
+
+function assemble_symbols!(tracker, m::M) where {M<:AbstractSpectralModel}
+    if modelkind(M) === Additive
+        s = Symbol('a', tracker.additive[])
+        push!(tracker.sym_model, s => m)
+        tracker.additive[] += 1
+        s
+    elseif modelkind(M) === Multiplicative
+        s = Symbol('m', tracker.multiplicative[])
+        push!(tracker.sym_model, s => m)
+        tracker.multiplicative[] += 1
+        s
+    else
+        s = Symbol('c', tracker.convolutional[])
+        push!(tracker.sym_model, s => m)
+        tracker.convolutional[] += 1
+        s
+    end
 end
 
-function assemblefunc!(tracker, cm::CompositeSpectralModel{Additive,Additive})
-    a = assemblefunc!(tracker, cm.m1)
-    b = assemblefunc!(tracker, cm.m2)
-    :($a + $b)
+function assemble_symbols!(tracker, cm::CompositeSpectralModel{M1,M2}) where {M1,M2}
+    left = assemble_symbols!(tracker, cm.left)
+    right = assemble_symbols!(tracker, cm.right)
+    op = if modelkind(M1) === Multiplicative
+        :(*)
+    elseif modelkind(M1) === Additive
+        :(+)
+    else
+        nothing
+    end
+    right => (op, left)
 end
 
 function addparams!(all_params, m::AbstractSpectralModel)
@@ -139,49 +124,90 @@ function parse_models_with_params!(all_params, models, root_symb::Char)
     end
 end
 
+function unpack_model_parameters(sym_model)
+    all_params = Pair{Symbol,AbstractFitParameter}[]
+
+    model_to_params = map(sym_model) do (s, m)
+        model_params = map(fieldnames(typeof(m))) do p
+            i = 1
+            symb = Symbol(p, '_', i)
+            while symb in first.(all_params)
+                i += 1
+                symb = Symbol(p, '_', i)
+            end
+            push!(all_params, symb => getproperty(m, p))
+            symb
+        end
+        s => model_params
+    end
+
+    Dict(model_to_params), all_params
+end
+
 function processmodel(cm::AbstractSpectralModel)
     # assemble evaluation
     tracker = (
-        additive = AbstractSpectralModel{Additive}[],
-        multiplicative = AbstractSpectralModel{Multiplicative}[],
-        convolutional = AbstractSpectralModel{Convolutional}[],
+        sym_model = Pair{Symbol,AbstractSpectralModel}[],
+        additive = Ref(1),
+        multiplicative = Ref(1),
+        convolutional = Ref(1),
     )
 
-    expr = assemblefunc!(tracker, cm)
-    all_params = Pair{Symbol,FitParameter{Float64}}[]
-
-    mults = parse_models_with_params!(all_params, tracker.multiplicative, 'm')
-    adds = parse_models_with_params!(all_params, tracker.additive, 'a')
-    convs = parse_models_with_params!(all_params, tracker.convolutional, 'c')
-
-    ProcessedSpectralModel(expr, all_params, mults, adds, convs)
+    expr = assemble_symbols!(tracker, cm)
+    model_to_params, all_params = unpack_model_parameters(tracker.sym_model)
+    ProcessedSpectralModel(expr, tracker.sym_model, all_params, model_to_params)
 end
 
-function build_lsqfit(pm::ProcessedSpectralModel)
-    flux_calls = [:($name = $(model)(energy)) for (name, model) in getmodels(pm)]
+# function build_lsqfit(pm::ProcessedSpectralModel)
+#     flux_calls = [:($name = $(model)(energy)) for (name, model) in getmodels(pm)]
 
-    i = 1
-    params = map(pm.parameters) do (p, f)
-        if f.frozen
-            val = value(f)
-            :($p = $val)
-        else
-            i += 1
-            :($p = params[$(i-1)])
-        end
-    end
+#     i = 1
+#     params = map(pm.parameters) do (p, f)
+#         if f.frozen
+#             val = value(f)
+#             :($p = $val)
+#         else
+#             i += 1
+#             :($p = params[$(i-1)])
+#         end
+#     end
 
-    # params = [:($p = params[$i]) for (i, p) in enumerate(first.(pm.parameters))]
-    func = :((energy, params) -> begin
-        $(params...)
-        $(flux_calls...)
-        res = @. $(pm.expression)
-        @view res[1:end-1]
-    end) |> eval
+#     # params = [:($p = params[$i]) for (i, p) in enumerate(first.(pm.parameters))]
+#     func = :((energy, params) -> begin
+#         $(params...)
+#         $(flux_calls...)
+#         res = @. $(pm.expression)
+#         @view res[1:end-1]
+#     end) |> eval
 
-    fs = last.(getfreeparams(pm))
-    # model, p0, lower bounds, upper bounds
-    func, value.(fs), lowerbound.(fs), upperbound.(fs)
-end
+#     fs = last.(getfreeparams(pm))
+#     # model, p0, lower bounds, upper bounds
+#     func, value.(fs), lowerbound.(fs), upperbound.(fs)
+# end
 
-export processmodel, ProcessedSpectralModel, getmodels, build_lsqfit, FitParameter, value, freeze!, unfreeze!
+# export processmodel, ProcessedSpectralModel, getmodels, build_lsqfit, FitParameter, value, freeze!, unfreeze!
+
+
+# #=
+# flux1
+# flux2
+# flux3
+
+# # m3(m1 * a1 + c1(m2 * a2)) + a3
+
+# a1 = XS_Powerlaw(...)
+# #...
+
+# invoke!(flux1, a1)
+# invoke!(flux2, m1)
+# @. flux1 *= flux2
+# invoke!(flux2, a2)
+# invoke!(flux3, m2)
+# @. flux2 *= flux3
+# invoke!(flux2, c1)
+# @. flux1 += flux2
+# invoke!(flux2, a3)
+# @. flux1 += flux3
+
+# return flux1
+# =#

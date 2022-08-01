@@ -10,23 +10,19 @@ import Crayons
 
 import Parameters: @with_kw
 import Base
+import Printf
 
 include("abstract-models.jl")
-include("ccall-wrapping.jl")
+include("fit-parameters.jl")
+include("ccall-wrapper.jl")
+include("composite-models.jl")
 include("model-processing.jl")
-include("file-io.jl")
 
-for xspec_model in readdir(joinpath(@__DIR__, "xspec-models"); join = true)
-    if last(splitext(xspec_model)) == ".jl"
-        include(xspec_model)
-    end
-end
 
-for model in readdir(joinpath(@__DIR__, "julia-models"); join = true)
-    if last(splitext(model)) == ".jl"
-        include(model)
-    end
-end
+# include xspec models
+include("xspec-models/additive.jl")
+include("xspec-models/multiplicative.jl")
+include("xspec-models/convolutional.jl")
 
 function __init__()
     # init HEASOFT

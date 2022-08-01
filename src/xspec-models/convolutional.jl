@@ -1,17 +1,10 @@
-# @xspecmodel :C_thcomp struct XS_ThermalCompton{Convolutional}
-#     "Normalisation."
-#     K::Float64 = 1.0
-#     "Asymptotic power-law photon index."
-#     Γ::Float64 = 1.0
-# end
-
-@xspecmodel :C_cflux struct XS_ConvFlux{Convolutional}
+@xspecmodel Convolutional :C_cflux struct XS_CalculateFlux{F}
     "Minimum energy."
-    E_min::Float64 = 0.2
+    E_min::F = FitParameter(0.2, frozen = true)
     "Maximum energy."
-    E_max::Float64 = 2.0
+    E_max::F = FitParameter(2.0, frozen = true)
     "log (base 10) flux in erg / cm^2 / s"
-    lg10Flux::Float64 = -10.0
+    lg10Flux::F = FitParameter(-10.0, lower_bound = -Inf, upper_bound = 0.0)
 end
 
-export XS_ConvFlux
+export XS_CalculateFlux
