@@ -100,8 +100,10 @@ modelkind(::AbstractSpectralModel{K}) where {K} = K
 
 # model algebra
 Base.:*(::AbstractSpectralModel, ::AbstractSpectralModel) =
-    error("Left model must be Multiplicative")
+    error("Left model must be Multiplicative or Convolutional")
 Base.:*(m1::AbstractSpectralModel{Multiplicative}, m2::AbstractSpectralModel) =
+    CompositeSpectralModel(m1, m2)
+Base.:*(m1::AbstractSpectralModel{Convolutional}, m2::AbstractSpectralModel) =
     CompositeSpectralModel(m1, m2)
 
 Base.:+(::AbstractSpectralModel, ::AbstractSpectralModel) =
