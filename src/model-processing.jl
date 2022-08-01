@@ -15,7 +15,10 @@ function modelinfo(m::ProcessedSpectralModel)
             "ProcessedSpectralModel(#Models=$(length(m.models)),#Params=$(length(m.parameters)))",
         )
     else
-        write(io, "ProcessedSpectralModel:\n   $(readable_model_expression(m.expression))\n")
+        write(
+            io,
+            "ProcessedSpectralModel:\n   $(readable_model_expression(m.expression))\n",
+        )
 
         write(io, "  Models:\n")
         model_infos = map(m.models) do (s, model)
@@ -52,9 +55,7 @@ function readable_model_expression(expr::Pair)
     end
 
     if isnothing(op)
-        :(
-            $(left)($right)
-        )
+        :($(left)($right))
     else
         if op == :*
             :($left * $right)
@@ -126,7 +127,7 @@ end
 function unpack_model_parameters(sym_model)
     all_params = Pair{Symbol,AbstractFitParameter}[]
 
-    model_to_params = map(sym_model) do (s,m)
+    model_to_params = map(sym_model) do (s, m)
         model_params = map(fieldnames(typeof(m))) do p
             i = 1
             symb = Symbol(p, '_', i)
@@ -149,7 +150,7 @@ function processmodel(cm::AbstractSpectralModel)
         sym_model = Pair{Symbol,AbstractSpectralModel}[],
         additive = Ref(1),
         multiplicative = Ref(1),
-        convolutional = Ref(1)
+        convolutional = Ref(1),
     )
 
     expr = assemble_symbols!(tracker, cm)

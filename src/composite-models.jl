@@ -4,7 +4,8 @@ struct CompositeSpectralModel{M1,M2} <: AbstractSpectralModel
     right::M2
 end
 modelkind(::Type{CompositeSpectralModel{M1,M2}}) where {M1,M2} = modelkind(M2)
-invokemodel!(flux, energy, m::CompositeSpectralModel) = __invoke_composite!(flux, energy, m::CompositeSpectralModel)
+invokemodel!(flux, energy, m::CompositeSpectralModel) =
+    __invoke_composite!(flux, energy, m::CompositeSpectralModel)
 
 function modelinfo(cm::CompositeSpectralModel{M1,M2}) where {M1,M2}
     left = modelinfo(cm.left)
@@ -23,13 +24,19 @@ function Base.show(io::IO, cm::CompositeSpectralModel{M1,M2}) where {M1,M2}
 end
 
 __invoke_composite!(flux, energy, m::AbstractSpectralModel) = invoke!(flux, energy, m)
-__invoke_composite!(flux, energy, m::CompositeSpectralModel{M1, M2}) where {M1,M2} =
+__invoke_composite!(flux, energy, m::CompositeSpectralModel{M1,M2}) where {M1,M2} =
     __invoke_composite!(flux, zeros(eltype(flux), size(flux)), energy, m)
 
 # only used to make CompositeSpectralModel work with auto-allocations
-__invoke_composite!(flux, tmpflux, energy, m::AbstractSpectralModel) = __invoke_composite!(flux, energy, m)
+__invoke_composite!(flux, tmpflux, energy, m::AbstractSpectralModel) =
+    __invoke_composite!(flux, energy, m)
 # this could be a generated function
-function __invoke_composite!(flux, tmpflux, energy, m::CompositeSpectralModel{M1, M2}) where {M1,M2}
+function __invoke_composite!(
+    flux,
+    tmpflux,
+    energy,
+    m::CompositeSpectralModel{M1,M2},
+) where {M1,M2}
     __invoke_composite!(flux, tmpflux, energy, m.right)
 
     if modelkind(M1) === Convolutional
@@ -51,7 +58,7 @@ function __invoke_composite!(flux, tmpflux, energy, m::CompositeSpectralModel{M1
     flux
 end
 
-function Base.:+(m1::M1, m2::M2) where {M1 <: AbstractSpectralModel, M2 <: AbstractSpectralModel}
+function Base.:+(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralModel}
     if (modelkind(M1) === Additive) && (modelkind(M2) === Additive)
         CompositeSpectralModel(m1, m2)
     else
@@ -59,7 +66,7 @@ function Base.:+(m1::M1, m2::M2) where {M1 <: AbstractSpectralModel, M2 <: Abstr
     end
 end
 
-function Base.:*(m1::M1, m2::M2) where {M1 <: AbstractSpectralModel, M2 <: AbstractSpectralModel}
+function Base.:*(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralModel}
     if (modelkind(M1) === Multiplicative) && (modelkind(M2) === Additive)
         CompositeSpectralModel(m1, m2)
     else
@@ -67,7 +74,7 @@ function Base.:*(m1::M1, m2::M2) where {M1 <: AbstractSpectralModel, M2 <: Abstr
     end
 end
 
-function (m1::AbstractSpectralModel)(m2::M2) where {M2 <: AbstractSpectralModel}
+function (m1::AbstractSpectralModel)(m2::M2) where {M2<:AbstractSpectralModel}
     if (modelkind(typeof(m1)) === Convolutional) && (modelkind(M2) === Additive)
         CompositeSpectralModel(m1, m2)
     else

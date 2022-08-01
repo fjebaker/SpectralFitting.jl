@@ -20,10 +20,7 @@ unfreeze!(f::AbstractFitParameter) = f.frozen = false
 abstract type AbstractSpectralModel end
 modelkind(m::Type{<:AbstractSpectralModel}) = error("Not defined for $(typeof(m)).")
 function modelinfo(m::M) where {M<:AbstractSpectralModel}
-    params = join(
-        [value(getproperty(m, p)) for p in fieldnames(M)],
-        ", "
-    )
+    params = join([value(getproperty(m, p)) for p in fieldnames(M)], ", ")
     "$(Base.typename(M).name)[$(params)]"
 end
 invoke!(flux, energy, m::AbstractSpectralModel) = error("Not defined for $(typeof(m)).")

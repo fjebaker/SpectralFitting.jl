@@ -34,8 +34,7 @@ macro xspecmodel(model_kind, func_name, model)
     model_name = model.args[2].args[1]
     model_type_params = model.args[2].args[2]
     model_args_symbols = [
-        :($(i.args[1].args[1])) for
-        i in model_args.args if (i isa Expr) && (i.head == :(=))
+        :($(i.args[1].args[1])) for i in model_args.args if (i isa Expr) && (i.head == :(=))
     ]
     # remove normalisation as a parameter from Additive models
     if model_kind == :Additive
@@ -56,7 +55,7 @@ macro xspecmodel(model_kind, func_name, model)
             energy::AbstractArray,
             m::$(model_name);
             spectral_number = 1,
-            init_string = ""
+            init_string = "",
         )
             @assert length(flux) + 1 == length(energy)
             if length(UNTRACKED_ERROR) < length(flux)
