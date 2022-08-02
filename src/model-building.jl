@@ -97,8 +97,64 @@ end
 
 function build_simple(psm::ProcessedSpectralModel)
     func, fps = build_simple_no_eval(psm)
-    eval(func), fps
+    evaled_func = eval(func)
+    closure_wrapper = (args...) -> Base.invokelatest(evaled_func, args...)
+    closure_wrapper, fps
 end
 
+function __build_parameter_distribution_statements(params)
+    i = 0
+    statements = map(params) do (s, p)
+        if p.frozen
+            val = value(p)
+            :($s = $val)
+        else
+            i += 1
+            distr = if typeof(p) <: FitParameter
+                # use default distribution
+                val = value(p)
+                lb = lowerbound(p)
+                ub = upperbound(p) == Inf ? 1e6 : upperbound(p)
+                :(Turing.TruncatedNormal($val, 2.0, $lb, $ub))
+            elseif typeof(p) <: AbstractFitDistributionParameter
+                # ... TODO
+                p
+            else
+                error("Unknown fit parameter type $(typeof(p)).")
+            end
+            :($s ~ $distr)
+        end
+    end
+    statements
+end
 
-export build_simple, build_simple_no_eval
+function build_turing_no_eval(psm::ProcessedSpectralModel)
+    statements = __build_statements(psm.expression, Dict(psm.models))
+    model_instances = __build_model_instance(psm.models, psm.modelparams)
+    parameters = __build_parameter_distribution_statements(psm.parameters)
+
+    :(
+        begin
+            (target, energy, error, channels, flux1, flux2, flux3) -> begin
+                Turing.@model function __wrapped_mcmc_func(target)
+                    $(parameters...)
+                    $(model_instances...)
+                    $(statements...)
+
+                    for (i, j) in enumerate(channels)
+                        target[i] ~ Turing.Normal(flux1[j], error[i])
+                    end
+                end
+
+                __wrapped_mcmc_func(target)
+            end
+        end
+    )
+end
+
+function build_turing(psm::ProcessedSpectralModel)
+    evaled_func = build_turing_no_eval(psm) |> eval
+    closure_wrapper = (args...) -> Base.invokelatest(evaled_func, args...)
+end
+
+export build_simple, build_simple_no_eval, build_turing, build_turing_no_eval
