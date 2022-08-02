@@ -10,7 +10,7 @@ function resolve_flux_combine!(flux_count, op)
     flux_left = Symbol(:flux, flux_count[] - 1)
     flux_count[] -= 1
     expr = Expr(:call, op, flux_left, flux_right)
-    :(@.( $flux_left = $expr ))
+    :(@.($flux_left = $expr))
 end
 
 function __build_statements(expression, models)
@@ -83,14 +83,12 @@ function build_simple(psm::ProcessedSpectralModel)
     statements = __build_statements(psm.expression, Dict(psm.models))
     model_instances = __build_model_instance(psm.models, psm.modelparams)
     parameters, fps = __build_parameter_statements(psm.parameters)
-    func = :(
-        (flux1, flux2, flux3, energy, params) -> begin
-            $(parameters...)
-            $(model_instances...)
-            $(statements...)
-            return flux1
-        end
-    ) |> eval
+    func = :((flux1, flux2, flux3, energy, params) -> begin
+        $(parameters...)
+        $(model_instances...)
+        $(statements...)
+        return flux1
+    end) |> eval
 
     func, fps
 end
