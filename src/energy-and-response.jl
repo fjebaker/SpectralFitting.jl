@@ -1,4 +1,4 @@
-export ResponseMatrix, foldresponse, energybins, energy_to_channel, rebinflux
+export ResponseMatrix, foldresponse, energybins, energy_to_channel, rebinflux, makeflux, makefluxes
 
 struct ResponseMatrix{T,E}
     matrix::SparseMatrixCSC{T,Int64}
@@ -64,7 +64,7 @@ function rebinflux(flux, curr_energy, first_E_min::Number, E_max_array::Abstract
         @views out_flux[flux_index] += ratio * flux[next_i-1]
 
         # if not at end of flux array, carry over
-        if flux_index <= N
+        if flux_index < N
             out_flux[flux_index+1] += (1 - ratio) * flux[next_i-1]
         end
         current_i = next_i
@@ -80,4 +80,13 @@ function foldresponse(rmf::ResponseMatrix, flux, energy)
     else
         foldresponse(rmf, flux)
     end
+end
+
+makeflux(rmf::ResponseMatrix) = makeflux(eltype(rmf.ebins.E_MIN), nrow(rmf.ebins))
+makeflux(energy) = makeflux(eltype(energy), length(energy) - 1)
+makeflux(T::Type, length::Number) = zeros(T, length)
+
+function makefluxes(energy_or_rmf)
+    flux = makeflux(energy_or_rmf)
+    flux, deepcopy(flux), deepcopy(flux)
 end
