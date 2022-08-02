@@ -1,38 +1,3 @@
-struct ResponseMatrix{T,E}
-    matrix::SparseMatrixCSC{T,Int64}
-    ebins::E
-end
-
-foldflux(flux, rmf::ResponseMatrix) = rmf.matrix * flux
-Base.:*(rmf::ResponseMatrix, flux) = rmf.matrix * flux
-
-function energybins(rmf::ResponseMatrix{T}) where {T}
-    energy = zeros(T, length(rmf.ebins.E_MAX) + 1)
-    energy[1:end-1] .= rmf.ebins.E_MIN
-    energy[end] = rmf.ebins.E_MAX[end]
-    energy
-end
-
-function Base.show(
-    io::IO,
-    ::MIME{Symbol("text/plain")},
-    rmf::ResponseMatrix{E,M},
-) where {E,M}
-    nchans = nrow(rmf.ebins)
-    println(io, "ReponseMatrix with $nchans channels:")
-    Base.print_array(io, rmf.matrix)
-end
-
-function energy_to_channel(energy, ebins)
-    for j in eachrow(ebins)
-        if (energy ≥ j.E_MIN) && (j.E_MAX > energy)
-            return convert(Int64, j.CHANNEL)
-        end
-    end
-    # for type stability
-    return -1
-end
-
 function build_matrix_response!(R, table, ebins, matrix_lookup)
     for (i, row) in enumerate(eachrow(table))
         M = matrix_lookup[i]
@@ -80,4 +45,4 @@ function augment_energy_channel(grp, rmf::ResponseMatrix)
     joined
 end
 
-export ResponseMatrix, foldflux, load_response_file, augment_energy_channel, energybins
+export load_response_file, augment_energy_channel

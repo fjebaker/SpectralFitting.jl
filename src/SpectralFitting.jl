@@ -18,6 +18,7 @@ include("ccall-wrapper.jl")
 include("composite-models.jl")
 include("model-processing.jl")
 include("model-building.jl")
+include("energy-and-response.jl")
 include("file-io.jl")
 
 
