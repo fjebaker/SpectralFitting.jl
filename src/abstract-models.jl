@@ -1,4 +1,4 @@
-export AbstractSpectralModel, modelkind, invokemodel!
+export AbstractSpectralModel, modelkind, invokemodel!, value, upperbound, lowerbound
 
 # traits
 abstract type AbstractSpectralModelKind end
@@ -10,8 +10,8 @@ struct Convolutional <: AbstractSpectralModelKind end
 abstract type AbstractFitParameter end
 value(f::AbstractFitParameter) = f.val
 value(x::Number) = x
-upperbound(f::AbstractFitParameter) = f.ub
-lowerbound(f::AbstractFitParameter) = f.lb
+upperbound(f::AbstractFitParameter) = f.upper_bound
+lowerbound(f::AbstractFitParameter) = f.lower_bound
 isfrozen(f::AbstractFitParameter) = f.frozen
 freeze!(f::AbstractFitParameter) = f.frozen = true
 unfreeze!(f::AbstractFitParameter) = f.frozen = false
@@ -29,7 +29,7 @@ invoke!(flux, energy, m::AbstractSpectralModel) = error("Not defined for $(typeo
 function invokemodel!(flux, energy, m::M) where {M<:AbstractSpectralModel}
     if modelkind(M) == Additive
         invoke!(flux, energy, m)
-        flux .*= value(m.K)
+        flux ./= value(m.K)
     else
         invoke!(flux, energy, m)
     end

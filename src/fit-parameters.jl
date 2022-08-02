@@ -1,3 +1,5 @@
+export FitParameter
+
 mutable struct FitParameter{T} <: AbstractFitParameter
     val::T
     lower_bound::T
