@@ -1,4 +1,5 @@
-export ResponseMatrix, foldresponse, energybins, energy_to_channel, rebinflux, makeflux, makefluxes
+export ResponseMatrix,
+    foldresponse, energybins, energy_to_channel, rebinflux, makeflux, makefluxes
 
 struct ResponseMatrix{T,E}
     matrix::SparseMatrixCSC{T,Int64}
