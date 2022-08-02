@@ -78,20 +78,27 @@ function __build_parameter_statements(params)
     statements, fps
 end
 
-function build_simple(psm::ProcessedSpectralModel)
+function build_simple_no_eval(psm::ProcessedSpectralModel)
     statements = __build_statements(psm.expression, Dict(psm.models))
     model_instances = __build_model_instance(psm.models, psm.modelparams)
     parameters, fps = __build_parameter_statements(psm.parameters)
 
     func = :((flux1, flux2, flux3, energy, params) -> begin
-        $(parameters...)
-        $(model_instances...)
-        $(statements...)
-        return flux1
-    end) |> eval
+        @fastmath @inbounds begin
+            $(parameters...)
+            $(model_instances...)
+            $(statements...)
+            return flux1
+        end
+    end)
 
     func, fps
 end
 
+function build_simple(psm::ProcessedSpectralModel)
+    func, fps = build_simple_no_eval(psm)
+    eval(func), fps
+end
 
-export build_simple
+
+export build_simple, build_simple_no_eval
