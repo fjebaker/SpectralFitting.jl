@@ -17,6 +17,7 @@ include("fit-parameters.jl")
 include("ccall-wrapper.jl")
 include("composite-models.jl")
 include("model-processing.jl")
+include("model-building.jl")
 
 
 # include xspec models

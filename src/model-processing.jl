@@ -21,9 +21,9 @@ function modelinfo(m::ProcessedSpectralModel)
         )
 
         write(io, "  Models:\n")
-        model_infos = map(m.models) do (s, model)
+        model_infos = map(m.models) do (s, M)
             params = join(m.modelparams[s], ", ")
-            Base.typename(typeof(model)).name, s, params
+            Base.typename(M).name, s, params
         end
 
         model_pad = maximum(length.(String.(first.(model_infos))))
@@ -40,29 +40,43 @@ function modelinfo(m::ProcessedSpectralModel)
     String(take!(io))
 end
 
+readable_model_expression(psm::ProcessedSpectralModel) =
+    readable_model_expression(psm.expression)
+readable_model_expression(symb::Symbol) = symb
+
 function readable_model_expression(expr::Pair)
+    recursive_expression_call(expr) do (left, right, op)
+        if isnothing(op)
+            :($(left)($right))
+        else
+            if op == :*
+                :($left * $right)
+            else
+                :($left + $right)
+            end
+        end
+    end
+end
+
+
+recursive_expression_call(func, psm::ProcessedSpectralModel) =
+    recursive_expression_call(func, psm.expression)
+
+function recursive_expression_call(func, expr::Pair)
     right_expr, (op, left_expr) = expr
 
     if typeof(right_expr) !== Symbol
-        right = readable_model_expression(right_expr)
+        right = recursive_expression_call(func, right_expr)
     else
         right = right_expr
     end
     if typeof(left_expr) !== Symbol
-        left = readable_model_expression(left_expr)
+        left = recursive_expression_call(func, left_expr)
     else
         left = left_expr
     end
 
-    if isnothing(op)
-        :($(left)($right))
-    else
-        if op == :*
-            :($left * $right)
-        else
-            :($left + $right)
-        end
-    end
+    func((left, right, op))
 end
 
 function Base.show(io::IO, ::MIME{Symbol("text/plain")}, m::ProcessedSpectralModel)
@@ -155,7 +169,10 @@ function processmodel(cm::AbstractSpectralModel)
 
     expr = assemble_symbols!(tracker, cm)
     model_to_params, all_params = unpack_model_parameters(tracker.sym_model)
-    ProcessedSpectralModel(expr, tracker.sym_model, all_params, model_to_params)
+    models = map(tracker.sym_model) do (s, m)
+        s => typeof(m)
+    end
+    ProcessedSpectralModel(expr, models, all_params, model_to_params)
 end
 
 # function build_lsqfit(pm::ProcessedSpectralModel)
