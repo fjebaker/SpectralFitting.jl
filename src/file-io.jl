@@ -45,4 +45,12 @@ function augment_energy_channel(grp, rmf::ResponseMatrix)
     joined
 end
 
-export load_response_file, augment_energy_channel
+function load_spectral_dataset(pha_path, rmf_path)
+    fgrp = FITS(pha_path)
+    raw_grp = DataFrame(fgrp[2])
+    rmf = load_response_file(rmf_path)
+    grp = augment_energy_channel(raw_grp, rmf)
+    (grp, rmf)
+end
+
+export load_response_file, augment_energy_channel, load_spectral_dataset
