@@ -17,7 +17,7 @@ function __build_statements(expression, models)
     flux_count = Ref(0)
     statements = Expr[]
     recursive_expression_call(expression) do (left, right, op)
-        @assert flux_count[] < 3 error("Flux count exceeded 3.")
+        @assert flux_count[] < 4 error("Flux count exceeded 3.")
 
         if typeof(right) === Symbol
             M = modelkind(models[right])
@@ -27,7 +27,6 @@ function __build_statements(expression, models)
 
         if typeof(left) === Symbol
             M = modelkind(models[left])
-
             if M === Multiplicative
                 push!(statements, add_flux_count!(flux_count, left))
                 push!(statements, resolve_flux_combine!(flux_count, op))
@@ -41,7 +40,7 @@ function __build_statements(expression, models)
         elseif isnothing(left)
             push!(statements, resolve_flux_combine!(flux_count, :(+)))
         else
-            error("Left should always be a symbol.")
+            error("Left should always be a symbol or nothing.")
         end
 
         nothing
@@ -83,6 +82,7 @@ function build_simple(psm::ProcessedSpectralModel)
     statements = __build_statements(psm.expression, Dict(psm.models))
     model_instances = __build_model_instance(psm.models, psm.modelparams)
     parameters, fps = __build_parameter_statements(psm.parameters)
+
     func = :((flux1, flux2, flux3, energy, params) -> begin
         $(parameters...)
         $(model_instances...)

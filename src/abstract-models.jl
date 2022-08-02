@@ -1,4 +1,4 @@
-export AbstractSpectralModel, modelkind, invokemodel!
+export AbstractSpectralModel, modelkind, invokemodel!, value, upperbound, lowerbound
 
 # traits
 abstract type AbstractSpectralModelKind end
@@ -29,7 +29,7 @@ invoke!(flux, energy, m::AbstractSpectralModel) = error("Not defined for $(typeo
 function invokemodel!(flux, energy, m::M) where {M<:AbstractSpectralModel}
     if modelkind(M) == Additive
         invoke!(flux, energy, m)
-        flux .*= value(m.K)
+        flux ./= value(m.K)
     else
         invoke!(flux, energy, m)
     end

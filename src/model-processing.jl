@@ -1,10 +1,27 @@
-export processmodel
+export processmodel, freeze!, unfreeze!
 
 struct ProcessedSpectralModel{E,M,P,L}
     expression::E
     models::M
     parameters::P
     modelparams::L
+end
+
+function setfreeze!(psm::ProcessedSpectralModel, state::Bool, symbs::Vararg{Symbol})
+    foreach(psm.parameters) do (s, p)
+        if s in symbs
+            p.frozen = state
+        end
+    end
+    psm.parameters
+end
+
+function freeze!(psm::ProcessedSpectralModel, symbs::Vararg{Symbol})
+    setfreeze!(psm, true, symbs...)
+end
+
+function unfreeze!(psm::ProcessedSpectralModel, symbs::Vararg{Symbol})
+    setfreeze!(psm, false, symbs...)
 end
 
 function modelinfo(m::ProcessedSpectralModel)
