@@ -1,10 +1,26 @@
-export processmodel, freeze!, unfreeze!
+export processmodel, freeze!, unfreeze!, setparams!
 
 struct ProcessedSpectralModel{E,M,P,L}
     expression::E
     models::M
     parameters::P
     modelparams::L
+end
+
+function setparams!(psm::ProcessedSpectralModel, symb, f)
+    i = findfirst(i -> first(i) == symb, psm.parameters)
+    if !isnothing(i)
+        psm.parameters[i] = f
+    else
+        error("No such parameter symbol: $symb.")
+    end
+end
+
+setparams!(psm::ProcessedSpectralModel, sf::Pair{Symbol,<:AbstractFitParameter}) =
+    setparams!(psm, first(sf), last(sf))
+
+function setparams!(psm::ProcessedSpectralModel, sfs::Pair{Symbol,<:AbstractFitParameter}...)
+    foreach(sf -> setparams!(psm, sf), sfs)
 end
 
 function setfreeze!(psm::ProcessedSpectralModel, state::Bool, symbs::Vararg{Symbol})
@@ -192,57 +208,3 @@ function processmodel(cm::AbstractSpectralModel)
     end
     ProcessedSpectralModel(expr, models, all_params, model_to_params)
 end
-
-# function build_lsqfit(pm::ProcessedSpectralModel)
-#     flux_calls = [:($name = $(model)(energy)) for (name, model) in getmodels(pm)]
-
-#     i = 1
-#     params = map(pm.parameters) do (p, f)
-#         if f.frozen
-#             val = value(f)
-#             :($p = $val)
-#         else
-#             i += 1
-#             :($p = params[$(i-1)])
-#         end
-#     end
-
-#     # params = [:($p = params[$i]) for (i, p) in enumerate(first.(pm.parameters))]
-#     func = :((energy, params) -> begin
-#         $(params...)
-#         $(flux_calls...)
-#         res = @. $(pm.expression)
-#         @view res[1:end-1]
-#     end) |> eval
-
-#     fs = last.(getfreeparams(pm))
-#     # model, p0, lower bounds, upper bounds
-#     func, value.(fs), lowerbound.(fs), upperbound.(fs)
-# end
-
-# export processmodel, ProcessedSpectralModel, getmodels, build_lsqfit, FitParameter, value, freeze!, unfreeze!
-
-
-# #=
-# flux1
-# flux2
-# flux3
-
-# # m3(m1 * a1 + c1(m2 * a2)) + a3
-
-# a1 = XS_Powerlaw(...)
-# #...
-
-# invoke!(flux1, a1)
-# invoke!(flux2, m1)
-# @. flux1 *= flux2
-# invoke!(flux2, a2)
-# invoke!(flux3, m2)
-# @. flux2 *= flux3
-# invoke!(flux2, c1)
-# @. flux1 += flux2
-# invoke!(flux2, a3)
-# @. flux1 += flux3
-
-# return flux1
-# =#

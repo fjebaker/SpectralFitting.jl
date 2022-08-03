@@ -38,6 +38,7 @@ maxenergybins(sd::AbstractCommonSpectralDataset) = sd.dataframe.E_MAX
 energybinwidths(sd::AbstractCommonSpectralDataset) = sd.dataframe.E_DELTA
 channels(sd::AbstractCommonSpectralDataset) = sd.dataframe.CHANNEL
 
+# maybe use deleteat! ? instead
 dropbadchannels!(sd::AbstractCommonSpectralDataset; quality = 0) =
     sd.dataframe = sd.dataframe[sd.dataframe.QUALITY.==quality, :]
 setEmax!(sd::AbstractCommonSpectralDataset, emax) =

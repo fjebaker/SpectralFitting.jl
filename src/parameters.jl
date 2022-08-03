@@ -21,10 +21,11 @@ end
 upperbound(f::StdFitParameter) = f.val + f.n_σ * f.std
 lowerbound(f::StdFitParameter) = f.val - f.n_σ * f.std
 setupperbound!(::StdFitParameter, _) =
-    @warn("Bound setting not supported for StdFitParameter: use `setstd!` instead.")
+    error("Bound setting not supported for StdFitParameter: use `setstd!` instead.")
 setlowerbound!(::StdFitParameter, _) =
-    @warn("Bound setting not supported for StdFitParameter: use `setstd!` instead.")
+    error("Bound setting not supported for StdFitParameter: use `setstd!` instead.")
 setstd!(f::StdFitParameter, std) = f.std = std
+std(f::StdFitParameter) = f.std
 
 mutable struct FitParameter{T} <: AbstractFitParameter
     val::T
@@ -44,4 +45,20 @@ function Base.show(io::IO, f::FitParameter)
     s = Printf.@sprintf "FitParameter[%g, lb: %g, ub: %g" f.val f.lower_bound f.upper_bound
     s *= (isfrozen(f) ? ", Frozen" : "") * "]"
     print(io, s)
+end
+
+
+function as_distribution(f::FitParameter)
+    val = value(f)
+    lb = lowerbound(f)
+    ub = upperbound(f)
+
+    (Turing.TruncatedNormal, (val, 2.0, lb, ub))
+end
+
+function as_distribution(f::StdFitParameter)
+    val = value(f)
+    dev = std(f)
+
+    (Turing.Normal, (val, dev))
 end

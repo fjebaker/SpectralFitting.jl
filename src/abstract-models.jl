@@ -1,4 +1,4 @@
-export AbstractSpectralModel, modelkind, invokemodel!, value, upperbound, lowerbound
+export AbstractSpectralModel, modelkind, invokemodel!, value, upperbound, lowerbound, as_distribution
 
 # traits
 abstract type AbstractSpectralModelKind end
@@ -17,7 +17,9 @@ setlowerbound!(f::AbstractFitParameter, lb) = f.lower_bound = lb
 setupperbound!(f::AbstractFitParameter, ub) = f.upper_bound = ub
 isfrozen(f::AbstractFitParameter) = f.frozen
 freeze!(f::AbstractFitParameter) = f.frozen = true
+
 unfreeze!(f::AbstractFitParameter) = f.frozen = false
+as_distribution(f::AbstractFitParameter) = error("Not implemented for $(typeof(f)).")
 
 # models
 abstract type AbstractSpectralModel end

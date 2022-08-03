@@ -102,6 +102,11 @@ function build_simple(psm::ProcessedSpectralModel)
     closure_wrapper, fps
 end
 
+function __process_fit_parameter(p::AbstractFitParameter)
+    type, args = as_distribution(p)
+    :($(type)($(args...)))
+end
+
 function __build_parameter_distribution_statements(params)
     i = 0
     statements = map(params) do (s, p)
@@ -110,18 +115,7 @@ function __build_parameter_distribution_statements(params)
             :($s = $val)
         else
             i += 1
-            distr = if typeof(p) <: FitParameter
-                # use default distribution
-                val = value(p)
-                lb = lowerbound(p)
-                ub = upperbound(p) == Inf ? 1e6 : upperbound(p)
-                :(Turing.TruncatedNormal($val, 2.0, $lb, $ub))
-            elseif typeof(p) <: AbstractFitDistributionParameter
-                # ... TODO
-                p
-            else
-                error("Unknown fit parameter type $(typeof(p)).")
-            end
+            distr = __process_fit_parameter(p)
             :($s ~ $distr)
         end
     end
@@ -154,7 +148,7 @@ end
 
 function build_turing(psm::ProcessedSpectralModel)
     evaled_func = build_turing_no_eval(psm) |> eval
-    closure_wrapper = (args...) -> Base.invokelatest(evaled_func, args...)
+    (args...) -> Base.invokelatest(evaled_func, args...)
 end
 
 export build_simple, build_simple_no_eval, build_turing, build_turing_no_eval
