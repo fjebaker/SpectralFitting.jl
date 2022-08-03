@@ -62,12 +62,12 @@ function __build_model_instance(models, modelparams)
 end
 
 function __build_parameter_statements(params)
-    fps = filter(!isfrozen, last.(params))
+    fps = filter(!is_frozen, last.(params))
 
     i = 0
     statements = map(params) do (s, p)
-        if isfrozen(p)
-            val = value(p)
+        if is_frozen(p)
+            val = get_value(p)
             :($s = $val)
         else
             i += 1
@@ -102,7 +102,7 @@ function build_simple(psm::ProcessedSpectralModel)
     closure_wrapper, fps
 end
 
-function __process_fit_parameter(p::AbstractFitParameter)
+function __process_fit_parameter(p::FitParam)
     type, args = as_distribution(p)
     :($(type)($(args...)))
 end
@@ -110,8 +110,8 @@ end
 function __build_parameter_distribution_statements(params)
     i = 0
     statements = map(params) do (s, p)
-        if isfrozen(p)
-            val = value(p)
+        if is_frozen(p)
+            val = get_value(p)
             :($s = $val)
         else
             i += 1

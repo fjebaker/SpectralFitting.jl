@@ -17,7 +17,7 @@ import Optimization
 import LsqFit
 
 include("abstract-models.jl")
-include("parameters.jl")
+include("fitparam.jl")
 include("ccall-wrapper.jl")
 include("composite-models.jl")
 include("model-processing.jl")

@@ -41,7 +41,7 @@ macro xspecmodel(model_kind, func_name, model)
         deleteat!(model_args_symbols, 1)
     end
 
-    parsed_model_args = [:(value(m.$i)) for i in model_args_symbols]
+    parsed_model_args = [:(get_value(m.$i)) for i in model_args_symbols]
 
     quote
         @with_kw struct $(model_name){$(model_type_params)} <: AbstractSpectralModel

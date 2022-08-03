@@ -39,15 +39,14 @@ function __fitparams!(
     channels;
     kwargs...,
 )
-    fit = __lsq_fit(model, value.(params), lowerbound.(params), upperbound.(params), rmf, target, error_target, energy, channels; kwargs...)
+    fit = __lsq_fit(model, get_value.(params), get_lowerlimit.(params), get_upperlimit.(params), rmf, target, error_target, energy, channels; kwargs...)
 
     means = LsqFit.coef(fit)
     errs = LsqFit.stderror(fit)
 
     for (p, m, e) in zip(params, means, errs)
-        setvalue!(p, m)
-        setlowerbound!(p, m - e)
-        setupperbound!(p, m + e)
+        set_value!(p, m)
+        set_error!(p, e)
     end
 
     fit
