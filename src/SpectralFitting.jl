@@ -23,8 +23,11 @@ include("composite-models.jl")
 include("model-processing.jl")
 include("model-building.jl")
 include("energy-and-response.jl")
+include("datasets.jl")
 include("file-io.jl")
 include("fitting.jl")
+
+include("plotting-recipes.jl")
 
 
 # include xspec models

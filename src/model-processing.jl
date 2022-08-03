@@ -8,9 +8,10 @@ struct ProcessedSpectralModel{E,M,P,L}
 end
 
 function setfreeze!(psm::ProcessedSpectralModel, state::Bool, symbs::Vararg{Symbol})
+    action! = state ? freeze! : unfreeze!
     foreach(psm.parameters) do (s, p)
         if s in symbs
-            p.frozen = state
+            action!(p)
         end
     end
     psm.parameters
@@ -166,7 +167,7 @@ function unpack_model_parameters(sym_model)
                 i += 1
                 symb = Symbol(p, '_', i)
             end
-            push!(all_params, symb => getproperty(m, p))
+            push!(all_params, symb => deepcopy(getproperty(m, p)))
             symb
         end
         s => model_params
