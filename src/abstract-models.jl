@@ -6,12 +6,15 @@ struct Multiplicative <: AbstractSpectralModelKind end
 struct Additive <: AbstractSpectralModelKind end
 struct Convolutional <: AbstractSpectralModelKind end
 
-# fitting paramters
+# fitting parameters
 abstract type AbstractFitParameter end
 value(f::AbstractFitParameter) = f.val
 value(x::Number) = x
+setvalue!(f::AbstractFitParameter, val) = f.val = val
 upperbound(f::AbstractFitParameter) = f.upper_bound
 lowerbound(f::AbstractFitParameter) = f.lower_bound
+setlowerbound!(f::AbstractFitParameter, lb) = f.lower_bound = lb
+setupperbound!(f::AbstractFitParameter, ub) = f.upper_bound = ub
 isfrozen(f::AbstractFitParameter) = f.frozen
 freeze!(f::AbstractFitParameter) = f.frozen = true
 unfreeze!(f::AbstractFitParameter) = f.frozen = false

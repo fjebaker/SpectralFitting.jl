@@ -66,7 +66,7 @@ function __build_parameter_statements(params)
 
     i = 0
     statements = map(params) do (s, p)
-        if p.frozen
+        if isfrozen(p)
             val = value(p)
             :($s = $val)
         else
@@ -105,7 +105,7 @@ end
 function __build_parameter_distribution_statements(params)
     i = 0
     statements = map(params) do (s, p)
-        if p.frozen
+        if isfrozen(p)
             val = value(p)
             :($s = $val)
         else
@@ -135,7 +135,7 @@ function build_turing_no_eval(psm::ProcessedSpectralModel)
 
     :(
         begin
-            (target, energy, error, channels, flux1, flux2, flux3) -> begin
+            (energy, target, error, channels, flux1, flux2, flux3) -> begin
                 Turing.@model function __wrapped_mcmc_func(target)
                     $(parameters...)
                     $(model_instances...)

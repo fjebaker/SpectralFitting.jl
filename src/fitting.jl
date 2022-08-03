@@ -2,18 +2,36 @@ export fitparams!
 
 function fitparams!(
     psm::ProcessedSpectralModel,
-    rmf::ResponseMatrix,
-    grp,
-    energy = energybins(rmf);
+    dataset::AbstractSpectralDataset,
+    energy = rmfenergybins(dataset);
     kwargs...,
 )
-    target = grp.RATE ./ grp.E_DELTA
-    error_target = grp.STAT_ERR ./ grp.E_DELTA
-    __fitparams!(psm, rmf, target, error_target, energy, grp.CHANNEL; kwargs...)
+    model, params = build_simple(psm)
+    fitparams!(params, model, dataset, energy; kwargs...)
+end
+
+function fitparams!(
+    params,
+    model,
+    dataset::AbstractSpectralDataset,
+    energy = rmfenergybins(dataset);
+    kwargs...,
+)
+    __fitparams!(
+        params,
+        model,
+        response(dataset),
+        countbins(dataset),
+        counterrors(dataset),
+        energy,
+        channels(dataset);
+        kwargs...,
+    )
 end
 
 function __fitparams!(
-    psm::ProcessedSpectralModel,
+    params,
+    model,
     rmf::ResponseMatrix,
     target,
     error_target,
@@ -21,16 +39,15 @@ function __fitparams!(
     channels;
     kwargs...,
 )
-    model, params = build_simple(psm)
     fit = __lsq_fit(model, params, rmf, target, error_target, energy, channels; kwargs...)
 
     means = LsqFit.coef(fit)
     errs = LsqFit.stderror(fit)
 
-    for (p, m, e) in zip(filter(!isfrozen, last.(psm.parameters)), means, errs)
-        p.val = m
-        p.lower_bound = m - 2e
-        p.upper_bound = m + 2e
+    for (p, m, e) in zip(params, means, errs)
+        setvalue!(p, m)
+        setlowerbound!(p, m - 2e)
+        setupperbound!(p, m + 2e)
     end
 
     fit
@@ -38,9 +55,6 @@ end
 
 function __lsq_fit(model, params, rmf, target, error_target, energy, channels; kwargs...)
     p0 = value.(params)
-
-    @show p0
-    @show size(energy)
 
     fluxes = makefluxes(energy)
     foldedmodel(x, p) = @views foldresponse(rmf, model(fluxes..., x, p), x)[channels]
