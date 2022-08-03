@@ -129,35 +129,37 @@ end
 
 # ..... #
 
-function assemble_symbols!(tracker, m::M) where {M<:AbstractSpectralModel}
-    if modelkind(M) === Additive
-        s = Symbol('a', tracker.additive[])
-        push!(tracker.sym_model, s => m)
-        tracker.additive[] += 1
-        s
-    elseif modelkind(M) === Multiplicative
-        s = Symbol('m', tracker.multiplicative[])
-        push!(tracker.sym_model, s => m)
-        tracker.multiplicative[] += 1
-        s
-    else
-        s = Symbol('c', tracker.convolutional[])
-        push!(tracker.sym_model, s => m)
-        tracker.convolutional[] += 1
-        s
-    end
+process_model_symbols!(tracker, ::M) where {M} = process_model_symbols!(tracker, modelkind(M))
+function process_model_symbols!(tracker, ::Additive)
+    s = Symbol('a', tracker.additive[])
+    tracker.additive[] += 1
+    s
 end
+function process_model_symbols!(tracker, ::Multiplicative)
+    s = Symbol('m', tracker.multiplicative[])
+    tracker.multiplicative[] += 1
+    s
+end
+function process_model_symbols!(tracker, ::Convolutional)
+    s = Symbol('c', tracker.convolutional[])
+    tracker.convolutional[] += 1
+    s
+end
+
+function assemble_symbols!(tracker, m::M) where {M<:AbstractSpectralModel}
+    s = process_model_symbols!(tracker, m)
+    push!(tracker.sym_model, s => m)
+    s
+end
+
+get_operation(::Multiplicative) = :(*)
+get_operation(::Additive) = :(+)
+get_operation(::Convolutional) = nothing
 
 function assemble_symbols!(tracker, cm::CompositeSpectralModel{M1,M2}) where {M1,M2}
     left = assemble_symbols!(tracker, cm.left)
     right = assemble_symbols!(tracker, cm.right)
-    op = if modelkind(M1) === Multiplicative
-        :(*)
-    elseif modelkind(M1) === Additive
-        :(+)
-    else
-        nothing
-    end
+    op = get_operation(modelkind(M1))
     right => (op, left)
 end
 

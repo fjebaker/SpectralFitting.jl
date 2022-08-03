@@ -57,13 +57,13 @@ end
     foldedmodel(x, p) = @views foldresponse(rmf, model(fluxes..., x, p), x)[channels]
 
     # seems to cause nans and infs
-    # cov_err = 1 ./ (error_target .^ 2)
+    cov_err = 1 ./ (error_target .^ 2)
 
     fit = LsqFit.curve_fit(
         foldedmodel,
         energy,
         target,
-        # cov_err,
+        cov_err,
         p0;
         lower = lb,
         upper = ub,

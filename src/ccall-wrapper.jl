@@ -48,7 +48,7 @@ macro xspecmodel(model_kind, func_name, model)
             $(model.args[3].args...)
         end
 
-        modelkind(::Type{<:$(model_name)}) = $(model_kind)
+        modelkind(::Type{<:$(model_name)}) = $(model_kind)()
 
         function invoke!(
             flux::AbstractArray,

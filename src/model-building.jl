@@ -13,34 +13,33 @@ function resolve_flux_combine!(flux_count, op)
     :(@.($flux_left = $expr))
 end
 
+function add_statements!(statements, flux_count, symb, op, ::Union{Additive,Multiplicative})
+    push!(statements, add_flux_count!(flux_count, symb))
+    push!(statements, resolve_flux_combine!(flux_count, op))
+end
+function add_statements!(statements, flux_count, symb, _, ::Convolutional)
+    flux = Symbol(:flux, flux_count[])
+    push!(statements, :(invokemodel!($flux, energy, $symb)))
+end
 function __build_statements(expression, models)
     flux_count = Ref(0)
     statements = Expr[]
     recursive_expression_call(expression) do (left, right, op)
         @assert flux_count[] < 4 error("Flux count exceeded 3.")
 
-        if typeof(right) === Symbol
+        if typeof(right) <: Symbol
             M = modelkind(models[right])
-            @assert (M === Additive) error("Right, if symbol, should be Additive.")
+            @assert (M isa Additive) error("Right, if symbol, should be Additive.")
             push!(statements, add_flux_count!(flux_count, right))
         end
 
-        if typeof(left) === Symbol
+        if typeof(left) <: Symbol
             M = modelkind(models[left])
-            if M === Multiplicative
-                push!(statements, add_flux_count!(flux_count, left))
-                push!(statements, resolve_flux_combine!(flux_count, op))
-            elseif M === Convolutional
-                flux = Symbol(:flux, flux_count[])
-                push!(statements, :(invokemodel!($flux, energy, $left)))
-            else
-                error("Unrecognised model type $M.")
-            end
-
+            add_statements!(statements, flux_count, left, op, M)
         elseif isnothing(left)
             push!(statements, resolve_flux_combine!(flux_count, :(+)))
         else
-            error("Left should always be a symbol or nothing.")
+            error("Left should always be a symbol or nothing: $left")
         end
 
         nothing
