@@ -24,8 +24,23 @@ end
 numbertype(m::AbstractSpectralModel) = Sys.WORD_SIZE == 64 ? Float64 : Float32
 
 invokemodel!(flux, energy, m::M) where {M<:AbstractSpectralModel} = invokemodel!(flux, energy, m, modelkind(M))
-invokemodel!(flux, energy, model, ::K) where {K} = invoke!(flux, energy, model)
-function invokemodel!(flux, energy, model, ::Additive)
+function invokemodel!(flux, energy, model, ::K) where {K}
+    invoke!(flux, energy, model)
+    flux
+end
+@fastmath function invokemodel!(flux, energy, model, ::Additive)
     invoke!(flux, energy, model)
     flux ./= get_value(model.K)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", m::M) where {M<:AbstractSpectralModel}
+    params = [String(p) => getproperty(m, p) for p in fieldnames(M)]
+    print(io, "$(Base.typename(M).name)\n")
+
+    pad = maximum(i -> length(first(i)), params) + 1
+
+    for (s, val) in params
+        print(io, "   $(rpad(s, pad)) => ")
+        println(io, val)
+    end
 end
