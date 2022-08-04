@@ -49,6 +49,7 @@ macro xspecmodel(model_kind, func_name, model)
         end
 
         modelkind(::Type{<:$(model_name)}) = $(model_kind)()
+        implementation(::Type{<:$(model_name)}) = XSPECImplementation()
 
         function invoke!(
             flux::AbstractArray,
