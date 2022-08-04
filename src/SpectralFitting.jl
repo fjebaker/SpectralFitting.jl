@@ -19,6 +19,7 @@ import LsqFit
 include("abstract-models.jl")
 include("fitparam.jl")
 include("ccall-wrapper.jl")
+include("surrogate-models.jl")
 include("composite-models.jl")
 include("model-processing.jl")
 include("model-building.jl")

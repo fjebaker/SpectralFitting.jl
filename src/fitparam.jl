@@ -1,6 +1,6 @@
 function fit_param_default_error(val)
     # 10 % error
-    round(abs(0.1 * val), sigdigits=1)
+    round(abs(0.1 * val), sigdigits = 1)
 end
 
 mutable struct FitParam{T}
@@ -13,15 +13,12 @@ mutable struct FitParam{T}
     frozen::Bool
 
     FitParam(
-        val::T
-        ;
+        val::T;
         lower_limit = T(0.0),
         upper_limit = T(Inf),
         error = fit_param_default_error(val),
-        frozen = false
-    ) where {T} = new{T}(
-        val, error, lower_limit, upper_limit, frozen
-    )
+        frozen = false,
+    ) where {T} = new{T}(val, error, lower_limit, upper_limit, frozen)
 end
 
 function get_info_tuple(f::FitParam)
@@ -72,9 +69,20 @@ set_freeze!(f::FitParam, state) = f.frozen = state
 freeze!(f::FitParam) = set_freeze!(f, true)
 unfreeze!(f::FitParam) = set_freeze!(f, false)
 
-as_distribution(f::FitParam) = (Turing.TruncatedNormal, (f.value, f.error, f.lower_limit, f.upper_limit))
+as_distribution(f::FitParam) =
+    (Turing.TruncatedNormal, (f.value, f.error, f.lower_limit, f.upper_limit))
 
 
-export FitParam, set_value!, set_error!, get_value,
-    get_error, get_upperlimit, get_lowerlimit, is_frozen,
-    set_freeze!, freeze!, unfreeze!, as_distribution, print_info
+export FitParam,
+    set_value!,
+    set_error!,
+    get_value,
+    get_error,
+    get_upperlimit,
+    get_lowerlimit,
+    is_frozen,
+    set_freeze!,
+    freeze!,
+    unfreeze!,
+    as_distribution,
+    print_info

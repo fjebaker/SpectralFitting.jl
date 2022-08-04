@@ -10,7 +10,7 @@ foldresponse(rmf::ResponseMatrix, flux) = rmf.matrix * flux
 Base.:*(rmf::ResponseMatrix, flux) = rmf.matrix * flux
 
 function energybins(rmf::ResponseMatrix{T}) where {T}
-    energy = zeros(T, length(rmf.ebins.E_MAX) + 1)
+    energy = zeros(T, nrow(rmf.ebins) + 1)
     energy[1:end-1] .= rmf.ebins.E_MIN
     energy[end] = rmf.ebins.E_MAX[end]
     energy
