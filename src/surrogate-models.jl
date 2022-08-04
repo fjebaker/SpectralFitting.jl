@@ -12,7 +12,15 @@ struct SurrogateSpectralModel{K,S,P,Z} <: AbstractSpectralModel
 end
 
 constructionkind(::Type{<:SurrogateSpectralModel}) = NonTrivialConstruction()
-get_parameter_symbols(::Type{<:SurrogateSpectralModel{K,S,P,Z}}) where {K,S,P,Z} = Z
+get_parameter_symbols(m::SurrogateSpectralModel) = m.params_symbols
+function get_parameter(m::SurrogateSpectralModel, s::Symbol)
+    i = findfirst(==(s), m.params_symbols)
+    if !isnothing(i)
+        m.params[i]
+    else
+        error("No such symbol: $s")
+    end
+end
 
 modelkind(::Type{<:SurrogateSpectralModel{Additive}}) = Additive()
 modelkind(::Type{<:SurrogateSpectralModel{Multiplicative}}) = Multiplicative()

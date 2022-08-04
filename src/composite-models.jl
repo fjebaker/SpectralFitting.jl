@@ -64,9 +64,9 @@ function Base.:+(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSp
     add_models(m1, m2, modelkind(M1), modelkind(M2))
 end
 
-mult_models(m1, m2, ::Multiplicative, ::Additive) = CompositeSpectralModel(m1, m2)
-mult_models(_, _, ::M1, ::M2) where {M1,M2} =
-    error("Left model must be Multiplicative and right model must be Additive.")
+mult_models(m1, m2, ::Multiplicative, ::AbstractSpectralModelKind) =
+    CompositeSpectralModel(m1, m2)
+mult_models(_, _, ::M1, ::M2) where {M1,M2} = error("Left model must be Multiplicative.")
 mult_models(m1::M1, m2::M2) where {M1,M2} =
     mult_models(m1, m2, modelkind(M1), modelkind(M2))
 function Base.:*(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralModel}

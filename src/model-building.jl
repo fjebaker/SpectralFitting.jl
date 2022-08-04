@@ -1,5 +1,10 @@
+function add_calculate_flux!(flux_count, symb, ::Convolutional)
+    # does not increase flux count
+    flux = Symbol(:flux, flux_count[])
+    :(invokemodel!($flux, energy, $symb))
+end
 
-function add_flux_count!(flux_count, symb)
+function add_calculate_flux!(flux_count, symb, ::AbstractSpectralModelKind)
     i = (flux_count[] += 1)
     flux = Symbol(:flux, i)
     :(invokemodel!($flux, energy, $symb))
@@ -13,38 +18,29 @@ function resolve_flux_combine!(flux_count, op)
     :(@.($flux_left = $expr))
 end
 
-function add_statements!(statements, flux_count, symb, op, ::Union{Additive,Multiplicative})
-    push!(statements, add_flux_count!(flux_count, symb))
-    push!(statements, resolve_flux_combine!(flux_count, op))
-end
-function add_statements!(statements, flux_count, symb, ::Nothing, ::Convolutional)
-    flux = Symbol(:flux, flux_count[])
-    push!(statements, :(invokemodel!($flux, energy, $symb)))
-end
 function assemble_execution_statements(expression, models)
     flux_count = Ref(0)
     statements = Expr[]
     recursive_expression_call(expression) do (left, right, op)
-        @assert flux_count[] < 4 error("Flux count exceeded 3 ($(flux_count[]).")
-        if typeof(right) <: Symbol
+        @assert (0 ≤ (flux_count[]) < 4) error("Flux counts out of bounds $(flux_count[]).")
+        if right isa Symbol
             M = modelkind(models[right])
-            @assert (M isa Additive) error(
-                "Right, if symbol, should be Additive, but is $M.",
-            )
-            push!(statements, add_flux_count!(flux_count, right))
+            push!(statements, add_calculate_flux!(flux_count, right, M))
         end
-        if typeof(left) <: Symbol
+        if left isa Symbol
             M = modelkind(models[left])
-            add_statements!(statements, flux_count, left, op, M)
-        elseif isnothing(left)
-            push!(statements, resolve_flux_combine!(flux_count, :(+)))
-        else
-            error("Left should always be a symbol or nothing: $left.")
+            push!(statements, add_calculate_flux!(flux_count, left, M))
+        end
+        # catch case for Convolution operations
+        if !isnothing(op)
+            push!(statements, resolve_flux_combine!(flux_count, op))
         end
         nothing
     end
     statements
 end
+
+
 # edge-case when only one model
 function assemble_execution_statements(symbol::Symbol, _)
     [:(invokemodel!(flux1, energy, $symbol))]

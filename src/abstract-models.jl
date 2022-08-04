@@ -1,5 +1,14 @@
 export AbstractSpectralModel,
-    modelkind, invokemodel!, value, upperbound, lowerbound, as_distribution
+    modelkind,
+    invokemodel!,
+    value,
+    upperbound,
+    lowerbound,
+    as_distribution,
+    AbstractSpectralModelKind,
+    Multiplicative,
+    Additive,
+    Convolutional
 
 # traits
 abstract type AbstractSpectralModelKind end
@@ -28,16 +37,15 @@ function modelinfo(m::M) where {M<:AbstractSpectralModel}
 end
 
 numbertype(::AbstractSpectralModel) = Sys.WORD_SIZE == 64 ? Float64 : Float32
-get_parameter_symbols(::M) where {M<:AbstractSpectralModel} = get_parameter_symbols(M)
 # needed:
-get_parameter_symbols(::Type{M}) where {M<:AbstractSpectralModel} = fieldnames(M)
+get_parameter_symbols(::M) where {M<:AbstractSpectralModel} = fieldnames(M)
 get_parameter(m::AbstractSpectralModel, s::Symbol) = getproperty(m, s)
 # optional:
 get_all_parameters(m::M) where {M<:AbstractSpectralModel} =
-    (get_parameter(m, p) for p in get_parameter_symbols(M))
+    (get_parameter(m, p) for p in get_parameter_symbols(m))
 # todo: make this a proper iterator? also better name
 parameter_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
-    (p => get_parameter(m, p) for p in get_parameter_symbols(M))
+    (p => get_parameter(m, p) for p in get_parameter_symbols(m))
 model_type_name(::Type{M}) where {M<:AbstractSpectralModel} = Base.typename(M).name
 
 invokemodel!(flux, energy, m::M) where {M<:AbstractSpectralModel} =

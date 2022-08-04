@@ -99,13 +99,15 @@ recursive_expression_call(func, psm::ProcessedSpectralModel) =
     recursive_expression_call(func, psm.expression)
 
 function recursive_expression_call(func, expr::Pair)
-    right_expr, (op, left_expr) = expr
-    right =
-        typeof(right_expr) !== Symbol ? recursive_expression_call(func, right_expr) :
-        right_expr
+    left_expr, (op, right_expr) = expr
+    # very important is order here:
+    # left must be unpacked first to parse multiplicatives before additives
     left =
         typeof(left_expr) !== Symbol ? recursive_expression_call(func, left_expr) :
         left_expr
+    right =
+        typeof(right_expr) !== Symbol ? recursive_expression_call(func, right_expr) :
+        right_expr
     func((left, right, op))
 end
 
@@ -121,9 +123,9 @@ process_model_symbols!(tracker, ::Multiplicative) =
 process_model_symbols!(tracker, ::Convolutional) =
     add_model_symbol!('c', tracker.convolutional)
 
-function assemble_symbols!(tracker, m::M) where {M<:AbstractSpectralModel}
+function assemble_expression!(tracker, m::M) where {M<:AbstractSpectralModel}
     s = process_model_symbols!(tracker, m)
-    push!(tracker.model_symbols, s => m)
+    push!(tracker.symbol_to_model, s => m)
     s
 end
 
@@ -131,11 +133,11 @@ get_operation(::Multiplicative) = :(*)
 get_operation(::Additive) = :(+)
 get_operation(::Convolutional) = nothing
 
-function assemble_symbols!(tracker, cm::CompositeSpectralModel{M1,M2}) where {M1,M2}
-    left = assemble_symbols!(tracker, cm.left)
-    right = assemble_symbols!(tracker, cm.right)
+function assemble_expression!(tracker, cm::CompositeSpectralModel{M1,M2}) where {M1,M2}
+    left = assemble_expression!(tracker, cm.left)
+    right = assemble_expression!(tracker, cm.right)
     op = get_operation(modelkind(M1))
-    right => (op, left)
+    left => (op, right)
 end
 
 function make_unique_param_symbol(p, all_symbols)
@@ -148,9 +150,9 @@ function make_unique_param_symbol(p, all_symbols)
     symb
 end
 
-function unpack_model_parameters(model_symbols, T::Type)
+function unpack_model_parameters(symbol_to_model, T::Type)
     all_parameters = Pair{Symbol,FitParam{T}}[]
-    model_symbol_to_parameters = map(model_symbols) do (model_symbol, m)
+    model_symbol_to_parameters = map(symbol_to_model) do (model_symbol, m)
         model_params = map(parameter_symbol_pairs(m)) do (param_symbol, param)
             symb = make_unique_param_symbol(param_symbol, first.(all_parameters))
             push!(all_parameters, symb => deepcopy(param))
@@ -164,15 +166,15 @@ end
 function processmodel(cm::AbstractSpectralModel)
     # assemble evaluation
     tracker = (
-        model_symbols = Pair{Symbol,AbstractSpectralModel}[],
+        symbol_to_model = Pair{Symbol,AbstractSpectralModel}[],
         additive = Ref(0),
         multiplicative = Ref(0),
         convolutional = Ref(0),
     )
-    expr = assemble_symbols!(tracker, cm)
+    expr = assemble_expression!(tracker, cm)
     model_to_params, all_params =
-        unpack_model_parameters(tracker.model_symbols, numbertype(cm))
-    models = map(tracker.model_symbols) do (s, m)
+        unpack_model_parameters(tracker.symbol_to_model, numbertype(cm))
+    models = map(tracker.symbol_to_model) do (s, m)
         s => typeof(m)
     end
     ProcessedSpectralModel(expr, models, all_params, model_to_params)
