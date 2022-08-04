@@ -1,68 +1,60 @@
-
-function add_flux_count!(flux_count, symb)
-    flux_count[] += 1
+function add_calculate_flux!(flux_count, symb, ::Convolutional)
+    # does not increase flux count
     flux = Symbol(:flux, flux_count[])
     :(invokemodel!($flux, energy, $symb))
 end
 
+function add_calculate_flux!(flux_count, symb, ::AbstractSpectralModelKind)
+    i = (flux_count[] += 1)
+    flux = Symbol(:flux, i)
+    :(invokemodel!($flux, energy, $symb))
+end
+
 function resolve_flux_combine!(flux_count, op)
-    flux_right = Symbol(:flux, flux_count[])
-    flux_left = Symbol(:flux, flux_count[] - 1)
-    flux_count[] -= 1
+    i = (flux_count[] -= 1)
+    flux_right = Symbol(:flux, i + 1)
+    flux_left = Symbol(:flux, i)
     expr = Expr(:call, op, flux_left, flux_right)
     :(@.($flux_left = $expr))
 end
 
-function add_statements!(statements, flux_count, symb, op, ::Union{Additive,Multiplicative})
-    push!(statements, add_flux_count!(flux_count, symb))
-    push!(statements, resolve_flux_combine!(flux_count, op))
-end
-function add_statements!(statements, flux_count, symb, _, ::Convolutional)
-    flux = Symbol(:flux, flux_count[])
-    push!(statements, :(invokemodel!($flux, energy, $symb)))
-end
-function __build_statements(expression, models)
+function assemble_execution_statements(expression, models)
     flux_count = Ref(0)
     statements = Expr[]
     recursive_expression_call(expression) do (left, right, op)
-        @assert flux_count[] < 4 error("Flux count exceeded 3.")
-
-        if typeof(right) <: Symbol
+        @assert (0 ≤ (flux_count[]) < 4) error("Flux counts out of bounds $(flux_count[]).")
+        if right isa Symbol
             M = modelkind(models[right])
-            @assert (M isa Additive) error("Right, if symbol, should be Additive.")
-            push!(statements, add_flux_count!(flux_count, right))
+            push!(statements, add_calculate_flux!(flux_count, right, M))
         end
-
-        if typeof(left) <: Symbol
+        if left isa Symbol
             M = modelkind(models[left])
-            add_statements!(statements, flux_count, left, op, M)
-        elseif isnothing(left)
-            push!(statements, resolve_flux_combine!(flux_count, :(+)))
-        else
-            error("Left should always be a symbol or nothing: $left")
+            push!(statements, add_calculate_flux!(flux_count, left, M))
         end
-
+        # catch case for Convolution operations
+        if !isnothing(op)
+            push!(statements, resolve_flux_combine!(flux_count, op))
+        end
         nothing
     end
-
     statements
 end
 
-function __build_statements(symbol::Symbol, models)
+
+# edge-case when only one model
+function assemble_execution_statements(symbol::Symbol, _)
     [:(invokemodel!(flux1, energy, $symbol))]
 end
 
-function __build_model_instance(models, modelparams)
+function assemble_model_constructors(models, modelparams)
     map(models) do (s, M)
         params = modelparams[s]
-        model_name = Base.typename(M).name
+        model_name = model_type_name(M)
         :($s = $(model_name)($(params...)))
     end
 end
 
-function __build_parameter_statements(params)
-    fps = filter(!is_frozen, last.(params))
-
+function assemble_parameter_assignments(params)
     i = 0
     statements = map(params) do (s, p)
         if is_frozen(p)
@@ -73,14 +65,13 @@ function __build_parameter_statements(params)
             :($s = params[$i])
         end
     end
-
-    statements, fps
+    statements, filter(!is_frozen, last.(params))
 end
 
 function build_simple_no_eval(psm::ProcessedSpectralModel)
-    statements = __build_statements(psm.expression, Dict(psm.models))
-    model_instances = __build_model_instance(psm.models, psm.modelparams)
-    parameters, fps = __build_parameter_statements(psm.parameters)
+    statements = assemble_execution_statements(psm.expression, Dict(psm.models))
+    model_instances = assemble_model_constructors(psm.models, psm.modelparams)
+    parameters, fps = assemble_parameter_assignments(psm.parameters)
 
     func = :((flux1, flux2, flux3, energy, params) -> begin
         @fastmath @inbounds begin
@@ -94,19 +85,22 @@ function build_simple_no_eval(psm::ProcessedSpectralModel)
     func, fps
 end
 
-function build_simple(psm::ProcessedSpectralModel)
-    func, fps = build_simple_no_eval(psm)
-    evaled_func = eval(func)
-    closure_wrapper = (args...) -> Base.invokelatest(evaled_func, args...)
-    closure_wrapper, fps
+function eval_and_wrap(expr)
+    f = eval(expr)
+    (args...; kwargs...) -> Base.invokelatest(f, args...; kwargs...)
 end
 
-function __process_fit_parameter(p::FitParam)
+function build_simple(psm::ProcessedSpectralModel)
+    func, fps = build_simple_no_eval(psm)
+    eval_and_wrap(func), fps
+end
+
+function assemble_param_as_distribution(p::FitParam)
     type, args = as_distribution(p)
     :($(type)($(args...)))
 end
 
-function __build_parameter_distribution_statements(params)
+function assemble_parameters_as_distributions(params)
     i = 0
     statements = map(params) do (s, p)
         if is_frozen(p)
@@ -114,7 +108,7 @@ function __build_parameter_distribution_statements(params)
             :($s = $val)
         else
             i += 1
-            distr = __process_fit_parameter(p)
+            distr = assemble_param_as_distribution(p)
             :($s ~ $distr)
         end
     end
@@ -122,10 +116,9 @@ function __build_parameter_distribution_statements(params)
 end
 
 function build_turing_no_eval(psm::ProcessedSpectralModel)
-    statements = __build_statements(psm.expression, Dict(psm.models))
-    model_instances = __build_model_instance(psm.models, psm.modelparams)
-    parameters = __build_parameter_distribution_statements(psm.parameters)
-
+    statements = assemble_execution_statements(psm.expression, Dict(psm.models))
+    model_instances = assemble_model_constructors(psm.models, psm.modelparams)
+    parameters = assemble_parameters_as_distributions(psm.parameters)
     :(
         begin
             (energy, target, error, channels, flux1, flux2, flux3) -> begin
@@ -146,8 +139,7 @@ function build_turing_no_eval(psm::ProcessedSpectralModel)
 end
 
 function build_turing(psm::ProcessedSpectralModel)
-    evaled_func = build_turing_no_eval(psm) |> eval
-    (args...) -> Base.invokelatest(evaled_func, args...)
+    eval_and_wrap(build_turing_no_eval(psm))
 end
 
 export build_simple, build_simple_no_eval, build_turing, build_turing_no_eval

@@ -39,7 +39,18 @@ function __fitparams!(
     channels;
     kwargs...,
 )
-    fit = __lsq_fit(model, get_value.(params), get_lowerlimit.(params), get_upperlimit.(params), rmf, target, error_target, energy, channels; kwargs...)
+    fit = __lsq_fit(
+        model,
+        get_value.(params),
+        get_lowerlimit.(params),
+        get_upperlimit.(params),
+        rmf,
+        target,
+        error_target,
+        energy,
+        channels;
+        kwargs...,
+    )
 
     means = LsqFit.coef(fit)
     errs = LsqFit.stderror(fit)
@@ -52,7 +63,18 @@ function __fitparams!(
     fit
 end
 
-@noinline function __lsq_fit(model, p0, lb, ub, rmf, target, error_target, energy, channels; kwargs...)
+@noinline function __lsq_fit(
+    model,
+    p0,
+    lb,
+    ub,
+    rmf,
+    target,
+    error_target,
+    energy,
+    channels;
+    kwargs...,
+)
     fluxes = makefluxes(energy)
     foldedmodel(x, p) = @views foldresponse(rmf, model(fluxes..., x, p), x)[channels]
 
