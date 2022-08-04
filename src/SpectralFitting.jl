@@ -35,6 +35,10 @@ include("xspec-models/additive.jl")
 include("xspec-models/multiplicative.jl")
 include("xspec-models/convolutional.jl")
 
+# include julia models
+include("julia-models/model-utilities.jl")
+include("julia-models/additive.jl")
+
 function __init__()
     # init HEASOFT
     ccall((:FNINIT, libXSFunctions), Cvoid, ())
