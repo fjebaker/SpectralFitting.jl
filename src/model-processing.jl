@@ -1,4 +1,4 @@
-export processmodel, freeze!, unfreeze!
+export processmodel, freeze!, unfreeze!, setparams!
 
 struct ProcessedSpectralModel{E,M,P,L}
     expression::E
@@ -7,7 +7,19 @@ struct ProcessedSpectralModel{E,M,P,L}
     modelparams::L
 end
 
-function setfreeze!(psm::ProcessedSpectralModel, state::Bool, symbs::Vararg{Symbol})
+function get_params(psm::ProcessedSpectralModel, symb)
+    i = findfirst(i -> first(i) == symb, psm.parameters)
+    if !isnothing(i)
+        psm.parameters[i]
+    else
+        error("No parameter with symbol: $symb.")
+    end
+end
+
+get_params(psm::ProcessedSpectralModel, symb...) =
+    map(i -> get_params(psm, i), symb)
+
+function set_freeze!(psm::ProcessedSpectralModel, state::Bool, symbs::Vararg{Symbol})
     action! = state ? freeze! : unfreeze!
     foreach(psm.parameters) do (s, p)
         if s in symbs
@@ -25,20 +37,19 @@ function unfreeze!(psm::ProcessedSpectralModel, symbs::Vararg{Symbol})
     setfreeze!(psm, false, symbs...)
 end
 
-function modelinfo(m::ProcessedSpectralModel)
-    io = IOBuffer()
+function print_info(io::IO, m::ProcessedSpectralModel)
     if get(io, :compact, false) || get(io, :typeinfo, nothing) == ProcessedSpectralModel
         print(
             io,
             "ProcessedSpectralModel(#Models=$(length(m.models)),#Params=$(length(m.parameters)))",
         )
     else
-        write(
+        print(
             io,
             "ProcessedSpectralModel:\n   $(readable_model_expression(m.expression))\n",
         )
 
-        write(io, "  Models:\n")
+        print(io, "  Models:\n")
         model_infos = map(m.models) do (s, M)
             params = join(m.modelparams[s], ", ")
             Base.typename(M).name, s, params
@@ -46,16 +57,31 @@ function modelinfo(m::ProcessedSpectralModel)
 
         model_pad = maximum(length.(String.(first.(model_infos))))
         for (name, s, info) in model_infos
-            write(io, "     . $s => $(rpad(name, model_pad))   : $info\n")
+            print(io, "     . $s => $(rpad(name, model_pad))   : $info\n")
         end
 
-        write(io, "  Parameters:\n")
-        param_pad = maximum(length.(String.(first.(m.parameters)))) + 1
-        for (s, p) in m.parameters
-            write(io, "     . $(rpad(s, param_pad)) => $p\n")
+        print(io, "  Parameters:\n")
+        param_symbs = String.(first.(m.parameters))
+        param_instance = last.(m.parameters)
+        param_pad = maximum(length.(param_symbs)) + 1
+        param_infos = get_info_tuple.(param_instance)
+        frozen_states = is_frozen.(param_instance)
+        pads = map(1:2) do j
+            maximum(i -> length(i[j]), param_infos) + 1
+        end
+        for (s, p, f) in zip(param_symbs, param_infos, frozen_states)
+            print(io, "     . $(rpad(s, param_pad)) => ")
+            print(io, rpad(p[1], pads[1]), " ∈ ", rpad(p[2], pads[2]))
+            state = if f
+                Crayons.Box.CYAN_FG("Frozen")
+            else
+                Crayons.Box.GREEN_FG("Free")
+            end
+            print(io, state)
+            print(io, "\n")
         end
     end
-    String(take!(io))
+    io
 end
 
 readable_model_expression(psm::ProcessedSpectralModel) =
@@ -98,66 +124,47 @@ function recursive_expression_call(func, expr::Pair)
 end
 
 function Base.show(io::IO, ::MIME{Symbol("text/plain")}, m::ProcessedSpectralModel)
-    print(io, modelinfo(m))
+    print_info(io, m)
 end
 
 # ..... #
 
-function assemble_symbols!(tracker, m::M) where {M<:AbstractSpectralModel}
-    if modelkind(M) === Additive
-        s = Symbol('a', tracker.additive[])
-        push!(tracker.sym_model, s => m)
-        tracker.additive[] += 1
-        s
-    elseif modelkind(M) === Multiplicative
-        s = Symbol('m', tracker.multiplicative[])
-        push!(tracker.sym_model, s => m)
-        tracker.multiplicative[] += 1
-        s
-    else
-        s = Symbol('c', tracker.convolutional[])
-        push!(tracker.sym_model, s => m)
-        tracker.convolutional[] += 1
-        s
-    end
+process_model_symbols!(tracker, ::M) where {M} = process_model_symbols!(tracker, modelkind(M))
+function process_model_symbols!(tracker, ::Additive)
+    s = Symbol('a', tracker.additive[])
+    tracker.additive[] += 1
+    s
 end
+function process_model_symbols!(tracker, ::Multiplicative)
+    s = Symbol('m', tracker.multiplicative[])
+    tracker.multiplicative[] += 1
+    s
+end
+function process_model_symbols!(tracker, ::Convolutional)
+    s = Symbol('c', tracker.convolutional[])
+    tracker.convolutional[] += 1
+    s
+end
+
+function assemble_symbols!(tracker, m::M) where {M<:AbstractSpectralModel}
+    s = process_model_symbols!(tracker, m)
+    push!(tracker.sym_model, s => m)
+    s
+end
+
+get_operation(::Multiplicative) = :(*)
+get_operation(::Additive) = :(+)
+get_operation(::Convolutional) = nothing
 
 function assemble_symbols!(tracker, cm::CompositeSpectralModel{M1,M2}) where {M1,M2}
     left = assemble_symbols!(tracker, cm.left)
     right = assemble_symbols!(tracker, cm.right)
-    op = if modelkind(M1) === Multiplicative
-        :(*)
-    elseif modelkind(M1) === Additive
-        :(+)
-    else
-        nothing
-    end
+    op = get_operation(modelkind(M1))
     right => (op, left)
 end
 
-function addparams!(all_params, m::AbstractSpectralModel)
-    map(fieldnames(typeof(m))) do p
-        i = 1
-        symb = Symbol(p, '_', i)
-        while symb in first.(all_params)
-            i += 1
-            symb = Symbol(p, '_', i)
-        end
-        push!(all_params, symb => FitParameter(getproperty(m, p)))
-        symb
-    end
-end
-
-function parse_models_with_params!(all_params, models, root_symb::Char)
-    map(enumerate(models)) do (i, m)
-        params = addparams!(all_params, m)
-        instance = Expr(:call, typeof(m), params...)
-        Symbol(root_symb, i) => instance
-    end
-end
-
-function unpack_model_parameters(sym_model)
-    all_params = Pair{Symbol,AbstractFitParameter}[]
+function unpack_model_parameters(sym_model, T::Type)
+    all_params = Pair{Symbol,FitParam{T}}[]
 
     model_to_params = map(sym_model) do (s, m)
         model_params = map(fieldnames(typeof(m))) do p
@@ -186,63 +193,9 @@ function processmodel(cm::AbstractSpectralModel)
     )
 
     expr = assemble_symbols!(tracker, cm)
-    model_to_params, all_params = unpack_model_parameters(tracker.sym_model)
+    model_to_params, all_params = unpack_model_parameters(tracker.sym_model, numbertype(cm))
     models = map(tracker.sym_model) do (s, m)
         s => typeof(m)
     end
     ProcessedSpectralModel(expr, models, all_params, model_to_params)
 end
-
-# function build_lsqfit(pm::ProcessedSpectralModel)
-#     flux_calls = [:($name = $(model)(energy)) for (name, model) in getmodels(pm)]
-
-#     i = 1
-#     params = map(pm.parameters) do (p, f)
-#         if f.frozen
-#             val = value(f)
-#             :($p = $val)
-#         else
-#             i += 1
-#             :($p = params[$(i-1)])
-#         end
-#     end
-
-#     # params = [:($p = params[$i]) for (i, p) in enumerate(first.(pm.parameters))]
-#     func = :((energy, params) -> begin
-#         $(params...)
-#         $(flux_calls...)
-#         res = @. $(pm.expression)
-#         @view res[1:end-1]
-#     end) |> eval
-
-#     fs = last.(getfreeparams(pm))
-#     # model, p0, lower bounds, upper bounds
-#     func, value.(fs), lowerbound.(fs), upperbound.(fs)
-# end
-
-# export processmodel, ProcessedSpectralModel, getmodels, build_lsqfit, FitParameter, value, freeze!, unfreeze!
-
-
-# #=
-# flux1
-# flux2
-# flux3
-
-# # m3(m1 * a1 + c1(m2 * a2)) + a3
-
-# a1 = XS_Powerlaw(...)
-# #...
-
-# invoke!(flux1, a1)
-# invoke!(flux2, m1)
-# @. flux1 *= flux2
-# invoke!(flux2, a2)
-# invoke!(flux3, m2)
-# @. flux2 *= flux3
-# invoke!(flux2, c1)
-# @. flux1 += flux2
-# invoke!(flux2, a3)
-# @. flux1 += flux3
-
-# return flux1
-# =#

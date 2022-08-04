@@ -58,7 +58,7 @@ function Makie.plot!(
     counts = sl[2][]
 
     if sl.positive_only[]
-        mask = energy .> 0
+        mask = (energy .> 1e-7) .& (counts .> 1e-7)
         energy = energy[mask]
         counts = counts[mask]
     end

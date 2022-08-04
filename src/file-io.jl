@@ -45,16 +45,21 @@ function augment_energy_channel(grp, rmf::ResponseMatrix)
     joined
 end
 
-# function convert_to_cpu_base!(grp)
-#     float = Sys.WORD_SIZE == 64 ? Float64 : Float32
-# end
+function convert_to_cpu_base!(grp)
+    float = Sys.WORD_SIZE == 64 ? Float64 : Float32
+    for (name, col) in pairs(eachcol(grp))
+        if eltype(col) <: AbstractFloat
+            grp[!, name] = float.(col)
+        end
+    end
+end
 
 function load_spectral_dataset(pha_path, rmf_path)
     fgrp = FITS(pha_path)
     raw_grp = DataFrame(fgrp[2])
     rmf = load_response_file(rmf_path)
     grp = augment_energy_channel(raw_grp, rmf)
-    # convert_to_cpu_base!(grp)
+    convert_to_cpu_base!(grp)
     SpectralDataset(grp, rmf)
 end
 
