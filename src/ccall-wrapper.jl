@@ -32,7 +32,7 @@ end
 macro xspecmodel(model_kind, func_name, model)
     model_args = model.args[3]
     model_name = model.args[2].args[1]
-    model_type_params = model.args[2].args[2]
+    model_type_params = model.args[2].args[2:end]
     model_args_symbols = [
         :($(i.args[1].args[1])) for i in model_args.args if (i isa Expr) && (i.head == :(=))
     ]
@@ -44,7 +44,7 @@ macro xspecmodel(model_kind, func_name, model)
     parsed_model_args = [:(get_value($i)) for i in model_args_symbols]
 
     quote
-        @with_kw struct $(model_name){$(model_type_params)} <: AbstractSpectralModel
+        @with_kw struct $(model_name){$(model_type_params...)} <: AbstractSpectralModel
             $(model.args[3].args...)
         end
 
