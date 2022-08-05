@@ -89,14 +89,6 @@ function add_flux_invokation!(flux_count, parameters, M, K)
     assemble_invoke_statment!(parameters, flux, M)
 end
 
-function push_resolve_flux_combine!(statements, flux_count, op::Symbol)
-    i = (flux_count[] -= 1)
-    flux_right = Symbol(:flux, i + 1)
-    flux_left = Symbol(:flux, i)
-    expr = Expr(:call, op, flux_left, flux_right)
-    push!(statements, :(@.($flux_left = $expr)))
-end
-
 function add_flux_invokation!(
     flux_count,
     parameters,
@@ -112,6 +104,14 @@ function push_resolve_flux_combine!(
     ::Type{O},
 ) where {O<:AbstractCompositeOperator}
     push_resolve_flux_combine!(statements, flux_count, operation_symbol(O))
+end
+
+function push_resolve_flux_combine!(statements, flux_count, op::Symbol)
+    i = (flux_count[] -= 1)
+    flux_right = Symbol(:flux, i + 1)
+    flux_left = Symbol(:flux, i)
+    expr = Expr(:call, op, flux_left, flux_right)
+    push!(statements, :(@.($flux_left = $expr)))
 end
 
 push_model!(_, _, _, ::Type{Nothing}) = nothing
@@ -162,24 +162,28 @@ end
     :($N)
 end
 
-@generated function generated_model_call(fluxes, energy, model, params)
+@generated function generated_model_call!(fluxes, energy, model, params)
     expr, parameters, _ = assemble_expression(model)
+    flux_unpack = [Symbol(:flux, i) for i in 1:maximum_flux_count(model)]
     p_assign = [:($s = params[$i]) for (i, s) in enumerate(parameters)]
     quote
         @fastmath begin
-            @inbounds let (flux1, flux2, flux3) = fluxes
+            @inbounds let ($(flux_unpack...),) = fluxes
                 $(p_assign...)
                 $(expr...)
-                flux1
+                return flux1
             end
         end
     end
 end
 
-@generated function generated_model_call(fluxes, energy, model, free_params, frozen_params)
+@generated function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
     expr, parameters, _ = assemble_expression(model)
     _, p_types = model_parameter_symbol_and_type(model)
 
+    flux_unpack = [Symbol(:flux, i) for i in 1:maximum_flux_count(model)]
+
+    # unpack free and frozen seperately
     i_frozen = 0
     i_free = 0
     p_assign = map(enumerate(parameters)) do (i, s)
@@ -192,10 +196,10 @@ end
 
     quote
         @fastmath begin
-            @inbounds let (flux1, flux2, flux3) = fluxes
+            @inbounds let ($(flux_unpack...),) = fluxes
                 $(p_assign...)
                 $(expr...)
-                flux1
+                return flux1
             end
         end
     end

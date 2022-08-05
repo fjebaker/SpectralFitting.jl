@@ -4,7 +4,7 @@ struct MultiplicationOperator <: AbstractCompositeOperator end
 struct ConvolutionOperator <: AbstractCompositeOperator end
 
 operation_symbol(::Type{<:AdditionOperator}) = :(+)
-operation_symbol(::Type{<:MultiplicationOperator}) = :(+)
+operation_symbol(::Type{<:MultiplicationOperator}) = :(*)
 operation_symbol(::Type{<:ConvolutionOperator}) = nothing
 operation_symbol(::O) where {O<:AbstractCompositeOperator} = operation_symbol(O)
 

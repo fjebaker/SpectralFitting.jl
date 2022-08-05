@@ -1,16 +1,6 @@
 export fitparams!
 
 function fitparams!(
-    psm::ProcessedSpectralModel,
-    dataset::AbstractSpectralDataset,
-    energy = rmfenergybins(dataset);
-    kwargs...,
-)
-    model, params = build_simple(psm)
-    fitparams!(params, model, dataset, energy; kwargs...)
-end
-
-function fitparams!(
     params,
     model,
     dataset::AbstractSpectralDataset,
@@ -39,8 +29,10 @@ function __fitparams!(
     channels;
     kwargs...,
 )
+    frozen_p = get_value.(get_frozen_model_parameters(model))
     fit = __lsq_fit(
         model,
+        frozen_p,
         get_value.(params),
         get_lowerlimit.(params),
         get_upperlimit.(params),
@@ -65,6 +57,7 @@ end
 
 @noinline function __lsq_fit(
     model,
+    frozen_p,
     p0,
     lb,
     ub,
@@ -76,7 +69,7 @@ end
     kwargs...,
 )
     fluxes = makefluxes(energy)
-    foldedmodel(x, p) = @views foldresponse(rmf, model(fluxes..., x, p), x)[channels]
+    foldedmodel(x, p) = @views foldresponse(rmf, generated_model_call!(fluxes, x, model, p, frozen_p), x)[channels]
 
     # seems to cause nans and infs
     cov_err = 1 ./ (error_target .^ 2)

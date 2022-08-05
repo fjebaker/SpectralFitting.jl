@@ -14,7 +14,7 @@ import Printf
 
 # import Turing
 # import Optimization
-# import LsqFit
+import LsqFit
 
 include("abstract-models.jl")
 include("fitparam.jl")
@@ -28,7 +28,7 @@ include("function-generation.jl")
 include("energy-and-response.jl")
 include("datasets.jl")
 include("file-io.jl")
-# include("fitting.jl")
+include("fitting.jl")
 
 include("plotting-recipes.jl")
 
