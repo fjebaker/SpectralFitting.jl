@@ -22,14 +22,53 @@ function get_parameter(m::SurrogateSpectralModel, s::Symbol)
     end
 end
 
+additional_invoke_parameters(m::SurrogateSpectralModel) = (m.surrogate,)
+make_additional_invoke_parameters_symbols(::Type{<:SurrogateSpectralModel}, symb) =
+    (Symbol(symb, '_', :surrogate),)
+
+make_additional_invoke_parameters_symbols(T::Type{<:AbstractSpectralModel}, symb) =
+    error("Not implemented for $T.")
+make_additional_invoke_parameters_symbols(m::M, symb) where {M<:AbstractSpectralModel} =
+    make_additional_invoke_parameters_symbols(M, symb)
+
+function assemble_invoke(flux, symb, M::Type{<:SurrogateSpectralModel}, params)
+    kind = typeof(modelkind(M))
+    surrogate_param_symbol = first(make_additional_invoke_parameters_symbols(M, symb))
+    :(invokemodel!(
+        $flux,
+        energy,
+        SurrogateSpectralModel{$kind},
+        $surrogate_param_symbol,
+        $(params...),
+    ))
+end
+
 modelkind(::Type{<:SurrogateSpectralModel{Additive}}) = Additive()
 modelkind(::Type{<:SurrogateSpectralModel{Multiplicative}}) = Multiplicative()
 modelkind(::Type{<:SurrogateSpectralModel{Convolutional}}) = Convolutional()
 
-@fastmath function invoke!(flux, energy, m::SurrogateSpectralModel)
+@fastmath function invoke!(
+    flux,
+    energy,
+    ::Type{<:SurrogateSpectralModel{Multiplicative}},
+    surrogate,
+    params...,
+)
     @inbounds for i in eachindex(flux)
         E = energy[i]
-        v = (E, m.params...)
-        flux[i] = m.surrogate(v)
+        v = (E, params...)
+        flux[i] = surrogate(v)
+    end
+end
+
+@fastmath function invoke!(
+    flux,
+    energy,
+    ::Type{<:SurrogateSpectralModel{Additive}},
+    surrogate,
+    params...,
+)
+    integrate_over_flux!(flux, energy) do E
+        surrogate((E, params...))
     end
 end

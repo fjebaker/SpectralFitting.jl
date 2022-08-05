@@ -28,7 +28,7 @@ function Base.show(
     print(io, modelinfo(cm))
 end
 
-invoke_composite!(flux, energy, m::AbstractSpectralModel) = invoke!(flux, energy, m)
+invoke_composite!(flux, energy, m::AbstractSpectralModel) = invokemodel!(flux, energy, m)
 invoke_composite!(flux, energy, m::CompositeSpectralModel{M1,M2}) where {M1,M2} =
     invoke_composite!(flux, zeros(eltype(flux), size(flux)), energy, m)
 # only used to make CompositeSpectralModel work with auto-allocations

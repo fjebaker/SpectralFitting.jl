@@ -3,8 +3,8 @@
     a::F = FitParam(0.5)
 end
 modelkind(::Type{<:PowerLaw}) = Additive()
-@fastmath function invoke!(flux::AbstractArray, energy::AbstractArray, m::PowerLaw)
-    α = 1 - m.a
+@fastmath function invoke!(flux, energy, ::Type{<:PowerLaw}, a)
+    α = 1 - a
     α⁻¹ = inv(α)
     integrate_over_flux!(flux, energy) do E
         α⁻¹ * E^α
@@ -16,8 +16,7 @@ end
     kT::F = FitParam(2.0)
 end
 modelkind(::Type{<:BlackBody}) = Additive()
-@fastmath function invoke!(flux::AbstractArray, energy::AbstractArray, m::BlackBody)
-    kT = m.kT
+@fastmath function invoke!(flux, energy, ::Type{<:BlackBody}, kT)
     integrate_over_flux!(flux, energy) do E
         8.0525 * E^2 / (kT^4 * (exp(E / kT) - 1))
     end

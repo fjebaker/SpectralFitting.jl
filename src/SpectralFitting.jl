@@ -1,5 +1,8 @@
 module SpectralFitting
 
+import RuntimeGeneratedFunctions
+RuntimeGeneratedFunctions.init(@__MODULE__)
+
 using LibXSPEC_jll
 
 using FITSIO
