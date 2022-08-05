@@ -1,10 +1,11 @@
 export processmodel, freeze!, unfreeze!, setparams!
 
-struct ProcessedSpectralModel{E,M,P,L}
+struct ProcessedSpectralModel{E,M,P,L,I}
     expression::E
-    models::M
+    model_type_index::M
     parameters::P
     modelparams::L
+    instances::I
 end
 
 function get_params(psm::ProcessedSpectralModel, symb)
@@ -40,15 +41,25 @@ function print_info(io::IO, m::ProcessedSpectralModel)
     header = "ProcessedSpectralModel:\n   $(readable_model_expression(m.expression))\n"
     print(io, header)
 
-    print(io, "  Models:\n")
-    model_infos = map(m.models) do (s, M)
+    print(io, "  Models:")
+    if !isnothing(m.instances)
+        N_non_triv = length(m.instances)
+        print(io, "  ($N_non_triv non trivial)")
+    end
+    print(io, "\n")
+    model_infos = map(m.model_type_index) do (s, M)
         params = join(m.modelparams[s], ", ")
         String(model_type_name(M)), s, params
     end
 
     model_pad = maximum(length.(first.(model_infos)))
+    info_pad = maximum(i -> length(i[3]), model_infos) + 2
     for (name, s, info) in model_infos
-        print(io, "     . $s => $(rpad(name, model_pad))   : $info\n")
+        print(io, "     . $s => $(rpad(name, model_pad))   : $(rpad(info,info_pad))")
+        if (!isnothing(m.instances)) && s in first.(m.instances)
+            print(io, Crayons.Box.YELLOW_FG("NON TRIVIAL"))
+        end
+        print(io, "\n")
     end
 
     print(io, "  Parameters:\n")
@@ -140,12 +151,12 @@ function assemble_expression!(tracker, cm::CompositeSpectralModel{M1,M2}) where 
     left => (op, right)
 end
 
-function make_unique_param_symbol(p, all_symbols)
+function make_unique_symbol(p, symbol_bank; delim = '_')
     i = 1
-    symb = Symbol(p, '_', i)
-    while symb in all_symbols
+    symb = Symbol(p, delim, i)
+    while symb in symbol_bank
         i += 1
-        symb = Symbol(p, '_', i)
+        symb = Symbol(p, delim, i)
     end
     symb
 end
@@ -154,7 +165,7 @@ function unpack_model_parameters(symbol_to_model, T::Type)
     all_parameters = Pair{Symbol,FitParam{T}}[]
     model_symbol_to_parameters = map(symbol_to_model) do (model_symbol, m)
         model_params = map(parameter_symbol_pairs(m)) do (param_symbol, param)
-            symb = make_unique_param_symbol(param_symbol, first.(all_parameters))
+            symb = make_unique_symbol(param_symbol, first.(all_parameters))
             push!(all_parameters, symb => deepcopy(param))
             symb
         end
@@ -163,7 +174,7 @@ function unpack_model_parameters(symbol_to_model, T::Type)
     Dict(model_symbol_to_parameters), all_parameters
 end
 
-function processmodel(cm::AbstractSpectralModel)
+function processmodel(cm::AbstractSpectralModel; deepcopy_nontrivial = false)
     # assemble evaluation
     tracker = (
         symbol_to_model = Pair{Symbol,AbstractSpectralModel}[],
@@ -174,8 +185,19 @@ function processmodel(cm::AbstractSpectralModel)
     expr = assemble_expression!(tracker, cm)
     model_to_params, all_params =
         unpack_model_parameters(tracker.symbol_to_model, numbertype(cm))
-    models = map(tracker.symbol_to_model) do (s, m)
+    symbol_to_model_types = map(tracker.symbol_to_model) do (s, m)
         s => typeof(m)
     end
-    ProcessedSpectralModel(expr, models, all_params, model_to_params)
+    non_trivial_instances =
+        filter(!is_trivially_constructed ∘ last, tracker.symbol_to_model)
+    if deepcopy_nontrivial
+        non_trivial_instances = deepcopy.(non_trivial_instances)
+    end
+    ProcessedSpectralModel(
+        expr,
+        symbol_to_model_types,
+        all_params,
+        model_to_params,
+        non_trivial_instances,
+    )
 end
