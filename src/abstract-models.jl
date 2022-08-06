@@ -10,6 +10,10 @@ export AbstractSpectralModel,
     Additive,
     Convolutional
 
+# models
+abstract type AbstractSpectralModel end
+numbertype(::AbstractSpectralModel) = Sys.WORD_SIZE == 64 ? Float64 : Float32
+
 # traits
 abstract type AbstractSpectralModelKind end
 struct Multiplicative <: AbstractSpectralModelKind end
@@ -30,24 +34,24 @@ struct WithoutClosures <: AbstractSpectralModelClosureType end
 
 closurekind(::Type{<:AbstractSpectralModel}) = WithoutClosures()
 
-has_closure_params(::WithClosures) = false
-has_closure_params(::WithoutClosures) = true
-has_closure_params(::M) where {M<:AbstractSpectralModel} =
+has_closure_params(::WithClosures) = true
+has_closure_params(::WithoutClosures) = false
+has_closure_params(M::Type{<:AbstractSpectralModel}) =
     has_closure_params(closurekind(M))
+has_closure_params(::M) where {M<:AbstractSpectralModel} =
+    has_closure_params(M)
 
-# models
-
-abstract type AbstractSpectralModel end
-numbertype(::AbstractSpectralModel) = Sys.WORD_SIZE == 64 ? Float64 : Float32
-
-# interface
+# implementation interface
+# never to be called directly
+# favour `invokemodel!` instead
 invoke!(flux, energy, ::Type{M}, params...) where {M<:AbstractSpectralModel} =
     error("Not defined for $(M).")
 
 # optional interface
-model_type_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
-get_param_count(M::Type{<:AbstractSpectralModel}) = length(fieldnames(M))
 get_param_symbols(M::Type{<:AbstractSpectralModel}) = fieldnames(M)
+get_param_types(M::Type{<:AbstractSpectralModel}) = M.types
+
+model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
 
 # only needed for WithClosures()
 get_closure_param_fields(::Type{<:AbstractSpectralModel}) = ()
@@ -57,6 +61,8 @@ get_param_symbols(::M) where {M<:AbstractSpectralModel} = get_param_symbols(M)
 get_param(m::AbstractSpectralModel, s::Symbol) = getproperty(m, s)
 
 # emergent param accessors
+get_param_count(M::Type{<:AbstractSpectralModel}) = length(get_param_types(M))
+
 get_all_params(m::AbstractSpectralModel) where {M} =
     (get_param(m, p) for p in get_param_symbols(m))
 get_all_params_by_value(m::AbstractSpectralModel) =
@@ -96,12 +102,12 @@ end
 
 function modelinfo(m::M) where {M<:AbstractSpectralModel}
     params = join([get_value(p) for p in get_all_params(m)], ", ")
-    "$(model_type_name(M))[$(params)]"
+    "$(model_base_name(M))[$(params)]"
 end
 
 function Base.show(io::IO, ::MIME"text/plain", m::M) where {M<:AbstractSpectralModel}
     params = [String(s) => p for (s, p) in param_symbol_pairs(m)]
-    print(io, "$(model_type_name(M))\n")
+    print(io, "$(model_base_name(M))\n")
 
     pad = maximum(i -> length(first(i)), params) + 1
 

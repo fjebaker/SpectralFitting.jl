@@ -69,7 +69,8 @@ end
     kwargs...,
 )
     fluxes = makefluxes(energy)
-    foldedmodel(x, p) = @views foldresponse(rmf, generated_model_call!(fluxes, x, model, p, frozen_p), x)[channels]
+    foldedmodel(x, p) =
+        @views foldresponse(rmf, generated_model_call!(fluxes, x, model, p, frozen_p), x)[channels]
 
     # seems to cause nans and infs
     cov_err = 1 ./ (error_target .^ 2)
