@@ -74,7 +74,13 @@ function add_invoke_statment!(
     closure_params = map(get_closure_param_fields(M)) do p
         new_closure_param!(ga, p)
     end
-    s = :(invokemodel!($flux, energy, $(model_base_name(M)), $(closure_params...), $(params...)))
+    s = :(invokemodel!(
+        $flux,
+        energy,
+        $(model_base_name(M)),
+        $(closure_params...),
+        $(params...),
+    ))
     push_model!(ga, M)
     push_statement!(ga, s)
 end
@@ -140,7 +146,7 @@ function assemble_closures(ga::GenerationAggregate, model)
 
     for (p, M) in zip(paths_to_models, models_with_closure)
         for f in get_closure_param_fields(M)
-            param = ga.closure_params[(i += 1)]
+            param = ga.closure_params[(i+=1)]
             path = :(getproperty($p, $(Meta.quot(f))))
             a = :($param = $path)
             push!(assignments, a)

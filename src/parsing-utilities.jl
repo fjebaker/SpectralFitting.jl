@@ -32,7 +32,11 @@ function make_unique_readable_symbol(p, symbol_bank; delim = '_')
     symb
 end
 
-function index_models!(index, running, ::Type{<:SpectralFitting.CompositeSpectralModel{M1,M2}}) where {M1,M2}
+function index_models!(
+    index,
+    running,
+    ::Type{<:SpectralFitting.CompositeSpectralModel{M1,M2}},
+) where {M1,M2}
     left_run = :(getproperty($running, :left))
     right_run = :(getproperty($running, :right))
     if M2 <: SpectralFitting.CompositeSpectralModel

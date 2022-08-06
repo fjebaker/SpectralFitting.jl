@@ -12,7 +12,8 @@ struct SurrogateSpectralModel{K,S,P,Z} <: AbstractSpectralModel
 end
 
 closurekind(::Type{<:SurrogateSpectralModel}) = WithClosures()
-model_base_name(::Type{<:SurrogateSpectralModel{K}}) where {K} = :(SurrogateSpectralModel{$K})
+model_base_name(::Type{<:SurrogateSpectralModel{K}}) where {K} =
+    :(SurrogateSpectralModel{$K})
 
 # model generation
 get_closure_param_fields(::Type{<:SurrogateSpectralModel}) = (:surrogate,)

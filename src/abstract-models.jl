@@ -36,10 +36,8 @@ closurekind(::Type{<:AbstractSpectralModel}) = WithoutClosures()
 
 has_closure_params(::WithClosures) = true
 has_closure_params(::WithoutClosures) = false
-has_closure_params(M::Type{<:AbstractSpectralModel}) =
-    has_closure_params(closurekind(M))
-has_closure_params(::M) where {M<:AbstractSpectralModel} =
-    has_closure_params(M)
+has_closure_params(M::Type{<:AbstractSpectralModel}) = has_closure_params(closurekind(M))
+has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 
 # implementation interface
 # never to be called directly
