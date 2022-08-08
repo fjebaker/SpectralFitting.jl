@@ -61,3 +61,62 @@ end
         surrogate((E, params...))
     end
 end
+
+function optimize_accuracy!(surr::AbstractSurrogate, obj::Function, lb, ub; sample_type::SamplingAlgorithm = SobolSample(), maxiters=200, N_truth = 5000, verbose=false)
+    X = sample(N_truth, lb, ub, sample_type)
+    y = obj.(X)
+    for epoch in 1:maxiters
+        ŷ = surr.(X)
+        σ = @. (ŷ - y)^2
+        ℳσ , i = findmax(σ)
+        if verbose
+            println("$(rpad(epoch, 5)): ", ℳσ)
+        end
+        add_point!(surr, X[i], y[i])
+    end
+    surr
+end
+
+
+function wrap_model_as_objective(M::Type{<:AbstractSpectralModel}; ΔE = 1e-1)
+    (x) -> begin
+        energies = [first(x), first(x) + ΔE]
+        flux = [0.0]
+        invokemodel!(flux, energies, M, x[2:end]...)[1]
+    end
+end
+
+wrap_model_as_objective(::M; kwargs...) where {M<:AbstractSpectralModel} =
+    wrap_model_as_objective(M; kwargs...)
+
+function wrap_model_as_objective(model::CompositeSpectralModel; ΔE = 1e-1)
+    (x) -> begin
+        energies = [first(x), first(x) + ΔE]
+        flux = makefluxes(energies, flux_count(model))
+        generated_model_call!(flux, energies, M, x[2:end])[1]
+    end
+end
+
+function _prime_surrogate(obj, S::Type, lb, ub, sample_type, N)
+    xys = sample(N, lb, ub, sample_type)
+    zs = obj.(xys)
+    S(xys, zs, lb, ub)
+end
+
+function make_surrogate_function(model::M, lowerbounds, upperbounds; optimization_samples = 250, seed_samples = 50, S::Type = RadialBasis, sample_type = SobolSample(), verbose=false) where {M<:AbstractSpectralModel}
+    # do tests here to make sure lower and upper bounds are okay
+    obj = wrap_model_as_objective(model)
+
+    K = modelkind(M)
+    if K === Additive()
+        @warn "Additive models integrate energies to calculate flux, which spectral surrogate models currently do not do. Surrogate is consequently likely to have poor accuracy for Additive models."
+    end
+
+    # build surrogate
+    surrogate = _prime_surrogate(obj, S, lowerbounds, upperbounds, sample_type, seed_samples)
+    # optimize surrogate
+    optimize_accuracy!(surrogate, obj, lowerbounds, upperbounds; sample_type=sample_type, maxiters = optimization_samples, verbose=verbose)
+    surrogate
+end
+
+export SurrogateSpectralModel, optimize_accuracy!, wrap_model_as_objective, make_surrogate_function
