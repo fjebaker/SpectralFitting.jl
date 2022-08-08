@@ -22,7 +22,7 @@ export AbstractSpectralModel,
     get_param_count,
     get_all_params,
     get_all_params_by_value,
-    param_symbol_pairs,
+    get_param_symbol_pairs,
     invokemodel!,
     flux_count
 
@@ -83,7 +83,7 @@ get_all_params(m::AbstractSpectralModel) where {M} =
 get_all_params_by_value(m::AbstractSpectralModel) =
     (get_value(i) for i in get_all_params(m))
 # todo: make this a proper iterator? also better name
-param_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
+get_param_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
     (p => get_param(m, p) for p in get_param_symbols(m))
 
 # invokation wrappers
@@ -125,7 +125,7 @@ function modelinfo(m::M) where {M<:AbstractSpectralModel}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", m::M) where {M<:AbstractSpectralModel}
-    params = [String(s) => p for (s, p) in param_symbol_pairs(m)]
+    params = [String(s) => p for (s, p) in get_param_symbol_pairs(m)]
     print(io, "$(model_base_name(M))\n")
 
     pad = maximum(i -> length(first(i)), params) + 1
