@@ -177,26 +177,29 @@ function __generated_model_call!(fluxes, energy, model, params)
     end
 end
 
-function __generated_model_call!(fluxes, energy, model, free_params, frozen_params)
-    ga = assemble_aggregate_info(model)
+function assemble_parameter_assignment(ga::GenerationAggregate, model)
     p_types = get_param_types(model)
-
-    flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
-
     # unpack free and frozen seperately
     i_frozen = 0
     i_free = 0
-    p_assign = map(enumerate(ga.parameters)) do (i, s)
+    map(enumerate(ga.parameters)) do (i, s)
         if is_frozen(p_types[i])
             :($s = frozen_params[$(i_frozen += 1)])
         else
             :($s = free_params[$(i_free += 1)])
         end
     end
+end
 
+function __generated_model_call!(fluxes, energy, model, free_params, frozen_params)
+    ga = assemble_aggregate_info(model)
+    flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
+    p_assign = assemble_parameter_assignment(ga, model)
+    closures = assemble_closures(ga, model)
     quote
         @fastmath begin
             @inbounds let ($(flux_unpack...),) = fluxes
+                $(closures...)
                 $(p_assign...)
                 $(ga.statements...)
                 return flux1
