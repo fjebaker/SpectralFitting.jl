@@ -72,6 +72,7 @@ model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
 get_closure_param_fields(::Type{<:AbstractSpectralModel}) = ()
 
 # minimal param accessors
+get_param_types(::M) where {M<:AbstractSpectralModel} = get_param_types(M)
 get_param_symbols(::M) where {M<:AbstractSpectralModel} = get_param_symbols(M)
 get_param(m::AbstractSpectralModel, s::Symbol) = getproperty(m, s)
 

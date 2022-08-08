@@ -1,21 +1,46 @@
 export fitparams!
 
 function fitparams!(
+    psm::ProcessedSpectralModel,
+    dataset::AbstractSpectralDataset,
+    energy = rmfenergybins(dataset);
+    kwargs...,
+)
+    model, params = build_simple(psm)
+    fitparams!(params, model, dataset, energy; kwargs...)
+end
+
+function fitparams!(
     params,
     model,
     dataset::AbstractSpectralDataset,
     energy = rmfenergybins(dataset);
     kwargs...,
 )
-    rmf = response(dataset)
-    target = countbins(dataset)
-    error_target = countbins(dataset)
-    channels = channels(dataset)
+    __fitparams!(
+        params,
+        model,
+        response(dataset),
+        countbins(dataset),
+        counterrors(dataset),
+        energy,
+        channels(dataset);
+        kwargs...,
+    )
+end
 
-    frozen_p = get_frozen_model_params(model)
+function __fitparams!(
+    params,
+    model,
+    rmf::ResponseMatrix,
+    target,
+    error_target,
+    energy,
+    channels;
+    kwargs...,
+)
     fit = __lsq_fit(
         model,
-        isempty(frozen_p) ? frozen_p : get_value.(frozen_p),
         get_value.(params),
         get_lowerlimit.(params),
         get_upperlimit.(params),
@@ -26,8 +51,6 @@ function fitparams!(
         channels;
         kwargs...,
     )
-
-    # unpack results back into parameters
 
     means = LsqFit.coef(fit)
     errs = LsqFit.stderror(fit)
@@ -42,7 +65,6 @@ end
 
 @noinline function __lsq_fit(
     model,
-    frozen_p,
     p0,
     lb,
     ub,
@@ -53,9 +75,8 @@ end
     channels;
     kwargs...,
 )
-    fluxes = makefluxes(energy, flux_count(model))
-    foldedmodel(x, p) =
-        @views foldresponse(rmf, generated_model_call!(fluxes, x, model, p, frozen_p), x)[channels]
+    fluxes = makefluxes(energy)
+    foldedmodel(x, p) = @views foldresponse(rmf, model(fluxes..., x, p), x)[channels]
 
     # seems to cause nans and infs
     cov_err = 1 ./ (error_target .^ 2)
