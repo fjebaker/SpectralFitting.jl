@@ -1,3 +1,12 @@
+export AbstractCompositeOperator,
+    AdditionOperator,
+    MultiplicationOperator,
+    ConvolutionOperator,
+    operation_symbol,
+    CompositeSpectralModel,
+    get_free_model_params,
+    get_frozen_model_params
+
 abstract type AbstractCompositeOperator end
 struct AdditionOperator <: AbstractCompositeOperator end
 struct MultiplicationOperator <: AbstractCompositeOperator end
@@ -144,22 +153,17 @@ __add_frozen!(ps, p, ::FrozenParameter) = push!(ps, p)
 __add_frozen!(_, _, ::FreeParameter) = nothing
 __add_frozen!(ps, p::F) where {F} = __add_frozen!(ps, p, fit_parameter_state(F))
 
-function get_free_model_parameters(model::AbstractSpectralModel)
+function get_free_model_params(model::AbstractSpectralModel)
     params = FitParam[]
     __get_model_parameters!(params, __add_free!, model)
     params
 end
 
-function get_frozen_model_parameters(model::AbstractSpectralModel)
+function get_frozen_model_params(model::AbstractSpectralModel)
     params = FrozenFitParam[]
     __get_model_parameters!(params, __add_frozen!, model)
     params
 end
-
-function get_model_parameters(m::AbstractSpectralModel)
-    collect(get_all_params(m))
-end
-
 
 # printing
 operation_string(left, right, ::Multiplicative) = "$left * $right"
@@ -182,6 +186,3 @@ function Base.show(
 ) where {M1,M2}
     print(io, modelinfo(cm))
 end
-
-
-export get_model_parameters, get_free_model_parameters, get_frozen_model_parameters

@@ -7,32 +7,15 @@ function fitparams!(
     energy = rmfenergybins(dataset);
     kwargs...,
 )
-    __fitparams!(
-        params,
-        model,
-        response(dataset),
-        countbins(dataset),
-        counterrors(dataset),
-        energy,
-        channels(dataset);
-        kwargs...,
-    )
-end
+    rmf = response(dataset)
+    target = countbins(dataset)
+    error_target = countbins(dataset)
+    channels = channels(dataset)
 
-function __fitparams!(
-    params,
-    model,
-    rmf::ResponseMatrix,
-    target,
-    error_target,
-    energy,
-    channels;
-    kwargs...,
-)
-    frozen_p = get_value.(get_frozen_model_parameters(model))
+    frozen_p = get_frozen_model_params(model)
     fit = __lsq_fit(
         model,
-        frozen_p,
+        isempty(frozen_p) ? frozen_p : get_value.(frozen_p),
         get_value.(params),
         get_lowerlimit.(params),
         get_upperlimit.(params),
@@ -43,6 +26,8 @@ function __fitparams!(
         channels;
         kwargs...,
     )
+
+    # unpack results back into parameters
 
     means = LsqFit.coef(fit)
     errs = LsqFit.stderror(fit)
@@ -68,7 +53,7 @@ end
     channels;
     kwargs...,
 )
-    fluxes = makefluxes(energy)
+    fluxes = makefluxes(energy, flux_count(model))
     foldedmodel(x, p) =
         @views foldresponse(rmf, generated_model_call!(fluxes, x, model, p, frozen_p), x)[channels]
 

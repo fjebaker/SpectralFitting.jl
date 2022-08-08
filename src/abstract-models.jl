@@ -1,14 +1,31 @@
 export AbstractSpectralModel,
-    modelkind,
-    invokemodel!,
-    value,
-    upperbound,
-    lowerbound,
-    as_distribution,
     AbstractSpectralModelKind,
     Multiplicative,
     Additive,
-    Convolutional
+    Convolutional,
+    modelkind,
+    AbstractSpectralModelImplementation,
+    XSPECImplementation,
+    JuliaImplementation,
+    implementation,
+    AbstractSpectralModelClosureType,
+    WithClosures,
+    WithoutClosures,
+    closurekind,
+    has_closure_params,
+    #get_param_symbols,
+    #get_param_types,
+    #model_base_name,
+    #get_closure_param_fields,
+    get_param_symbols,
+    get_param,
+    get_param_count,
+    get_all_params,
+    get_all_params_by_value,
+    param_symbol_pairs,
+    invokemodel!,
+    flux_count
+
 
 # models
 abstract type AbstractSpectralModel end
@@ -78,10 +95,10 @@ invokemodel!(f, e, ::Type{M}, p...) where {M<:AbstractSpectralModel} =
     flux,
     energy,
     ::Additive,
-    ::Type{M},
+    M::Type{<:AbstractSpectralModel},
     K,
     p...,
-) where {M<:AbstractSpectralModel}
+)
     invoke!(flux, energy, M, p...)
     flux ./= K
 end
@@ -89,12 +106,16 @@ end
     flux,
     energy,
     ::AbstractSpectralModelKind,
-    ::Type{M},
+    M::Type{<:AbstractSpectralModel},
     p...,
-) where {M<:AbstractSpectralModel}
+)
     invoke!(flux, energy, M, p...)
     flux
 end
+
+# bindings to generated functions
+
+flux_count(model::AbstractSpectralModel) = generated_maximum_flux_count(model)
 
 # printing
 

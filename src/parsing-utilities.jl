@@ -1,5 +1,4 @@
-unpack_model(::Type{<:SpectralFitting.CompositeSpectralModel{M1,M2,O}}) where {M1,M2,O} =
-    (M1, M2, O)
+unpack_model(::Type{<:CompositeSpectralModel{M1,M2,O}}) where {M1,M2,O} = (M1, M2, O)
 unpack_model(m::CompositeSpectralModel{M1,M2,O}) where {M1,M2,O} =
     m.left, m.right, operation_symbol(O)
 
@@ -35,16 +34,16 @@ end
 function index_models!(
     index,
     running,
-    ::Type{<:SpectralFitting.CompositeSpectralModel{M1,M2}},
+    ::Type{<:CompositeSpectralModel{M1,M2}},
 ) where {M1,M2}
     left_run = :(getproperty($running, :left))
     right_run = :(getproperty($running, :right))
-    if M2 <: SpectralFitting.CompositeSpectralModel
+    if M2 <: CompositeSpectralModel
         index_models!(index, right_run, M2)
     else
         push!(index, right_run)
     end
-    if M1 <: SpectralFitting.CompositeSpectralModel
+    if M1 <: CompositeSpectralModel
         index_models!(index, left_run, M1)
     else
         push!(index, left_run)
@@ -55,4 +54,9 @@ function index_models(model::Type{<:CompositeSpectralModel})
     index = Expr[]
     index_models!(index, :model, model)
     index
+end
+
+
+function index_models(::Type{<:AbstractSpectralModel})
+    [:model]
 end
