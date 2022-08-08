@@ -84,10 +84,14 @@ function foldresponse(rmf::ResponseMatrix, flux, energy)
 end
 
 makeflux(rmf::ResponseMatrix) = makeflux(eltype(rmf.ebins.E_MIN), nrow(rmf.ebins))
-makeflux(energy) = makeflux(eltype(energy), length(energy) - 1)
+makeflux(energy::AbstractVector) = makeflux(eltype(energy), length(energy) - 1)
 makeflux(T::Type, length::Number) = zeros(T, length)
 
-function makefluxes(energy_or_rmf)
-    flux = makeflux(energy_or_rmf)
-    flux, deepcopy(flux), deepcopy(flux)
+function makefluxes(x, N::Int; T::Type = Float64)
+    flux = makeflux(x)
+    fluxes = typeof(flux)[flux]
+    for _ = 1:N-1
+        push!(fluxes, deepcopy(flux))
+    end
+    fluxes
 end
