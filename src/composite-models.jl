@@ -46,12 +46,7 @@ end
 # parameter access
 # get_param_symbols(M::Type{<:AbstractSpectralModel}) = fieldnames(M)
 function get_param_types(model::Type{<:SpectralFitting.CompositeSpectralModel})
-    types = Type[]
-    recursive_model_parse(model) do (left, right, _)
-        add_param_types!(types, right)
-        add_param_types!(types, left)
-    end
-    types
+    __generated_get_param_types(model)
 end
 
 # utilities
@@ -154,13 +149,15 @@ __add_frozen!(_, _, ::FreeParameter) = nothing
 __add_frozen!(ps, p::F) where {F} = __add_frozen!(ps, p, fit_parameter_state(F))
 
 function get_free_model_params(model::AbstractSpectralModel)
-    params = FitParam[]
+    T = generated_get_model_number_type(model)
+    params = FitParam{T}[]
     __get_model_parameters!(params, __add_free!, model)
     params
 end
 
 function get_frozen_model_params(model::AbstractSpectralModel)
-    params = FrozenFitParam[]
+    T = generated_get_model_number_type(model)
+    params = FrozenFitParam{T}[]
     __get_model_parameters!(params, __add_frozen!, model)
     params
 end
