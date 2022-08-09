@@ -97,7 +97,9 @@ get_error(::FrozenFitParam{T}) where {T} = zero(T)
 get_upperlimit(::FrozenFitParam{T}) where {T} = zero(T)
 get_lowerlimit(::FrozenFitParam{T}) where {T} = zero(T)
 
-export FitParam,
+export AbstractFitParameter,
+    FitParam,
+    FrozenFitParam,
     set_value!,
     set_error!,
     get_value,

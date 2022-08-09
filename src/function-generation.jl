@@ -208,6 +208,15 @@ function __generated_model_call!(fluxes, energy, model, free_params, frozen_para
     end
 end
 
+function __generated_get_param_types(model)
+    types = Type[]
+    recursive_model_parse(model) do (left, right, _)
+        add_param_types!(types, right)
+        add_param_types!(types, left)
+    end
+    types
+end
+
 @generated function generated_model_parameter_count(model)
     :($(model_parameter_count(model)))
 end
@@ -230,4 +239,15 @@ end
 
 @generated function generated_maximum_flux_count(model)
     __generated_maximum_flux_count(model)
+end
+
+@generated function generated_get_param_types(model)
+    types = __generated_get_param_types(model)
+    :($types)
+end
+
+@generated function generated_get_model_number_type(model)
+    types = first(__generated_get_param_types(model)).types
+    T = isempty(types) ? types : first(types)
+    :($T)
 end

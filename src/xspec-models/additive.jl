@@ -41,7 +41,64 @@ end
 #     "Outer radius of the disk in units of rₘₛ."
 #     outer_r::F9 = FrozenFitParam(400.0)
 #     "Redshift."
-#     z::F10 = FrozenFitParam(1.0)
+#     z::F10 = FrozenFitParam(0.0)
 # end
 
-export XS_PowerLaw, XS_BlackBody, XS_BremsStrahlung
+# broken
+# symbol lookup error: lib/libXSFunctions.so: undefined symbol: _gfortran_st_write
+# @xspecmodel Additive :C_kyrline struct XS_Kyrline{F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12}
+#     "Normalisation."
+#     K::F1 = FitParam(1.0)
+#     "Dimensionless black hole spin."
+#     a::F2 = FitParam(0.998)
+#     "Observer inclination (0 is on pole, degrees)."
+#     θ_obs::F3 = FitParam(30.0)
+#     "Inner radius of the disk in units of GM/c²"
+#     inner_r::F4 = FrozenFitParam(1.0)
+#     "0: integrate from rᵢₙ. 1: integrate from rₘₛ."
+#     ms_flag::F5 = FrozenFitParam(1)
+#     "Outer radius of the disk in units of GM/c²"
+#     outer_r::F6 = FrozenFitParam(400.0)
+#     "Rest frame line energy (keV)."
+#     lineE::F7 = FrozenFitParam(6.4)
+#     α::F8 = FrozenFitParam(3.0)
+#     β::F9 = FrozenFitParam(3.0)
+#     "Break radius seperating inner and outer disk (GM/c²)."
+#     break_r::F10 = FrozenFitParam(400.0)
+#     "Overall Doppler shift."
+#     z::F11 = FrozenFitParam(0.0)
+#     "0: isotropic emission, 1: Laor's limb darkening, 2: Haard's limb brightening."
+#     limb::F12 = FrozenFitParam(1)
+# end
+
+@xspecmodel Additive :C_laor struct XS_Laor{F1,F2,F3,F4,F5,F6}
+    "Normalisation."
+    K::F1 = FitParam(1.0)
+    "Rest frame line energy (keV)."
+    lineE::F2 = FitParam(6.4)
+    "Power law dependence of emissitivy. Scales R⁻ᵅ."
+    a::F3 = FrozenFitParam(3.0)
+    "Inner radius of the accretion disk (GM/c)."
+    inner_r::F4 = FrozenFitParam(1.235)
+    "Outer radius of the accretion disk (GM/c)."
+    outer_r::F5 = FrozenFitParam(400.0)
+    "Disk inclination angle to line of sight (degrees, 0 is pole on)."
+    incl::F6 = FitParam(30.0)
+end
+
+@xspecmodel Additive :C_diskline struct XS_DiskLine{F1,F2,F3,F4,F5,F6}
+    "Normalisation."
+    K::F1 = FitParam(1.0)
+    "Rest frame line energy (keV)."
+    lineE::F2 = FitParam(6.7)
+    "Power law dependence of emissitivy. If < 10, scales Rᵅ."
+    β::F3 = FrozenFitParam(-2.0)
+    "Inner radius of the accretion disk (GM/c)."
+    inner_r::F4 = FrozenFitParam(10.0)
+    "Outer radius of the accretion disk (GM/c)."
+    outer_r::F5 = FrozenFitParam(1000.0)
+    "Disk inclination angle to line of sight (degrees, 0 is pole on)."
+    incl::F6 = FitParam(30.0)
+end
+
+export XS_PowerLaw, XS_BlackBody, XS_BremsStrahlung, XS_Laor

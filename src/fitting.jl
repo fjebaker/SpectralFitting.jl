@@ -3,31 +3,39 @@ export fitparams!
 function fitparams!(
     params,
     model,
-    dataset::AbstractSpectralDataset,
-    energy = rmfenergybins(dataset);
+    dataset::SpectralDataset,
+    energy = get_energy_bins(dataset.response);
     kwargs...,
 )
-    rmf = response(dataset)
-    target = countbins(dataset)
-    error_target = countbins(dataset)
-    channels = channels(dataset)
-
-    frozen_p = get_frozen_model_params(model)
-    fit = __lsq_fit(
+    __fitparams!(
+        params,
         model,
-        isempty(frozen_p) ? frozen_p : get_value.(frozen_p),
-        get_value.(params),
-        get_lowerlimit.(params),
-        get_upperlimit.(params),
-        rmf,
-        target,
-        error_target,
+        dataset.response,
+        dataset.counts,
+        dataset.countserror,
         energy,
-        channels;
+        dataset.channels;
         kwargs...,
     )
+end
 
-    # unpack results back into parameters
+function __fitparams!(
+    params,
+    model,
+    rm::ResponseMatrix,
+    target,
+    error_target,
+    energy,
+    channels;
+    kwargs...,
+)
+
+    p0 = get_value.(params)
+    lb = get_lowerlimit.(params)
+    ub = get_upperlimit.(params)
+
+    fit =
+        __lsq_fit(model, p0, lb, ub, rm, target, error_target, energy, channels; kwargs...)
 
     means = LsqFit.coef(fit)
     errs = LsqFit.stderror(fit)
@@ -40,22 +48,10 @@ function fitparams!(
     fit
 end
 
-@noinline function __lsq_fit(
-    model,
-    frozen_p,
-    p0,
-    lb,
-    ub,
-    rmf,
-    target,
-    error_target,
-    energy,
-    channels;
-    kwargs...,
-)
-    fluxes = makefluxes(energy, flux_count(model))
+function __lsq_fit(model, p0, lb, ub, rm, target, error_target, energy, channels; kwargs...)
+    fluxes = make_fluxes(energy, flux_count(model))
     foldedmodel(x, p) =
-        @views foldresponse(rmf, generated_model_call!(fluxes, x, model, p, frozen_p), x)[channels]
+        @views fold_response(generated_model_call!(fluxes, x, model, p), x, rm)[channels]
 
     # seems to cause nans and infs
     cov_err = 1 ./ (error_target .^ 2)

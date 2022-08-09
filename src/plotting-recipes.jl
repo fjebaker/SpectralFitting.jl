@@ -6,7 +6,7 @@ import Makie
     Makie.Attributes(color = :black, positive_only = false)
 end
 
-function Makie.plot!(ss::SpectralScatter{<:Tuple{<:AbstractCommonSpectralDataset}})
+function Makie.plot!(ss::SpectralScatter{<:Tuple{<:SpectralDataset}})
     data = ss[1][]
 
     energy = (maxenergybins(data) .+ minenergybins(data)) ./ 2
@@ -94,13 +94,13 @@ function makie_spectral_plot_axis(fig_loc; limits = (nothing, nothing), xticks =
     )
 end
 
-function spectralplot(df::AbstractCommonSpectralDataset)
+function spectralplot(df::SpectralDataset)
     fig = Makie.Figure()
     spectralplot(fig[1, 1], df)
     fig
 end
 
-function spectralplot(fig_loc, df::AbstractCommonSpectralDataset)
+function spectralplot(fig_loc, df::SpectralDataset)
     limits = (getElims(df), (1e-6, maximum(countbins(df)) + 1))
     ax = makie_spectral_plot_axis(fig_loc; limits = limits)
     spectralscatter!(ax, df; positive_only = true)
