@@ -1,5 +1,9 @@
 # SpectralFitting.jl
 
+<a href="https://fjebaker.github.io/SpectralFitting.jl/dev/">
+<img alt="Docs" src="https://img.shields.io/badge/docs-dev-blue.svg"/>
+</a>
+
 Work in progress and subject to rapid breaking changes.
 
 ## Setup
