@@ -41,10 +41,10 @@ modelkind(::Type{<:SurrogateSpectralModel{Convolutional}}) = Convolutional()
     energy,
     ::Type{<:SurrogateSpectralModel{Multiplicative}},
     surrogate,
-    params...,
-)
+    params::T...,
+) where {T}
     @inbounds for i in eachindex(flux)
-        E = energy[i]
+        E = T(energy[i])
         v = (E, params...)
         flux[i] = surrogate(v)
     end
