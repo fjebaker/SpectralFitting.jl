@@ -125,7 +125,7 @@ model = XS_PhotoelectricAbsorption() * XS_PowerLaw()
 energy_fit = collect(range(0.1, 15.0, 300))
 free_params = get_free_model_params(model)
 
-# modified fre_params in-place
+# modified free_params in-place
 fitparams!(free_params, model, data, energy_fit)
 
 # use allocating version
@@ -139,7 +139,6 @@ p = scatter(data.low_energy_bins, data.counts; xlims = (0.0, 15.0))
 
 # plot fitted parameters
 plot!(data.response.low_energy_bins, folded_flux; seriestype = :steppre)
-
 ```
 
 ## Other currently undocumented features
