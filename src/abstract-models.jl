@@ -20,9 +20,10 @@ export AbstractSpectralModel,
     get_param_symbols,
     get_param,
     get_param_count,
-    get_all_params,
-    get_all_params_by_value,
+    get_all_model_params,
+    get_all_model_params_by_value,
     get_param_symbol_pairs,
+    invokemodel,
     invokemodel!,
     flux_count
 
@@ -79,19 +80,47 @@ get_param(m::AbstractSpectralModel, s::Symbol) = getproperty(m, s)
 # emergent param accessors
 get_param_count(M::Type{<:AbstractSpectralModel}) = length(get_param_types(M))
 
-get_all_params(m::AbstractSpectralModel) where {M} =
+get_all_model_params(m::AbstractSpectralModel) where {M} =
     (get_param(m, p) for p in get_param_symbols(m))
-get_all_params_by_value(m::AbstractSpectralModel) =
-    (get_value(i) for i in get_all_params(m))
+get_all_model_params_by_value(m::AbstractSpectralModel) =
+    (get_value(i) for i in get_all_model_params(m))
 # todo: make this a proper iterator? also better name
 get_param_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
     (p => get_param(m, p) for p in get_param_symbols(m))
 
 # invokation wrappers
+function invokemodel(e, m::AbstractSpectralModel)
+    fluxes = make_fluxes(e, flux_count(m))
+    invokemodel!(fluxes, e, m)
+    first(fluxes)
+end
+function invokemodel(e, m::AbstractSpectralModel, free_params)
+    fluxes = make_fluxes(e, flux_count(m))
+    if eltype(free_params) <: Number
+        invokemodel!(fluxes, e, m, free_params)
+    else
+        p0 = get_value.(free_params)
+        invokemodel!(fluxes, e, m, p0)
+    end
+    first(fluxes)
+end
+
+function invokemodel!(f, e, m::AbstractSpectralModel, free_params)
+    frozen_params = get_value.(get_frozen_model_params(m))
+    invokemodel!(f, e, m, free_params, frozen_params)
+end
+function invokemodel!(f, e, model::AbstractSpectralModel, free_params, frozen_params)
+    generated_model_call!(f, e, model, free_params, frozen_params)
+end
+
 invokemodel!(f, e, m::M) where {M<:AbstractSpectralModel} =
-    invokemodel!(f, e, M, get_all_params_by_value(m)...)
+    invokemodel!(f, e, M, get_all_model_params_by_value(m)...)
+
+# mainly used in function generation for single models
 invokemodel!(f, e, ::Type{M}, p...) where {M<:AbstractSpectralModel} =
     invokemodel!(f, e, modelkind(M), M, p...)
+
+# implementations
 @fastmath function invokemodel!(
     flux,
     energy,
@@ -121,7 +150,7 @@ flux_count(model::AbstractSpectralModel) = generated_maximum_flux_count(model)
 # printing
 
 function modelinfo(m::M) where {M<:AbstractSpectralModel}
-    params = join([get_value(p) for p in get_all_params(m)], ", ")
+    params = join([get_value(p) for p in get_all_model_params(m)], ", ")
     "$(model_base_name(M))[$(params)]"
 end
 
