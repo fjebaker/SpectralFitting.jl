@@ -1,3 +1,8 @@
+"""
+    XS_CalculateFlux(E_min, E_max, lg10Flux)
+
+$(FIELDS)
+"""
 @xspecmodel Convolutional :C_cflux struct XS_CalculateFlux{F1,F2,F3}
     "Minimum energy."
     E_min::F1 = FrozenFitParam(0.2)
