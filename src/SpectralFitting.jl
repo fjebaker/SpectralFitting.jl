@@ -13,6 +13,8 @@ import Crayons
 import Parameters: @with_kw
 import LsqFit
 
+using DocStringExtensions
+
 # import Turing
 # import Optimization
 

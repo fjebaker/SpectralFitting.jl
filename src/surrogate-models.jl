@@ -1,4 +1,36 @@
+"""
+    SurrogateSpectralModel <: AbstractSpectralModel
+    SurrogateSpectralModel(modelkind, surrogate, params, params_symbols)
 
+Used to wrap a surrogate function into an [`AbstractSpectralModel`](@ref).
+
+# Example
+
+Creating a surrogate function for [`XS_PhotoelectricAbsorption`](@ref) using
+[`wrap_model_as_objective`](@ref) and [`make_surrogate_function`](@ref).
+```julia
+using SpectralFitting
+using Surrogates
+
+model = XS_PhotoelectricAbsorption()
+objsampler = wrap_model_as_objective(model)
+
+# upper and lower bounds on energy and ηH
+lb = (0.1, 1e-3)
+ub = (30.0, 30.0)
+
+# build surrogate function
+surrogate = make_surrogate_function(model, s_lb, s_ub)
+
+# create surrogate model
+sm = SurrogateSpectralModel(
+    Multiplicative(),
+    surrogate,
+    (FitParam(1.0),),
+    (:ηH,)
+)
+```
+"""
 struct SurrogateSpectralModel{K,S,P,Z} <: AbstractSpectralModel
     surrogate::S
     params::P
@@ -62,6 +94,30 @@ end
     end
 end
 
+"""
+    optimize_accuracy!(
+        surr::AbstractSurrogate,
+        obj::Function,
+        lb,
+        ub;
+        sample_type::SamplingAlgorithm = SobolSample(),
+        maxiters = 200,
+        N_truth = 5000,
+        verbose = false,
+    )
+
+Improve accuracy (faithfullness) of the surrogate model in recreating the objective function.
+
+Samples a new space of `N_truth` points between `lb` and `ub`, and calculates the objective
+function `obj` at each. Finds the point with largest MSE between surrogate and objective, and
+adds the point to the surrogate pool. Repeats `maxiters` times, adding `maxiters` points to
+surrogate model.
+
+Optionally print to stdout the MSE and iteration count with `verbose = true`.
+
+Note that upper- and lower-bounds should be in the form `(E, params...)`, where `E` is a single
+energy and `params` are the model parameters.
+"""
 function optimize_accuracy!(
     surr::AbstractSurrogate,
     obj::Function,
@@ -86,22 +142,27 @@ function optimize_accuracy!(
     surr
 end
 
+"""
+    wrap_model_as_objective(model::AbstractSpectralModel; ΔE = 1e-1)
+    wrap_model_as_objective(M::Type{<:AbstractSpectralModel}; ΔE = 1e-1)
 
+Wrap a spectral model into an objective function for building/optimizing a surrogate model.
+Returns an anonymous function taking the tuple `(E, params...)` as the argument, and
+returning a single flux value.
+"""
+wrap_model_as_objective(::M; kwargs...) where {M<:AbstractSpectralModel} =
+    wrap_model_as_objective(M; kwargs...)
 function wrap_model_as_objective(M::Type{<:AbstractSpectralModel}; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
-        flux = [0.0]
+        flux = zero(typeof(x[2]))
         invokemodel!(flux, energies, M, x[2:end]...)[1]
     end
 end
-
-wrap_model_as_objective(::M; kwargs...) where {M<:AbstractSpectralModel} =
-    wrap_model_as_objective(M; kwargs...)
-
 function wrap_model_as_objective(model::CompositeSpectralModel; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
-        flux = make_fluxes(energies, flux_count(model))
+        flux = make_fluxes(energies, flux_count(model), typeof(x[2]))
         generated_model_call!(flux, energies, model, x[2:end])[1]
     end
 end
@@ -112,6 +173,27 @@ function _initial_space(obj, lb, ub, sample_type, N)
     (xys, zs)
 end
 
+"""
+    make_surrogate_function(
+        model::M,
+        lowerbounds::T,
+        upperbounds::T;
+        optimization_samples = 200,
+        seed_samples = 50,
+        S::Type = RadialBasis,
+        sample_type = SobolSample(),
+        verbose = false,
+    )
+
+Creates and optimizes a surrogate model of type `S` for `model`, using [`wrap_model_as_objective`](@ref)
+and  [`optimize_accuracy!`](@ref) for `optimization_samples` iterations. Model is initially
+seeded with `seed_samples` points prior to optimization.
+
+!!! note
+    Additive models integrate energies to calculate flux, which surrogate models are currently not
+    capable of. Results for Additive models likely to be inaccurate. This will be patched in a future
+    version.
+"""
 function make_surrogate_function(
     model::M,
     lowerbounds::T,
