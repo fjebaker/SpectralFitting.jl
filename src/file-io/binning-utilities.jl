@@ -37,11 +37,14 @@ function rebin_flux(flux, curr_energy, E_min::Number, high_energy_bins::Abstract
     out_flux
 end
 
-make_flux(energy::AbstractVector) = make_flux(eltype(energy), length(energy) - 1)
 make_flux(T::Type, length::Number) = zeros(T, length)
 
-function make_fluxes(x, N::Int)
-    flux = make_flux(x)
+function make_fluxes(energy, N::Int)
+    make_fluxes(energy, N, eltype(energy))
+end
+
+function make_fluxes(energy, N::Int, T::Type)
+    flux = make_flux(T, length(energy) - 1)
     fluxes = typeof(flux)[flux]
     for _ = 1:N-1
         push!(fluxes, deepcopy(flux))
