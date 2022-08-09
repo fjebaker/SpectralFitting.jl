@@ -1,0 +1,26 @@
+name: docs
+
+on:
+  push:
+    branches:
+      - main
+      - fergus/docs
+
+jobs:
+  docs:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.7.2'
+      - run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.add(url = "https://github.com/astro-group-bristol/LibXSPEC_jll.jl#master")
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
+      - run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

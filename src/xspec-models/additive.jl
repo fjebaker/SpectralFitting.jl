@@ -1,3 +1,8 @@
+"""
+    XS_PowerLaw(K, a)
+
+$(FIELDS)
+"""
 @xspecmodel Additive :C_powerlaw struct XS_PowerLaw{F1,F2}
     "Normalisation."
     K::F1 = FitParam(1.0)
@@ -5,6 +10,11 @@
     a::F2 = FitParam(0.5)
 end
 
+"""
+    XS_BlackBody(K, T)
+
+$(FIELDS)
+"""
 @xspecmodel Additive :C_bbody struct XS_BlackBody{F1,F2}
     "Normalisation."
     K::F1 = FitParam(1.0)
@@ -12,6 +22,11 @@ end
     T::F2 = FitParam(3.0)
 end
 
+"""
+    XS_BremsStrahlung(K, T)
+
+$(FIELDS)
+"""
 @xspecmodel Additive :C_bremss struct XS_BremsStrahlung{F1,F2}
     "Normalisation."
     K::F1 = FitParam(1.0)
@@ -71,6 +86,11 @@ end
 #     limb::F12 = FrozenFitParam(1)
 # end
 
+"""
+    XS_Laor(K, lineE, a, inner_r, outer_r, incl)
+
+$(FIELDS)
+"""
 @xspecmodel Additive :C_laor struct XS_Laor{F1,F2,F3,F4,F5,F6}
     "Normalisation."
     K::F1 = FitParam(1.0)
@@ -86,6 +106,11 @@ end
     incl::F6 = FitParam(30.0)
 end
 
+"""
+    XS_DiskLine(K, lineE, β, inner_r, outer_r, incl)
+
+$(FIELDS)
+"""
 @xspecmodel Additive :C_diskline struct XS_DiskLine{F1,F2,F3,F4,F5,F6}
     "Normalisation."
     K::F1 = FitParam(1.0)
