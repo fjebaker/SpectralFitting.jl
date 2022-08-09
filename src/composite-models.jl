@@ -55,8 +55,10 @@ add_param_types!(types, M::Type{<:AbstractSpectralModel}) =
     push!(types, get_param_types(M)...)
 
 # invokation wrappers
-invokemodel!(flux, energy, m::CompositeSpectralModel) =
-    invoke_composite!(flux, energy, m::CompositeSpectralModel)
+function invokemodel!(f, e, model::CompositeSpectralModel)
+    params = get_all_model_params_by_value(model)
+    generated_model_call!(f, e, model, params)
+end
 
 # composite wrappers
 # only used to make CompositeSpectralModel work with auto-allocations
@@ -118,7 +120,7 @@ conv_models(m1::M1, m2::M2) where {M1,M2} =
 # runtime param access
 function add_params_to_index!(params, adder!, m)
     if !isnothing(m)
-        foreach(get_all_params(m)) do p
+        foreach(get_all_model_params(m)) do p
             adder!(params, p)
         end
     end
@@ -159,6 +161,19 @@ function get_frozen_model_params(model::AbstractSpectralModel)
     T = generated_get_model_number_type(model)
     params = FrozenFitParam{T}[]
     __get_model_parameters!(params, __add_frozen!, model)
+    params
+end
+
+function get_all_model_params_by_value(model::CompositeSpectralModel)
+    T = generated_get_model_number_type(model)
+    params = T[]
+    __get_model_parameters!(params, (ps, p) -> push!(ps, get_value(p)), model)
+    params
+end
+
+function get_all_model_params(model::CompositeSpectralModel)
+    params = AbstractFitParameter{T}[]
+    __get_model_parameters!(params, push!, model)
     params
 end
 
