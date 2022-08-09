@@ -95,8 +95,9 @@ function invokemodel(e, m::AbstractSpectralModel)
     first(fluxes)
 end
 function invokemodel(e, m::AbstractSpectralModel, free_params)
-    fluxes = make_fluxes(e, flux_count(m))
     if eltype(free_params) <: Number
+        # for compatability with AD
+        fluxes = make_fluxes(e, flux_count(m), eltype(free_params))
         invokemodel!(fluxes, e, m, free_params)
     else
         p0 = get_value.(free_params)
