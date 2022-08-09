@@ -6,7 +6,6 @@ import Base
 import Printf
 
 using FITSIO
-using DataFrames
 using SparseArrays
 using Surrogates
 

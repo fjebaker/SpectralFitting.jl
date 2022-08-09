@@ -20,6 +20,8 @@ function fold_response(flux, energy, rm::ResponseMatrix)
     end
 end
 
+get_energy_bins(rm::ResponseMatrix{T}) where {T} = get_energy_bins(rm, T)
+
 function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) where {T}
     nchans = length(rm.channels)
     println(io, "ResponseMatrix with $nchans channels:")

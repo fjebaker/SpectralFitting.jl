@@ -79,7 +79,6 @@ function normalize_counts!(sd::SpectralDataset)
     end
 end
 
-get_energy_bins(rm::ResponseMatrix{T}) where {T} = get_energy_bins(rm, T)
 get_energy_bins(rm::SpectralDataset{M,R,T}) where {M,R,T} = get_energy_bins(rm, T)
 
 function get_energy_bins(x, T::Type)
