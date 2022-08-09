@@ -2,32 +2,37 @@ module SpectralFitting
 
 using LibXSPEC_jll
 
-using FITSIO
-using DataFrames
-using SparseArrays
-
-import Crayons
-
-import Parameters: @with_kw
 import Base
 import Printf
 
+using FITSIO
+using DataFrames
+using SparseArrays
+using Surrogates
+
+import Crayons
+import Parameters: @with_kw
+import LsqFit
+
 # import Turing
 # import Optimization
-import LsqFit
 
 include("abstract-models.jl")
 include("fitparam.jl")
 include("ccall-wrapper.jl")
-include("surrogate-models.jl")
 include("composite-models.jl")
+include("surrogate-models.jl")
 # include("model-processing.jl")
 # include("model-building.jl")
 include("parsing-utilities.jl")
 include("function-generation.jl")
-include("datasets.jl")
-include("energy-and-response.jl")
-include("file-io.jl")
+
+include("file-io/datasets.jl")
+include("file-io/response-matrix.jl")
+include("file-io/binning-utilities.jl")
+include("file-io/parsing-utilities.jl")
+include("file-io/no-associated-mission.jl")
+include("file-io/fits-loading.jl")
 
 include("fitting.jl")
 include("plotting-recipes.jl")

@@ -1,30 +1,20 @@
 export fitparams!
 
 function fitparams!(
-    psm::ProcessedSpectralModel,
-    dataset::AbstractSpectralDataset,
-    energy = rmfenergybins(dataset);
-    kwargs...,
-)
-    model, params = build_simple(psm)
-    fitparams!(params, model, dataset, energy; kwargs...)
-end
-
-function fitparams!(
     params,
     model,
-    dataset::AbstractSpectralDataset,
-    energy = rmfenergybins(dataset);
+    dataset::SpectralDataset,
+    energy = get_energy_bins(dataset.response);
     kwargs...,
 )
     __fitparams!(
         params,
         model,
-        response(dataset),
-        countbins(dataset),
-        counterrors(dataset),
+        dataset.response,
+        dataset.counts,
+        dataset.countserror,
         energy,
-        channels(dataset);
+        dataset.channels;
         kwargs...,
     )
 end
@@ -32,25 +22,20 @@ end
 function __fitparams!(
     params,
     model,
-    rmf::ResponseMatrix,
+    rm::ResponseMatrix,
     target,
     error_target,
     energy,
     channels;
     kwargs...,
 )
-    fit = __lsq_fit(
-        model,
-        get_value.(params),
-        get_lowerlimit.(params),
-        get_upperlimit.(params),
-        rmf,
-        target,
-        error_target,
-        energy,
-        channels;
-        kwargs...,
-    )
+
+    p0 = get_value.(params)
+    lb = get_lowerlimit.(params)
+    ub = get_upperlimit.(params)
+
+    fit =
+        __lsq_fit(model, p0, lb, ub, rm, target, error_target, energy, channels; kwargs...)
 
     means = LsqFit.coef(fit)
     errs = LsqFit.stderror(fit)
@@ -63,20 +48,10 @@ function __fitparams!(
     fit
 end
 
-@noinline function __lsq_fit(
-    model,
-    p0,
-    lb,
-    ub,
-    rmf,
-    target,
-    error_target,
-    energy,
-    channels;
-    kwargs...,
-)
-    fluxes = makefluxes(energy)
-    foldedmodel(x, p) = @views foldresponse(rmf, model(fluxes..., x, p), x)[channels]
+function __lsq_fit(model, p0, lb, ub, rm, target, error_target, energy, channels; kwargs...)
+    fluxes = make_fluxes(energy, flux_count(model))
+    foldedmodel(x, p) =
+        @views fold_response(generated_model_call!(fluxes, x, model, p), x, rm)[channels]
 
     # seems to cause nans and infs
     cov_err = 1 ./ (error_target .^ 2)
