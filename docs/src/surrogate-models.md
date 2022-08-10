@@ -182,7 +182,7 @@ Now when we benchmark
 </code><button class="copy-button fas fa-copy"></button></pre>
 ```
 
-Comparing this to the initial benchmark of [`XS_PhotoelectricAbsorption`](@ref), we see about a 60x speedup, with no allocations, and furthermore, this surrogate model is now automatic differentiation ready.
+Comparing this to the initial benchmark of [`XS_PhotoelectricAbsorption`](@ref), we see about a 60x speedup, with no allocations, _and_ this surrogate model is now automatic differentiation ready.
 
 ## Sharing surrogate models
 
