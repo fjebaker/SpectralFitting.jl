@@ -96,7 +96,7 @@ modelkind(::Type{<:BlackBody}) = Additive()
 
 # define action in-place
 @fastmath function SpectralFitting.invoke!(flux, energy, ::Type{<:BlackBody}, kT)
-    integrate_over_flux!(flux, energy) do E
+    finite_diff_kernel!(flux, energy) do E
         8.0525 * E^2 / (kT^4 * (exp(E / kT) - 1))
     end
 end
