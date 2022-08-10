@@ -7,7 +7,7 @@ ENV["GKSwstype"]="nul"
 Plots.default(show=false)
 ```
 
-Surrogate models allow you to create fast or memory efficient approximations of model components, or assist in optimizing some objective function directly. SpectralFitting uses the [Surrogates.jl](https://github.com/SciML/Surrogates.jl) library of models, that can yields pure-Julia surrogate models. Consequently surrogate models also permit use of automatic differentiation in fitting, and are therefore powerful tools for improving fitting performance.
+Surrogate models allow you to create fast or memory efficient approximations of model components, or assist in optimizing some objective function directly. SpectralFitting uses the [Surrogates.jl](https://github.com/SciML/Surrogates.jl) library of models, that yields pure-Julia surrogate models. Consequently, surrogate models also permit use of automatic differentiation in fitting, and are therefore powerful tools for improving fitting performance.
 
 ## Surrogates overview
 
@@ -35,19 +35,27 @@ Before we start, let us discuss a number of benefits the use of surrogate models
 
 [`XS_PhotoelectricAbsorption`](@ref) is an XSPEC model that is wrapped by a thin C-wrapper into Julia. The implementation of this model is a number of Fortran routines from the late 90s, including a tabulation of ~3000 lines of data that has been copied directly into the Fortran source code.
 
-The performance of this model represents its complexity:
+The performance of this model represents its complexity.
 
 ```@example surrogate_example
-using BenchmarkTools
-
-model = XS_PhotoelectricAbsorption()
 energy = collect(range(0.1, 20.0, 100))
 flux = make_flux(energy)
 
-@benchmark invokemodel!($flux, $energy, $model)
+model = XS_PhotoelectricAbsorption()
 ```
 
-The surrogate we'll construct will have to be tailored a little to the data we wish to fit, as we need to specify the parameter ranges our surrogate should learn. For example, we might be interested in energies between ``0.1`` and ``20`` keV, with equivalent hydrogen column ``\eta H`` anywhere between ``10^{-3}`` and ``30``. We specify these bounds using tuples
+Benchmarking with [BenchmarkTools.jl](https://juliaci.github.io/BenchmarkTools.jl/stable/):
+
+```julia
+using BenchmarkTools
+@btime invokemodel!($flux, $energy, $model);
+```
+```@raw html
+<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  2.302 ms (3 allocations: 112 bytes)
+</code><button class="copy-button fas fa-copy"></button></pre>
+```
+
+The surrogate we'll construct will have to be tailored a little to the data we wish to fit, as we need to specify the parameter ranges our surrogate should learn. For example, we might be interested in energies between ``0.1`` and ``20`` keV, with equivalent hydrogen column ``\eta``H anywhere between ``10^{-3}`` and ``30``. We specify these bounds using tuples
 
 ```@example surrogate_example
 lower_bounds = (0.1, 1e-3)
@@ -106,11 +114,11 @@ length(surrogate.x)
 
 We can plot the surrogate model again and see the improvement.
 ```@example surrogate_example
-f̂2 = map(energy[2:end]) do e
+new_f̂ = map(energy[2:end]) do e
     v = (e, ηh_test)
     surrogate(v)
 end
-plot!(energy[1:end-1], f̂2, label="surr+") # hide
+plot!(energy[1:end-1], new_f̂, label="surr+") # hide
 p # hide
 ```
 
@@ -144,8 +152,12 @@ sm = SurrogateSpectralModel(
 
 We can now use the familiar API and attempt to benchmark the performance:
 
-```@example surrogate_example
-@benchmark invokemodel!($flux, $energy, $sm)
+```julia
+@btime invokemodel!($flux, $energy, $sm);
+```
+```@raw html
+<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  50.406 μs (297 allocations: 6.19 KiB)
+</code><button class="copy-button fas fa-copy"></button></pre>
 ```
 
 These allocations are coming from the global closure we have in the  `clamped_surrogate` lambda. We can actually elide these using a proper closure:
@@ -159,10 +171,18 @@ make_surr(surrogate) = SpectralFitting.SurrogateSpectralModel(
 )
 
 sm2 = make_surr(surrogate)
-@benchmark invokemodel!($flux, $energy, $sm2)
 ```
 
-Comparing this to the initial benchmark of [`XS_PhotoelectricAbsorption`](@ref), we see about a 60x speedup, with no allocations. Furthermore, this surrogate model is now automatic differentiation ready!
+Now when we benchmark
+```julia
+@btime invokemodel!($flux, $energy, $sm2);
+```
+```@raw html
+<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  46.228 μs (0 allocations: 0 bytes)
+</code><button class="copy-button fas fa-copy"></button></pre>
+```
+
+Comparing this to the initial benchmark of [`XS_PhotoelectricAbsorption`](@ref), we see about a 60x speedup, with no allocations, and furthermore, this surrogate model is now automatic differentiation ready.
 
 ## Sharing surrogate models
 
