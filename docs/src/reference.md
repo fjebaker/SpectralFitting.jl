@@ -11,6 +11,7 @@ make_fluxes
 
 ```@docs
 SpectralFitting.finite_diff_kernel!
+wrap_model_as_objective
 ```
 
 ## Introspection

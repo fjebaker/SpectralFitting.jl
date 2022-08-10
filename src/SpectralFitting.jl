@@ -8,6 +8,8 @@ import Printf
 using FITSIO
 using SparseArrays
 using Surrogates
+using ForwardDiff
+using PreallocationTools
 
 import Crayons
 import Parameters: @with_kw
