@@ -37,6 +37,7 @@ function rebin_flux(flux, curr_energy, E_min::Number, high_energy_bins::Abstract
     out_flux
 end
 
+make_flux(energy::AbstractVector{T}) where {T} = make_flux(T, length(energy) - 1)
 make_flux(T::Type, length::Number) = zeros(T, length)
 
 function make_fluxes(energy, N::Int)

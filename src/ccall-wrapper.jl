@@ -30,7 +30,7 @@ macro wrap_xspec_model_ccall(
 end
 
 """
-    @xspecmodel model_kind, func_name, model
+    @xspecmodel model_kind func_name model
 
 Used to wrap additional XSPEC models, generating the needed [`AbstractSpectralModel`](@ref)
 implementation.
@@ -50,7 +50,7 @@ We define a new structure `XS_PowerLaw` with two parameters, but since the model
 only a single parameter (`a`) is passed to the XSPEC function. The function we bind to this model
 is `:C_powerlaw` from the XSPEC C wrappers.
 
-The macro will, in this case, generate the following functions
+The macro will then generate the following functions
 ```julia
 modelkind(::Type{<:XS_PowerLaw})
 implementation(::Type{<:XS_PowerLaw})

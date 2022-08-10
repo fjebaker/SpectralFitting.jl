@@ -7,7 +7,7 @@ Used to wrap a surrogate function into an [`AbstractSpectralModel`](@ref).
 # Example
 
 Creating a surrogate function for [`XS_PhotoelectricAbsorption`](@ref) using
-[`wrap_model_as_objective`](@ref) and [`make_surrogate_function`](@ref).
+[`wrap_model_as_objective`](@ref) and [`make_surrogate_function`](@ref):
 ```julia
 using SpectralFitting
 using Surrogates
@@ -20,7 +20,7 @@ lb = (0.1, 1e-3)
 ub = (30.0, 30.0)
 
 # build surrogate function
-surrogate = make_surrogate_function(model, s_lb, s_ub)
+surrogate = make_surrogate_function(model, lb, ub)
 
 # create surrogate model
 sm = SurrogateSpectralModel(
@@ -89,7 +89,7 @@ end
     surrogate,
     params...,
 )
-    integrate_over_flux!(flux, energy) do E
+    finite_diff_kernel!(flux, energy) do E
         surrogate((E, params...))
     end
 end
@@ -155,7 +155,7 @@ wrap_model_as_objective(::M; kwargs...) where {M<:AbstractSpectralModel} =
 function wrap_model_as_objective(M::Type{<:AbstractSpectralModel}; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
-        flux = zero(typeof(x[2]))
+        flux = zeros(typeof(x[2]), 1)
         invokemodel!(flux, energies, M, x[2:end]...)[1]
     end
 end
