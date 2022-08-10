@@ -1,12 +1,7 @@
-# Models
+# Models index
 
-Models exist as three different kinds
-```@docs
-AbstractSpectralModelKind
-modelkind
-Additive
-Multiplicative
-Convolutional
+```@setup model_plots
+using SpectralFitting
 ```
 
 Models wrapped from XSPEC implementations are prefixed with `XS_*`, whereas pure-Julia models are simply named, e.g. [`XS_PowerLaw`](@ref) in XSPEC vs [`PowerLaw`](@ref) in Julia.
@@ -17,17 +12,14 @@ Pages = ["models.md"]
 Order = [:type]
 ```
 
+## Julia models
+
 ```@docs
-AbstractSpectralModel
-SpectralFitting.invoke!
+PowerLaw
+BlackBody
 ```
 
-## Using models
-```@docs
-invokemodel
-```
-
-## Defining new models
+### Defining new models
 
 To define a new Julia model, we need only implement the [`AbstractSpectralModel`](@ref) interface. As a pedagogical example, consider an implementation of [`PowerLaw`](@ref):
 
@@ -48,7 +40,7 @@ modelkind(::Type{<:PowerLaw}) = Additive()
 function SpectralFitting.invoke!(flux, energy, ::Type{<:PowerLaw}, a)
     α = 1 - a
     α⁻¹ = inv(α)
-    SpectralFitting.integrate_over_flux!(flux, energy) do E
+    SpectralFitting.finite_diff_kernel!(flux, energy) do E
         α⁻¹ * E^α
     end
 end
@@ -58,20 +50,13 @@ Note that each parameter has its own parametric type, here `::F1` and `::F2`. Th
 
 The model is defined to be additive by overloading [`modelkind`](@ref).
 
-!!! note
+!!! danger
     Additive models _must have_ a normalisation parameter with the symbol `K`, which is, however, _not passed_ to [`SpectralFitting.invoke!`](@ref). Multiplicative and convolutional models have no such requirements.
 
-We have also used the [`SpectralFitting.integrate_over_flux`](@ref) utility function, which is designed to help us efficiently compute finite-difference integrations of flux, just as XSPEC does.
+We have also used the [`SpectralFitting.finite_diff_kernel!`](@ref) utility function, which is designed to help us efficiently compute finite-difference integrations of flux, just as XSPEC does.
 
 !!! note
     To add additional XSPEC models, see [Wrapping new XSPEC models](@ref).
-
-## Julia models
-
-```@docs
-PowerLaw
-BlackBody
-```
 
 ## XSPEC models
 
@@ -94,13 +79,26 @@ SpectralFitting exports a helpful macro to facilitate wrapping additional XSPEC 
 @xspecmodel
 ```
 
-## Other models
+## Generating model fingerprints
 
-```@docs
-CompositeSpectralModel
+To generate the unicode plot to add as a fingerprint, we use a simple function:
 
-SurrogateSpectralModel
-wrap_model_as_objective
-make_surrogate_function
-optimize_accuracy!
+```@example model_plots
+using UnicodePlots
+
+function plotmodel(energy, model)
+    flux = invokemodel(energy, model)
+    lineplot(
+        energy[1:end-1], 
+        flux, 
+        title=String(SpectralFitting.model_base_name(typeof(model))), 
+        xlabel="E (keV)", 
+        canvas=DotCanvas
+    )
+end
+
+# e.g. for XS_PowerLaw()
+energy = collect(range(0.1, 20.0, 100))
+plotmodel(energy, XS_PowerLaw())
 ```
+
