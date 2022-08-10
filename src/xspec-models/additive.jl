@@ -2,6 +2,36 @@
     XS_PowerLaw(K, a)
 
 $(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokeflux(energy, XS_PowerLaw())
+```
+
+```
+                      XS_PowerLaw
+       ┌────────────────────────────────────────┐
+   0.5 │                                        │
+       │:                                       │
+       │:                                       │
+       │:                                       │
+       │:                                       │
+       │:                                       │
+       │:                                       │
+       │ :                                      │
+       │ :                                      │
+       │  :                                     │
+       │   :.                                   │
+       │    ':..                                │
+       │        ''':......                      │
+       │                  ''''''''''''''........│
+     0 │                                        │
+       └────────────────────────────────────────┘
+        0                                     20
+                         E (keV)
+```
 """
 @xspecmodel Additive :C_powerlaw struct XS_PowerLaw{F1,F2}
     "Normalisation."
@@ -14,6 +44,36 @@ end
     XS_BlackBody(K, T)
 
 $(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokeflux(energy, XS_BlackBody())
+```
+
+```
+                      XS_BlackBody
+       ┌────────────────────────────────────────┐
+   0.2 │                                        │
+       │                                        │
+       │                                        │
+       │                                        │
+       │                                        │
+       │                                        │
+       │      .:''':..                          │
+       │    .:       ''.                        │
+       │   .'           ':.                     │
+       │   :              ''..                  │
+       │  :                  ':.                │
+       │ :                     '':.             │
+       │.:                         ''..         │
+       │:                              '':....  │
+     0 │'                                    '''│
+       └────────────────────────────────────────┘
+        0                                     20
+                         E (keV)
+```
 """
 @xspecmodel Additive :C_bbody struct XS_BlackBody{F1,F2}
     "Normalisation."
@@ -26,6 +86,36 @@ end
     XS_BremsStrahlung(K, T)
 
 $(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokeflux(energy, XS_BremsStrahlung())
+```
+
+```
+                  XS_BremsStrahlung
+     ┌────────────────────────────────────────┐
+   2 │                                        │
+     │.                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │:                                       │
+     │'.                                      │
+     │ :                                      │
+   0 │  ':....................................│
+     └────────────────────────────────────────┘
+      0                                     20
+                       E (keV)
+```
 """
 @xspecmodel Additive :C_bremss struct XS_BremsStrahlung{F1,F2}
     "Normalisation."
@@ -90,6 +180,36 @@ end
     XS_Laor(K, lineE, a, inner_r, outer_r, incl)
 
 $(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 10.0, 100))
+invokeflux(energy, XS_Laor())
+```
+
+```
+                          XS_Laor
+        ┌────────────────────────────────────────┐
+   0.06 │                                        │
+        │                                        │
+        │                         ::             │
+        │                         ::             │
+        │                        : :             │
+        │                       :  :             │
+        │                      :   :             │
+        │                     :'   :             │
+        │                   .:     :             │
+        │                  :'      :             │
+        │                .'        :             │
+        │              .:'         :             │
+        │            ..'           :             │
+        │          .:'              :            │
+      0 │.......:''                 :............│
+        └────────────────────────────────────────┘
+         0                                     10
+                          E (keV)
+```
 """
 @xspecmodel Additive :C_laor struct XS_Laor{F1,F2,F3,F4,F5,F6}
     "Normalisation."
@@ -110,6 +230,36 @@ end
     XS_DiskLine(K, lineE, β, inner_r, outer_r, incl)
 
 $(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(4.0, 8.0, 100))
+invokeflux(energy, XS_DiskLine())
+```
+
+```
+                        XS_DiskLine
+        ┌────────────────────────────────────────┐
+   0.09 │                                        │
+        │                           .            │
+        │                           :            │
+        │                           ::           │
+        │                         . ::           │
+        │                         : ::           │
+        │                         :'':           │
+        │                        .'  :           │
+        │                        :    :          │
+        │                        :    :          │
+        │                       .'    :          │
+        │                       :     :          │
+        │                     .:      '.         │
+        │                   .:'        :         │
+      0 │...............:'''           :.........│
+        └────────────────────────────────────────┘
+         4                                      8
+                          E (keV)
+```
 """
 @xspecmodel Additive :C_diskline struct XS_DiskLine{F1,F2,F3,F4,F5,F6}
     "Normalisation."

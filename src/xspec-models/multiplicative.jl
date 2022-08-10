@@ -2,6 +2,36 @@
     XS_PhotoelectricAbsorption(ηH)
 
 $(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokeflux(energy, XS_PhotoelectricAbsorption())
+```
+
+```
+             XS_PhotoelectricAbsorption
+     ┌────────────────────────────────────────┐
+   1 │       ...''''''''''''''''''''''''''''''│
+     │      .'                                │
+     │     :                                  │
+     │    :'                                  │
+     │    :                                   │
+     │   :                                    │
+     │   :                                    │
+     │   :                                    │
+     │  :                                     │
+     │  :                                     │
+     │  :                                     │
+     │  :                                     │
+     │  :                                     │
+     │ :                                      │
+   0 │.:                                      │
+     └────────────────────────────────────────┘
+      0                                     20
+                       E (keV)
+```
 """
 @xspecmodel Multiplicative :C_phabs struct XS_PhotoelectricAbsorption{F}
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."
@@ -12,6 +42,36 @@ end
     XS_WarmAbsorption(ηH, Ew)
 
 $(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokeflux(energy, XS_WarmAbsorption())
+```
+
+```
+                    XS_WarmAbsorption
+       ┌────────────────────────────────────────┐
+     1 │':      ...''':'''''''''''''''''''''''''│
+       │ :    .:'                               │
+       │ :   .'                                 │
+       │ :  .:                                  │
+       │ :  :                                   │
+       │ :  :                                   │
+       │ : :                                    │
+       │ : :                                    │
+       │ : :                                    │
+       │ : :                                    │
+       │ ::                                     │
+       │ ::                                     │
+       │  :                                     │
+       │  :                                     │
+   0.2 │  :                                     │
+       └────────────────────────────────────────┘
+        0                                     20
+                         E (keV)
+```
 """
 @xspecmodel Multiplicative :C_wndabs struct XS_WarmAbsorption{F1,F2}
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."
