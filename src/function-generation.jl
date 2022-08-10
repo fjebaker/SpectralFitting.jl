@@ -119,6 +119,7 @@ function assemble_aggregate_info(model::Type{<:CompositeSpectralModel})
         if (!isnothing(op))
             add_flux_resolution!(ga, op)
         end
+        Nothing
     end
     ga
 end
@@ -213,8 +214,14 @@ function __generated_get_param_types(model)
     recursive_model_parse(model) do (left, right, _)
         add_param_types!(types, right)
         add_param_types!(types, left)
+        nothing
     end
     types
+end
+
+function __generated_get_model_types(model)
+    ga = assemble_aggregate_info(model)
+    :(($(ga.models...),))
 end
 
 @generated function generated_model_parameter_count(model)
@@ -250,4 +257,8 @@ end
     types = first(__generated_get_param_types(model)).types
     T = isempty(types) ? types : first(types)
     :($T)
+end
+
+@generated function generated_get_model_types(model)
+    __generated_get_model_types(model)
 end

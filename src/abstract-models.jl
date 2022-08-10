@@ -265,6 +265,13 @@ Invoke the [`AbstractSpectralModel`](@ref) given by `model`, optionally overridi
 parameters with values given in `free_params`. `free_params` may be a vector or tuple with element
 type [`AbstractFitParameter`](@ref) or `Number`.
 
+This function, unlike [`SpectralFitting.invoke!`](@ref) used to define models, is sensitive to performing
+any normalisation or post-processing tasks that a specific model kind may require.
+
+!!! note
+    Users should always call models using [`invokemodel`](@ref) or [`invokemodel!`](@ref) to ensure
+    normalisations and closures are accounted for.
+
 `invokemodel` allocates the needed flux arrays based on the element type of `free_params` to allow
 automatic differentation libraries to calculate parameter gradients.
 

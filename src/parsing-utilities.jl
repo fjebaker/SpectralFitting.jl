@@ -12,16 +12,16 @@ end
 recursive_model_parse(_, model::Type{<:AbstractSpectralModel}) = model
 function recursive_model_parse(callback, model::Type{<:CompositeSpectralModel})
     __recursive_model_parse(callback, model)
-    Nothing
+    # Nothing
 end
 
 recursive_model_parse(_, model::AbstractSpectralModel) = model
 function recursive_model_parse(callback, model::CompositeSpectralModel)
     __recursive_model_parse(callback, model)
-    nothing
+    # nothing
 end
 
-function make_unique_readable_symbol(p, symbol_bank; delim = '_')
+function _make_unique_readable_symbol(p, symbol_bank; delim = '_')
     i = 1
     symb = Symbol(p, delim, i)
     while symb in symbol_bank

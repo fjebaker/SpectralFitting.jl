@@ -50,24 +50,21 @@ mutable struct FitParam{T} <: AbstractFitParameter
 end
 
 function get_info_tuple(f::AbstractFitParameter)
-    err = get_error(f)
-    s1 = if abs(err) > eps(typeof(err))
-        Printf.@sprintf "%.3g ± %.3g" get_value(f) err
-    else
-        Printf.@sprintf "%.3g" get_value(f)
-    end
-    s2 = Printf.@sprintf "(%.3g - %.3g)" get_lowerlimit(f) get_upperlimit(f)
-    (s1, s2)
+    s1 = Printf.@sprintf "%.3g" get_value(f)
+    s2 = Printf.@sprintf "%.3g" get_error(f)
+    s3 = Printf.@sprintf "%.3g" get_lowerlimit(f)
+    s4 = Printf.@sprintf "%.3g" get_upperlimit(f)
+    (s1, s2, s3, s4)
 end
 
 function print_info(io::IO, f::AbstractFitParameter)
-    s1, s2 = get_info_tuple(f)
-    s3 = if is_frozen(f)
+    v, e, lb, ub = get_info_tuple(f)
+    f = if is_frozen(f)
         Crayons.Box.CYAN_FG("Frozen")
     else
         Crayons.Box.GREEN_FG("Free")
     end
-    print(io, s1, " ∈ ", s2, " ", s3)
+    print(io, v, " ± ", e, " ∈ [", lb, ", ", ub, "] ", f)
 end
 
 function Base.show(io::IO, f::AbstractFitParameter)
@@ -85,7 +82,7 @@ end
 
 function get_info_tuple(f::FrozenFitParam)
     s = Printf.@sprintf "%.3g" get_value(f)
-    (s, "")
+    (s, "", "", "")
 end
 
 fit_parameter_state(::Type{<:FrozenFitParam}) = FrozenParameter()
