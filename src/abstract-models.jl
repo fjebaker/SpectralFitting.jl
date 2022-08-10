@@ -138,7 +138,7 @@ end
 The only exception to this are [`Additive`](@ref) models, where the normalisation parameter
 `K` is not passed to `invoke!`.
 """
-invoke!(flux, energy, ::Type{M}, params...) where {M<:AbstractSpectralModel} =
+invoke!(flux, energy, M::AbstractSpectralModel, params...) =
     error("Not defined for $(M).")
 
 
@@ -336,13 +336,13 @@ invokemodel!(flux, energy, model, p0)
 function invokemodel!(f, e, m::M) where {M<:AbstractSpectralModel}
     invokemodel!(f, e, M, get_all_model_params_by_value(m)...)
 end
-function invokemodel!(f, e, m::AbstractSpectralModel, free_params)
-    frozen_params = get_value.(get_frozen_model_params(m))
-    invokemodel!(f, e, m, free_params, frozen_params)
+function invokemodel!(f, e, ::M, free_params) where {M<:AbstractSpectralModel}
+    invokemodel!(f, e, M, free_params...)
 end
-function invokemodel!(f, e, model::AbstractSpectralModel, free_params, frozen_params)
-    generated_model_call!(f, e, model, free_params, frozen_params)
-end
+# todo: do we want to support this function ?
+# function invokemodel!(f, e, model::AbstractSpectralModel, free_params, frozen_params)
+#     generated_model_call!(f, e, model, free_params, frozen_params)
+# end
 """
     invokemodel!(flux, energy, ::Type{<:AbstractSpectralModel}, params...)
 

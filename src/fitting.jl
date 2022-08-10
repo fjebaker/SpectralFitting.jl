@@ -55,7 +55,7 @@ function __lsq_fit(::AbstractSpectralModelImplementation, model, p0, lb, ub, rm,
         @views fold_response(invokemodel!(fluxes, x, model, p, frozen_p), x, rm)[channels]
 
     # seems to cause nans and infs
-    cov_err = 1 ./ (error_target .^ 2)
+    cov_err = @. 1 / (error_target ^ 2)
 
     fit = LsqFit.curve_fit(
         foldedmodel,

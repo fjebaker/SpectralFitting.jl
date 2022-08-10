@@ -69,7 +69,7 @@ model operations.
 
 # Example
 
-```
+```julia
 model = XS_PhotoelectricAbsorption() * (XS_PowerLaw() + XS_BlackBody())
 typeof(model) <: CompositeSpectralModel # true
 ```
@@ -130,6 +130,13 @@ function invokemodel(e, m::CompositeSpectralModel, free_params)
         invokemodel!(fluxes, e, m, p0)
     end
     first(fluxes)
+end
+function invokemodel!(f, e, m::CompositeSpectralModel, free_params)
+    frozen_params = get_value.(get_frozen_model_params(m))
+    invokemodel!(f, e, m, free_params, frozen_params)
+end
+function invokemodel!(f, e, model::CompositeSpectralModel, free_params, frozen_params)
+    generated_model_call!(f, e, model, free_params, frozen_params)
 end
 
 # algebra grammar

@@ -52,3 +52,13 @@ function make_fluxes(energy, N::Int, T::Type)
     end
     fluxes
 end
+
+function make_dual_fluxes(energy, N::Int)
+    flux = make_flux(eltype(energy), length(energy) - 1)
+    d_flux = dualcache(flux)
+    d_fluxes = typeof(d_flux)[d_flux]
+    for _ = 1:N-1
+        push!(d_fluxes, deepcopy(d_flux))
+    end
+    d_fluxes
+end

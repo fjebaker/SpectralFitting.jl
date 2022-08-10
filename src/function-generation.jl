@@ -123,12 +123,6 @@ function assemble_aggregate_info(model::Type{<:CompositeSpectralModel})
     end
     ga
 end
-
-"""
-    assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
-
-Specialisation for when only a single model invoked.
-"""
 function assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
     ga = GenerationAggregate()
     flux = get_flux_symbol(inc_flux!(ga))
@@ -209,7 +203,12 @@ function __generated_model_call!(fluxes, energy, model, free_params, frozen_para
     end
 end
 
-function __generated_get_param_types(model)
+function __generated_get_param_types(model::Type{<:AbstractSpectralModel})
+    types = Type[]
+    add_param_types!(types, model)
+    types
+end
+function __generated_get_param_types(model::Type{<:CompositeSpectralModel})
     types = Type[]
     recursive_model_parse(model) do (left, right, _)
         add_param_types!(types, right)

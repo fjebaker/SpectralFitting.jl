@@ -6,23 +6,12 @@ Used to wrap a surrogate function into an [`AbstractSpectralModel`](@ref).
 
 # Example
 
-Creating a surrogate function for [`XS_PhotoelectricAbsorption`](@ref) using
-[`wrap_model_as_objective`](@ref) and [`make_surrogate_function`](@ref):
+Creating a surrogate function using [`make_surrogate_function`](@ref):
 ```julia
-using SpectralFitting
-using Surrogates
+# build and optimize a surrogate model
+surrogate = make_surrogate_function(model, lower_bounds, upper_bounds)
 
-model = XS_PhotoelectricAbsorption()
-objsampler = wrap_model_as_objective(model)
-
-# upper and lower bounds on energy and ηH
-lb = (0.1, 1e-3)
-ub = (30.0, 30.0)
-
-# build surrogate function
-surrogate = make_surrogate_function(model, lb, ub)
-
-# create surrogate model
+# create surrogate spectral model
 sm = SurrogateSpectralModel(
     Multiplicative(),
     surrogate,
@@ -30,6 +19,9 @@ sm = SurrogateSpectralModel(
     (:ηH,)
 )
 ```
+
+The `lower_bounds` and `upper_bounds` must be tuples in the form `(E, params...)`, where `E`
+denotes the bounds on the energy range to train over.
 """
 struct SurrogateSpectralModel{K,S,P,Z} <: AbstractSpectralModel
     surrogate::S
@@ -73,8 +65,8 @@ modelkind(::Type{<:SurrogateSpectralModel{Convolutional}}) = Convolutional()
     energy,
     ::Type{<:SurrogateSpectralModel{Multiplicative}},
     surrogate,
-    params::T...,
-) where {T}
+    params::Vararg{T,N},
+) where {T,N}
     @inbounds for i in eachindex(flux)
         E = T(energy[i])
         v = (E, params...)
@@ -92,6 +84,10 @@ end
     finite_diff_kernel!(flux, energy) do E
         surrogate((E, params...))
     end
+end
+
+function invokemodel!(f, e, m::M) where {M<:SurrogateSpectralModel}
+    invokemodel!(f, e, M, m.surrogate, get_all_model_params_by_value(m)...)
 end
 
 """
@@ -217,15 +213,17 @@ function make_surrogate_function(
         _initial_space(obj, lowerbounds, upperbounds, sample_type, seed_samples)
     surrogate = S(X, Y, lowerbounds, upperbounds)
     # optimize surrogate
-    optimize_accuracy!(
-        surrogate,
-        obj,
-        lowerbounds,
-        upperbounds;
-        sample_type = sample_type,
-        maxiters = optimization_samples,
-        verbose = verbose,
-    )
+    if optimization_samples > 0
+        optimize_accuracy!(
+            surrogate,
+            obj,
+            lowerbounds,
+            upperbounds;
+            sample_type = sample_type,
+            maxiters = optimization_samples,
+            verbose = verbose,
+        )
+    end
     surrogate
 end
 
