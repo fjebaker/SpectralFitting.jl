@@ -13,8 +13,7 @@ export AbstractSpectralModel,
     WithoutClosures,
     closurekind,
     has_closure_params,
-    #get_param_symbols,
-    #get_param_types,
+    get_param_types,
     #model_base_name,
     #get_closure_param_fields,
     get_param_symbols,
@@ -43,7 +42,16 @@ numbertype(::AbstractSpectralModel) = Sys.WORD_SIZE == 64 ? Float64 : Float32
 """
     abstract type AbstractSpectralModelKind
 
-Abstract type of all model kinds.
+Abstract type of all model kinds. The algebra of models is as follows
+```julia
+A + A = A
+M * M = M
+M * A = A
+C(A)  = A
+```
+where `A` is [`Additive`](@ref), `M` is [`Multiplicative`](@ref), and `C` is [`Convolutional`](@ref).
+All other operations are prohibited, e.g. `C(M)` or `M * C`. To obtain `M * C` there must be an
+additive component, e.g. `M * C(A)`.
 """
 abstract type AbstractSpectralModelKind end
 """
@@ -51,7 +59,8 @@ abstract type AbstractSpectralModelKind end
     Additive()
 
 Additive models are effectively the sources of photons, and are the principle building blocks
-of composite models.
+of composite models. Every additive model has a normalisation parameter which re-scales the
+flux by a constant factor `K`.
 
 !!! note
     Defining custom additive models requires special care. See [Defining new models](@ref).
@@ -107,7 +116,7 @@ has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 Used to define the behaviour of models. Should calculate flux of the model and write in-place
 into `flux`.
 
-!!! note
+!!! warning
     This function should not be called directly. Use [`invokemodel`](@ref) instead.
 
 Parameters are passed in in-order as defined in the model structure. For example
@@ -132,49 +141,194 @@ The only exception to this are [`Additive`](@ref) models, where the normalisatio
 invoke!(flux, energy, ::Type{M}, params...) where {M<:AbstractSpectralModel} =
     error("Not defined for $(M).")
 
-# optional interface
-get_param_symbols(M::Type{<:AbstractSpectralModel}) = fieldnames(M)
-get_param_types(M::Type{<:AbstractSpectralModel}) = M.types
+
 
 model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
 
 # only needed for WithClosures()
 get_closure_param_fields(::Type{<:AbstractSpectralModel}) = ()
 
-# minimal param accessors
+"""
+    get_param_types(model::AbstractSpectralModel)
+    get_param_types(M::Type{<:AbstractSpectralModel})
+
+Get a `Vector{Type}` with the type of each parameters in a given [`AbstractSpectralModel`](@ref).
+
+# Example
+
+```julia
+model = XS_BlackBody() + XS_PhotoelectricAbsorption() * XS_PowerLaw()
+get_param_types(model)
+```
+"""
 get_param_types(::M) where {M<:AbstractSpectralModel} = get_param_types(M)
+get_param_types(M::Type{<:AbstractSpectralModel}) = M.types
+
+"""
+    get_param_symbols(model::AbstractSpectralModel)
+    get_param_symbols(M::Type{<:AbstractSpectralModel})
+
+Get a `Vector{Symbol}` with the symbol of each parameters in a given [`AbstractSpectralModel`](@ref).
+
+# Example
+
+```julia
+model = XS_PhotoelectricAbsorption() * XS_Laor()
+get_param_symbols(model)
+```
+"""
 get_param_symbols(::M) where {M<:AbstractSpectralModel} = get_param_symbols(M)
+get_param_symbols(M::Type{<:AbstractSpectralModel}) = fieldnames(M)
+
+"""
+    get_param(model::AbstractSpectralModel, s::Symbol)
+
+Get a parameter from an [`AbstractSpectralModel`](@ref) by symbol.
+
+# Example
+
+```julia
+model = XS_BlackBody()
+get_param(model, :K)
+```
+"""
 get_param(m::AbstractSpectralModel, s::Symbol) = getproperty(m, s)
 
-# emergent param accessors
+"""
+    get_param_count(model::AbstractSpectralModel)
+    get_param_count(M::Type{<:AbstractSpectralModel})
+
+Get the number of parameters a given [`AbstractSpectralModel`](@ref) has.
+
+# Example
+
+```julia
+model = XS_BlackBody() + XS_PowerLaw()
+get_param_count(model)
+```
+"""
+get_param_count(::M) where {M<:AbstractSpectralModel} = get_param_count(M)
 get_param_count(M::Type{<:AbstractSpectralModel}) = length(get_param_types(M))
 
-get_all_model_params(m::AbstractSpectralModel) where {M} =
+"""
+    get_all_model_params(m::AbstractSpectralModel)
+
+Get a generator of all model parameters of an [`AbstractSpectralModel`](@ref).
+
+# Example
+
+```julia
+model = XS_BlackBody() + XS_PowerLaw()
+get_all_model_params(model)
+```
+"""
+get_all_model_params(m::AbstractSpectralModel) =
     (get_param(m, p) for p in get_param_symbols(m))
+
+"""
+    get_all_model_params_by_value(m::AbstractSpectralModel)
+
+Get a generator of all model parameter values of an [`AbstractSpectralModel`](@ref). See [`get_value`](@ref).
+
+# Example
+
+```julia
+model = XS_BlackBody() + XS_PowerLaw()
+get_all_model_params_by_value(model)
+```
+"""
 get_all_model_params_by_value(m::AbstractSpectralModel) =
     (get_value(i) for i in get_all_model_params(m))
 # todo: make this a proper iterator? also better name
+
+"""
+    get_param_symbol_pairs(m::AbstractSpectralModel)
+
+Get a generator yielding `::Pair{Symbol,T}` of all model parameter values and their symbols,
+for an [`AbstractSpectralModel`](@ref).
+
+# Example
+
+```julia
+model = XS_BlackBody() + XS_PowerLaw()
+get_param_symbol_pairs(model)
+```
+"""
 get_param_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
     (p => get_param(m, p) for p in get_param_symbols(m))
 
-# invokation wrappers
+"""
+    invokemodel(energy, model)
+    invokemodel(energy, model, free_params)
+
+Invoke the [`AbstractSpectralModel`](@ref) given by `model`, optionally overriding the free
+parameters with values given in `free_params`. `free_params` may be a vector or tuple with element
+type [`AbstractFitParameter`](@ref) or `Number`.
+
+`invokemodel` allocates the needed flux arrays based on the element type of `free_params` to allow
+automatic differentation libraries to calculate parameter gradients.
+
+In-place non-allocating variants are the [`invokemodel!`](@ref) functions.
+
+# Example
+
+```julia
+model = XS_PowerLaw()
+energy = collect(range(0.1, 20.0, 100))
+invokemodel(energy, model)
+
+p0 = [0.1, 2.0] # change K and a
+invokemodel(energy, model, p0)
+```
+"""
 function invokemodel(e, m::AbstractSpectralModel)
-    fluxes = make_fluxes(e, flux_count(m))
-    invokemodel!(fluxes, e, m)
-    first(fluxes)
+    flux = make_flux(eltype(e), length(e) - 1)
+    invokemodel!(flux, e, m)
+    flux
 end
 function invokemodel(e, m::AbstractSpectralModel, free_params)
     if eltype(free_params) <: Number
         # for compatability with AD
-        fluxes = make_fluxes(e, flux_count(m), eltype(free_params))
-        invokemodel!(fluxes, e, m, free_params)
+        flux = make_flux(eltype(free_params), length(e) - 1)
+        invokemodel!(flux, e, m, free_params)
     else
         p0 = get_value.(free_params)
-        invokemodel!(fluxes, e, m, p0)
+        flux = make_flux(eltype(p0), length(e) - 1)
+        invokemodel!(flux, e, m, p0)
     end
-    first(fluxes)
+    flux
 end
 
+"""
+    invokemodel!(flux, energy, model)
+    invokemodel!(flux, energy, model, free_params)
+    invokemodel!(flux, energy, model, free_params, frozen_params)
+
+In-place variant of [`invokemodel`](@ref), calculating the flux of an [`AbstractSpectralModel`](@ref)
+given by `model`, optionally overriding the free and/or frozen parameter values. These arguments
+may be a vector or tuple with element type [`AbstractFitParameter`](@ref) or `Number`.
+
+The number of fluxes to allocate for a model may change if using any [`CompositeSpectralModel`](@ref)
+as the `model`. It is generally recommended to use [`flux_count`](@ref) to ensure the correct number
+of flux arrays are allocated with [`make_fluxes`](@ref) when using composite models.
+
+Single spectral model components should use [`make_flux`](@ref) instead.
+
+# Example
+
+```julia
+model = XS_PowerLaw()
+energy = collect(range(0.1, 20.0, 100))
+flux = make_flux(energy)
+invokemodel!(flux, energy, model)
+
+p0 = [0.1, 2.0] # change K and a
+invokemodel!(flux, energy, model, p0)
+```
+"""
+function invokemodel!(f, e, m::M) where {M<:AbstractSpectralModel}
+    invokemodel!(f, e, M, get_all_model_params_by_value(m)...)
+end
 function invokemodel!(f, e, m::AbstractSpectralModel, free_params)
     frozen_params = get_value.(get_frozen_model_params(m))
     invokemodel!(f, e, m, free_params, frozen_params)
@@ -182,14 +336,15 @@ end
 function invokemodel!(f, e, model::AbstractSpectralModel, free_params, frozen_params)
     generated_model_call!(f, e, model, free_params, frozen_params)
 end
+"""
+    invokemodel!(flux, energy, ::Type{<:AbstractSpectralModel}, params...)
 
-invokemodel!(f, e, m::M) where {M<:AbstractSpectralModel} =
-    invokemodel!(f, e, M, get_all_model_params_by_value(m)...)
-
-# mainly used in function generation for single models
+Specialisation of [`invokemodel!`](@ref) which dispatches on types. This is primarily used in
+the generated functions, to assemble efficient model calls at compile time. In general, users
+should prefer one of the other dispatches.
+"""
 invokemodel!(f, e, ::Type{M}, p...) where {M<:AbstractSpectralModel} =
     invokemodel!(f, e, modelkind(M), M, p...)
-
 # implementations
 @fastmath function invokemodel!(
     flux,
@@ -215,6 +370,18 @@ end
 
 # bindings to generated functions
 
+"""
+    flux_count(model::AbstractSpectralModel)
+
+Returns the number of flux arrays the model needs when using [`invokemodel!`](@ref).
+
+# Example
+
+```julia
+model = XS_PhotoelectricAbsorption() * XS_PowerLaw()
+flux_count(model)
+```
+"""
 flux_count(model::AbstractSpectralModel) = generated_maximum_flux_count(model)
 
 # printing
