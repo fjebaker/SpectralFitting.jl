@@ -6,7 +6,7 @@ function download_minimal_model_data()
 
 end
 
-function _needs_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...)
+function _register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...)
     s = Base.typename(M).name
     if s in keys(MODEL_TO_MODEL_DATA_MAP)
         push!(MODEL_TO_MODEL_DATA_MAP[s], filenames...)
