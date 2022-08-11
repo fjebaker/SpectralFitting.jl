@@ -4,12 +4,15 @@ using LibXSPEC_jll
 
 import Base
 import Printf
+import Downloads
+import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show_progress
 
 using FITSIO
 using SparseArrays
 using Surrogates
 using ForwardDiff
 using PreallocationTools
+using MemoizedMethods
 
 import Crayons
 import Parameters: @with_kw
@@ -36,6 +39,7 @@ include("file-io/binning-utilities.jl")
 include("file-io/parsing-utilities.jl")
 include("file-io/no-associated-mission.jl")
 include("file-io/fits-loading.jl")
+include("file-io/model-data-io.jl")
 
 include("fitting.jl")
 include("plotting-recipes.jl")
@@ -50,6 +54,8 @@ include("julia-models/model-utilities.jl")
 include("julia-models/additive.jl")
 
 function __init__()
+    # check if we have the minimum model data already
+    _check_model_directory_present()
     # init HEASOFT
     ccall((:FNINIT, libXSFunctions), Cvoid, ())
 end

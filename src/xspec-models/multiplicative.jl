@@ -7,7 +7,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 20.0, 100))
-invokeflux(energy, XS_PhotoelectricAbsorption())
+invokemodel(energy, XS_PhotoelectricAbsorption())
 ```
 
 ```
@@ -47,7 +47,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 20.0, 100))
-invokeflux(energy, XS_WarmAbsorption())
+invokemodel(energy, XS_WarmAbsorption())
 ```
 
 ```
