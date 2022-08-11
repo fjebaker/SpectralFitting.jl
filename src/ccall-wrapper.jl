@@ -89,7 +89,7 @@ macro xspecmodel(model_kind, func_name, model)
         )
             @assert length(flux) + 1 == length(energy)
             if !_is_model_data_downloaded(m)
-                error("Model data for $(model_base_name(M)) is not present! Requisite model data may be fetched with `download_model_data`.")
+                error("Model data for $(model_base_name(m)) is not present! Requisite model data may be fetched with `download_model_data`.")
             end
             if length(UNTRACKED_ERROR) < length(flux)
                 resize_untracked_error(length(flux))

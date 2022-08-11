@@ -1,4 +1,4 @@
-const MODEL_DATA_PATH = joinpath(LibXSPEC_jll.artifact_dir, "spectral",  "modelData")
+MODEL_DATA_PATH = joinpath(LibXSPEC_jll.artifact_dir, "spectral",  "modelData")
 MODEL_TO_MODEL_DATA_MAP = Dict{Symbol,Vector{String}}()
 MODEL_DATA_PRESENT_CACHE = Dict{Symbol,Bool}()
 
@@ -74,16 +74,20 @@ function download_model_data(M::Type{<:AbstractSpectralModel}; kwargs...)
 
     # check model data directory exists
     if !ispath(MODEL_DATA_PATH)
+        # else make it
         mkdir(MODEL_DATA_PATH)
     end
 
     s = Base.typename(M).name
+    @info "Checking model data for $M."
     for src in MODEL_TO_MODEL_DATA_MAP[s]
         dest = joinpath(MODEL_DATA_PATH, src)
         if !ispath(dest)
             _download_from_archive(src, dest; kwargs...)
+            @info "$src downloaded"
         end
     end
+    @info "All requisite model data for $M downloaded."
     true
 end
 
