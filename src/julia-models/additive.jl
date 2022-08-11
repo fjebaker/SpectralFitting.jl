@@ -7,7 +7,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 20.0, 100))
-invokeflux(energy, PowerLaw())
+invokemodel(energy, PowerLaw())
 ```
 
 ```
@@ -57,7 +57,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 20.0, 100))
-invokeflux(energy, BlackBody())
+invokemodel(energy, BlackBody())
 ```
 
 ```

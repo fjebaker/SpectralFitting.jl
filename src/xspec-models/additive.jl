@@ -7,7 +7,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 20.0, 100))
-invokeflux(energy, XS_PowerLaw())
+invokemodel(energy, XS_PowerLaw())
 ```
 
 ```
@@ -49,7 +49,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 20.0, 100))
-invokeflux(energy, XS_BlackBody())
+invokemodel(energy, XS_BlackBody())
 ```
 
 ```
@@ -91,7 +91,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 20.0, 100))
-invokeflux(energy, XS_BremsStrahlung())
+invokemodel(energy, XS_BremsStrahlung())
 ```
 
 ```
@@ -185,7 +185,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(0.1, 10.0, 100))
-invokeflux(energy, XS_Laor())
+invokemodel(energy, XS_Laor())
 ```
 
 ```
@@ -235,7 +235,7 @@ $(FIELDS)
 
 ```julia
 energy = collect(range(4.0, 8.0, 100))
-invokeflux(energy, XS_DiskLine())
+invokemodel(energy, XS_DiskLine())
 ```
 
 ```
