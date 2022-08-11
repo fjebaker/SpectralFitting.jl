@@ -69,6 +69,8 @@ XS_DiskLine
 XS_PhotoelectricAbsorption
 XS_WarmAbsorption
 XS_CalculateFlux
+XS_KerrDisk
+XS_KyrLine
 ```
 
 ### Wrapping new XSPEC models
