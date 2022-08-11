@@ -185,7 +185,7 @@ Creates and optimizes a surrogate model of type `S` for `model`, using [`wrap_mo
 and  [`optimize_accuracy!`](@ref) for `optimization_samples` iterations. Model is initially
 seeded with `seed_samples` points prior to optimization.
 
-!!! note
+!!! warning
     Additive models integrate energies to calculate flux, which surrogate models are currently not
     capable of. Results for Additive models likely to be inaccurate. This will be patched in a future
     version.
