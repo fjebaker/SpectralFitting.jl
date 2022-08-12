@@ -138,8 +138,7 @@ end
 The only exception to this are [`Additive`](@ref) models, where the normalisation parameter
 `K` is not passed to `invoke!`.
 """
-invoke!(flux, energy, M::AbstractSpectralModel, params...) =
-    error("Not defined for $(M).")
+invoke!(flux, energy, M::AbstractSpectralModel, params...) = error("Not defined for $(M).")
 
 
 

@@ -20,7 +20,7 @@ end
 
 Register `filenames` as model data associated with the model given by type `M` or symbol `s`.
 This function does not download any files, but rather adds the relevant filenames to a lookup which
-[`download_model_data`](@ref) consults when invoked, and consequently model data is only downloaded when needed.
+[`SpectralFitting.download_model_data`](@ref) consults when invoked, and consequently model data is only downloaded when needed.
 
 !!! note
     It is good practice to use this method immediately after defining a new model with [`@xspecmodel`](@ref)

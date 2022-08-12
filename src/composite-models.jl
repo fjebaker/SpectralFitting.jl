@@ -221,7 +221,7 @@ end
 
 function _add_symbols_and_params_to_index!(params, m)
     if !isnothing(m)
-        foreach(get_param_symbol_pairs(m)) do (s,p)
+        foreach(get_param_symbol_pairs(m)) do (s, p)
             symb = _make_unique_readable_symbol(s, first.(params))
             push!(params, symb => p)
         end
@@ -311,13 +311,15 @@ function _printinfo(io::IO, model::CompositeSpectralModel{M1,M2}) where {M1,M2}
         if !is_frozen(p)
             print(io, " ± ", rpad(info[2], q2))
             print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
-            print(io,
+            print(
+                io,
                 Crayons.Crayon(foreground = :green),
                 lpad("FREE", 7),
                 Crayons.Crayon(reset = true),
             )
         else
-            print(io,
+            print(
+                io,
                 Crayons.Crayon(foreground = :cyan),
                 lpad("FROZEN", 15 + q1 + q2 + q3 + q4),
                 Crayons.Crayon(reset = true),
