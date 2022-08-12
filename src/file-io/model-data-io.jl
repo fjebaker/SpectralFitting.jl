@@ -1,25 +1,57 @@
-MODEL_DATA_PATH = joinpath(LibXSPEC_jll.artifact_dir, "spectral",  "modelData")
-MODEL_TO_MODEL_DATA_MAP = Dict{Symbol,Vector{String}}()
-MODEL_DATA_PRESENT_CACHE = Dict{Symbol,Bool}()
+_model_data_storage_path = joinpath(LibXSPEC_jll.artifact_dir, "spectral", "modelData")
+_model_to_data_map = Dict{Symbol,Vector{String}}()
+_model_available_memoize_cache = Dict{Symbol,Bool}()
 
-function download_minimal_model_data()
+"""
+    SpectralFitting.download_all_model_data()
 
-end
-
-function _register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...)
-    s = Base.typename(M).name
-    if s in keys(MODEL_TO_MODEL_DATA_MAP)
-        push!(MODEL_TO_MODEL_DATA_MAP[s], filenames...)
-    else
-        MODEL_TO_MODEL_DATA_MAP[s] = collect(filenames)
+Downloads all model data for the models currently registered with [`SpectralFitting.register_model_data`](@ref).
+Calls [`SpectralFitting.download_model_data`](@ref) to perform the download.
+"""
+function download_all_model_data()
+    for s in keys(_model_to_data_map)
+        download_model_data(s)
     end
 end
 
-_is_model_data_downloaded(M::Type{<:AbstractSpectralModel}) = _is_model_data_downloaded(implementation(M), M)
+"""
+    SpectralFitting.register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...)
+    SpectralFitting.register_model_data(s::Symbol, filenames::String...)
+
+Register `filenames` as model data associated with the model given by type `M` or symbol `s`.
+This function does not download any files, but rather adds the relevant filenames to a lookup which
+[`download_model_data`](@ref) consults when invoked, and consequently model data is only downloaded when needed.
+
+!!! note
+    It is good practice to use this method immediately after defining a new model with [`@xspecmodel`](@ref)
+    to register any required datafiles from the HEASoft source code, and therefore keep relevant information together.
+
+# Example
+
+```julia
+# by type
+register_model_data(XS_Laor, "ari.mod")
+# by symbol
+register_model_data(:XS_KyrLine, "KBHline01.fits")
+```
+"""
+register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...) =
+    register_model_data(Base.typename(M).name, filenames...)
+function register_model_data(s::Symbol, filenames::String...)
+    if s in keys(_model_to_data_map)
+        push!(_model_to_data_map[s], filenames...)
+    else
+        _model_to_data_map[s] = collect(filenames)
+    end
+end
+
+_is_model_data_downloaded(M::Type{<:AbstractSpectralModel}) =
+    _is_model_data_downloaded(implementation(M), M)
 _is_model_data_downloaded(::AbstractSpectralModelImplementation, _)::Bool = true
-function _is_model_data_downloaded(::XSPECImplementation, M)::Bool
-    s = Base.typename(M).name
-    if get(MODEL_DATA_PRESENT_CACHE, s, false)
+_is_model_data_downloaded(::XSPECImplementation, M)::Bool =
+    _is_model_data_downloaded(Base.typename(M).name)
+function _is_model_data_downloaded(s::Symbol)::Bool
+    if get(_model_available_memoize_cache, s, false)
         return true
     else
         return _check_model_files_and_add_to_cache(s)
@@ -28,27 +60,33 @@ end
 
 function _check_model_files_and_add_to_cache(s::Symbol)
     # get the filenames we need
-    filenames = get(MODEL_TO_MODEL_DATA_MAP, s, nothing)
+    filenames = get(_model_to_data_map, s, nothing)
     if !isnothing(filenames)
-        if !all(i -> ispath(joinpath(MODEL_DATA_PATH, i)), filenames)
+        if !all(i -> ispath(joinpath(_model_data_storage_path, i)), filenames)
             return false
         end
     end
     # cache true
-    MODEL_DATA_PRESENT_CACHE[s] = true
+    _model_available_memoize_cache[s] = true
     return true
 end
 
 function _check_model_directory_present()
-    if !ispath(MODEL_DATA_PATH)
-        @warn "No model data directory found. Use `SpectralFitting.download_minimal_model_data()` to populate."
+    if !ispath(_model_data_storage_path)
+        @warn "No model data directory found. Use `SpectralFitting.download_all_model_data()` to populate."
     end
 end
 
-function _download_from_archive(src, dest; progress=true, io::IO=Core.stdout)
-    url = "http://www.star.bris.ac.uk/fbaker/XSPEC-model-data/$src"
+function _download_from_archive(
+    src,
+    dest;
+    progress = true,
+    io::IO = Core.stdout,
+    model_source_url = "http://www.star.bris.ac.uk/fbaker/XSPEC-model-data",
+)
+    url = "$model_source_url/$src"
     pg = if progress
-        bar = MiniProgressBar(header="Downloading: $src", color=Base.info_color())
+        bar = MiniProgressBar(header = "Downloading: $src", color = Base.info_color())
         start_progress(io, bar)
         (total, now) -> begin
             bar.max = total
@@ -58,37 +96,54 @@ function _download_from_archive(src, dest; progress=true, io::IO=Core.stdout)
     else
         (_, _) -> nothing
     end
-    Downloads.download(
-        url, dest;
-        progress = pg
-    )
+    Downloads.download(url, dest; progress = pg)
     end_progress(io, bar)
 end
 
-download_model_data(::M; kwargs...) where {M<:AbstractSpectralModel} = download_model_data(M; kwargs...)
-function download_model_data(M::Type{<:AbstractSpectralModel}; kwargs...)
-    if _is_model_data_downloaded(M)
-        @warn "Model data for $(model_base_name(M)) is already downloaded."
-        return false
+"""
+    SpectralFitting.download_model_data(model::AbstractSpectralModel; kwargs...)
+    SpectralFitting.download_model_data(M::Type{<:AbstractSpectralModel}; kwargs...)
+    SpectralFitting.download_model_data(s::Symbol; kwargs...)
+
+Downloads the model data for a model specified either by `model`, type `M`, or symbol `s`. Datafiles
+associated with a specific model may be registered using [`SpectralFitting.register_model_data`](@ref).
+The download is currently unconfigurable, but permits slight control via a number of keyword arguments:
+
+- `progress::Bool = true`
+
+Display a progress bar for the download.
+
+- `model_source_url::String = "http://www.star.bris.ac.uk/fbaker/XSPEC-model-data"`
+
+The source URL used to download the model data.
+
+All standard XSPEC spectral model data is currently being hosted on the University of Bristol
+astrophysics servers, and should be persistently available to anyone.
+"""
+download_model_data(M::Type{<:AbstractSpectralModel}; kwargs...) =
+    download_model_data(Base.typename(M).name; kwargs...)
+download_model_data(::M; kwargs...) where {M<:AbstractSpectralModel} =
+    download_model_data(Base.typename(M).name; kwargs...)
+function download_model_data(s::Symbol; kwargs...)
+    if _is_model_data_downloaded(s)
+        @info "Model data for $(s) is already downloaded."
+        return nothing
     end
 
     # check model data directory exists
-    if !ispath(MODEL_DATA_PATH)
+    if !ispath(_model_data_storage_path)
         # else make it
-        mkdir(MODEL_DATA_PATH)
+        mkdir(_model_data_storage_path)
     end
 
-    s = Base.typename(M).name
-    @info "Checking model data for $M."
-    for src in MODEL_TO_MODEL_DATA_MAP[s]
-        dest = joinpath(MODEL_DATA_PATH, src)
+    @info "Checking model data for $s."
+    for src in _model_to_data_map[s]
+        dest = joinpath(_model_data_storage_path, src)
         if !ispath(dest)
             _download_from_archive(src, dest; kwargs...)
             @info "$src downloaded"
         end
     end
-    @info "All requisite model data for $M downloaded."
-    true
+    @info "All requisite model data for $s downloaded."
+    return nothing
 end
-
-export download_model_data
