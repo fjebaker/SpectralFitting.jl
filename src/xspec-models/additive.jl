@@ -138,26 +138,26 @@ invokemodel(energy, XS_KerrDisk())
 ```
 
 ```
-                       XS_KerrDisk
-       ┌────────────────────────────────────────┐
-   0.1 │            :                           │
-       │            :                           │
-       │           ::                           │
-       │           : :                          │
-       │           : :                          │
-       │          :  :                          │
-       │          :  :                          │
-       │         :   :                          │
-       │         :   :                          │
-       │        :    :                          │
-       │       .'    :                          │
-       │       :     :                          │
-       │    ..'      :                          │
-       │    :'       :                          │
-     0 │...:'        :..........................│
-       └────────────────────────────────────────┘
-        0                                     20
-                         E (keV)
+                        XS_KerrDisk
+        ┌────────────────────────────────────────┐
+   0.05 │                                        │
+        │                                        │
+        │                                .       │
+        │                               .:       │
+        │                              :::       │
+        │                            .:' '.      │
+        │                           .:    :      │
+        │                         ..'     :      │
+        │                         :'      :      │
+        │                       .'        :      │
+        │                     .:'         :      │
+        │                  .:''           :      │
+        │               .::'              :      │
+        │            ..:'                 :      │
+      0 │.........:'''                    :......│
+        └────────────────────────────────────────┘
+         0                                      8
+                          E (keV)
 ```
 """
 @xspecmodel Additive :C_kerrdisk struct XS_KerrDisk{F1,F2,F3,F4,F5,F6,F7,F8,F9,F10}
@@ -182,7 +182,7 @@ invokemodel(energy, XS_KerrDisk())
     "Redshift."
     z::F10 = FrozenFitParam(0.0)
 end
-_register_model_data(XS_KerrDisk, "kerrtable.fits")
+register_model_data(XS_KerrDisk, "kerrtable.fits")
 
 
 """
@@ -198,25 +198,26 @@ invokemodel(energy, XS_KyrLine())
 ```
 
 ```
-                       XS_KyrLine
-       ┌────────────────────────────────────────┐
-   0.1 │                                        │
-       │            ::                          │
-       │           .':                          │
-       │           : :                          │
-       │           : :                          │
-       │          :  :                          │
-       │          :  :                          │
-       │         :   :                          │
-       │        .:   :                          │
-       │        :    :                          │
-       │       .'    :                          │
-       │       :     :                          │
-       │     .:      :                          │
-       │    .:       :                          │
-     0 │...:'        :..........................│
-       └────────────────────────────────────────┘
-        0                                     20
+                        XS_KyrLine
+        ┌────────────────────────────────────────┐
+   0.05 │                                        │
+        │                                        │
+        │                                :       │
+        │                                :.      │
+        │                              :.':      │
+        │                             :'  :      │
+        │                            :    :      │
+        │                          .'     :      │
+        │                        .:'      :      │
+        │                       .'        :      │
+        │                     .:          :      │
+        │                   .'            :      │
+        │                .:'              :      │
+        │            ..:'                 :      │
+      0 │.........:'''                    :......│
+        └────────────────────────────────────────┘
+         0                                      8
+                          E (keV)
 ```
 """
 @xspecmodel Additive :C_kyrline struct XS_KyrLine{F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12}
@@ -243,7 +244,7 @@ invokemodel(energy, XS_KyrLine())
     "0: isotropic emission, 1: Laor's limb darkening, 2: Haard's limb brightening."
     limb::F12 = FrozenFitParam(1)
 end
-_register_model_data(XS_KyrLine, "KBHline01.fits")
+register_model_data(XS_KyrLine, "KBHline01.fits")
 
 
 """
@@ -295,7 +296,7 @@ invokemodel(energy, XS_Laor())
     "Disk inclination angle to line of sight (degrees, 0 is pole on)."
     incl::F6 = FitParam(30.0)
 end
-_register_model_data(XS_Laor, "ari.mod")
+register_model_data(XS_Laor, "ari.mod")
 
 """
     XS_DiskLine(K, lineE, β, inner_r, outer_r, incl)
@@ -347,4 +348,5 @@ invokemodel(energy, XS_DiskLine())
     incl::F6 = FitParam(30.0)
 end
 
-export XS_PowerLaw, XS_BlackBody, XS_BremsStrahlung, XS_Laor, XS_DiskLine, XS_KerrDisk, XS_KyrLine
+export XS_PowerLaw,
+    XS_BlackBody, XS_BremsStrahlung, XS_Laor, XS_DiskLine, XS_KerrDisk, XS_KyrLine

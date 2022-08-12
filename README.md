@@ -1,14 +1,16 @@
+<p align="center">
+  <img width="50%" alt="BRImage" src="docs/src/assets/logo.svg">
+</p>
+
 # SpectralFitting.jl
 
 <a href="https://fjebaker.github.io/SpectralFitting.jl/dev/">
 <img alt="Docs" src="https://img.shields.io/badge/docs-dev-blue.svg"/>
 </a>
 
-Work in progress and subject to rapid breaking changes.
+<p align="center"> <i> This package is in development and subject to rapid breaking changes.</i> </p>
 
 ## Setup
-
-At the moment, we _need_ Julia v1.7.2 due to a compatibility (mis)configuration in [LibXSPEC_jll.jl](https://github.com/astro-group-bristol/LibXSPEC_jll.jl). 
 
 Install LibXSPEC_jll:
 ```julia

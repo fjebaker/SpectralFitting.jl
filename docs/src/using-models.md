@@ -25,6 +25,19 @@ SpectralFitting.invoke!
 modelkind
 ```
 
+## Model data availability
+
+Many of the XSPEC implemented models use tabular data, such as FITS, and return results interpolated from these pre-calculated tables. In some cases, these table models have data files that are multiple gigabytes in size, and would be very unwieldy to ship indiscriminantly. SpectralFitting attempts to circumnavigate this bloat by downloading the model data on an _ut opus_ basis.
+
+```@docs
+SpectralFitting.download_model_data
+SpectralFitting.download_all_model_data
+```
+
+Special care must be taken if new XSPEC models are wrapped to ensure the data is available. For more on this, see [Wrapping new XSPEC models](@ref).
+
+Model data may also alternatively be copied in _by-hand_ from a HEASoft XSPEC source directory. In this case, the location to copy the data to may be determined via `joinpath(SpectralFitting.LibXSPEC_jll.artifact_dir, "spectral", "modelData")`.
+
 ## Instantiating and invoking models
 
 Models may be composed together to create more complex spectra, with the algebra defined by the [`AbstractSpectralModelKind`](@ref). 
