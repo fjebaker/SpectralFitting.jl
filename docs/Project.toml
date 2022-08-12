@@ -1,7 +1,2 @@
 [deps]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-LibXSPEC_jll = "50917eeb-3e3c-5f3a-99bd-93e1c30e1561"
-Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-SpectralFitting = "f2c56810-742e-4b72-8bf4-27af3bb81a12"
-UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
