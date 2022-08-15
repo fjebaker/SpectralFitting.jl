@@ -5,6 +5,7 @@ using LibXSPEC_jll
 import Base
 import Printf
 import Downloads
+import Statistics
 import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show_progress
 
 using FITSIO

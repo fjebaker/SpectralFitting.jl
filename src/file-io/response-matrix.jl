@@ -27,3 +27,20 @@ function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) 
     println(io, "ResponseMatrix with $nchans channels:")
     Base.print_array(io, rm.matrix)
 end
+
+function group_response!(rm::ResponseMatrix, indices, T)
+    N = length(indices) - 1
+    R = spzeros(T, (N,N))
+    energy_low = zeros(T, N)
+    energy_high = zeros(T, N)
+    channels = collect(1:N)
+
+    grouping_indices_callback(indices) do (i, index1, index2)
+        energy_low[i] = rm.low_energy_bins[index1]
+        energy_high[i] = rm.high_energy_bins[index2]
+
+        R[i, :] = @views sum(rm.matrix[index1:index2, 1:N]; dims=1)
+    end
+
+    ResponseMatrix(R, channels, energy_low, energy_high)
+end

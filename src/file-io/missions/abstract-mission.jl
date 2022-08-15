@@ -12,27 +12,27 @@ missiontrait(::M) where {M<:AbstractSpectralDatasetMeta} = missiontrait(M)
 missiontrait(::SpectralDataset{M}) where {M} = missiontrait(M)
 
 # interface depending on the meta
-drop_bad_channels!(::SpectralDataset, M::AbstractMissionTrait; kwargs...) =
+drop_bad_channels!(sd, M::AbstractMissionTrait; kwargs...) =
     nothing
-drop_bad_channels!(sd::D; kwargs...) where {D<:SpectralDataset} = drop_bad_channels!(sd, missiontrait(D); kwargs...)
-drop_bad_channels!(::SpectralDataset{<:NoAssociatedMission}) = nothing
+drop_bad_channels!(sd::SpectralDataset; kwargs...) = drop_bad_channels!(sd, missiontrait(sd); kwargs...)
 
 # must return these four things
 function parse_rm_fits_file(mission::AbstractMissionTrait, fits, T)
+    # from matrix table
     rm_low_energy = read(fits[2], "ENERG_LO")
     rm_high_energy = read(fits[2], "ENERG_HI")
     F_chan = eachcol(read(fits[2], "F_CHAN"))
     N_chan = eachcol(read(fits[2], "N_CHAN"))
     matrix_lookup = read(fits[2], "MATRIX")
-
+    # from energy table
     low_energy_bins = read(fits[3], "E_MIN")
     high_energy_bins = read(fits[3], "E_MAX")
     channels = read(fits[3], "CHANNEL")
 
-    n = length(channels)
+    N = length(channels)
 
     offset = mission == NoAssociatedMission() ? 1 : 0
-    matrix = spzeros(T, n, n)
+    matrix = spzeros(T, N, N)
 
     build_matrix_response!(
         matrix,

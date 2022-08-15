@@ -62,3 +62,28 @@ function make_dual_fluxes(energy, N::Int)
     end
     d_fluxes
 end
+
+function grouping_to_indices(grouping)
+    indices = Int[1]
+    current = first(grouping)
+
+    for (i, g) in enumerate(grouping)
+        if g == 1
+            push!(indices, i)
+            current = g
+        end
+    end
+
+    push!(indices, length(grouping))
+
+    indices
+end
+
+function grouping_indices_callback(func, indices)
+    for i in 1:length(indices)-1
+        index1 = indices[i]
+        index2 = indices[i+1]
+        func((i, index1, index2))
+    end
+    indices
+end

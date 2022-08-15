@@ -2,16 +2,20 @@ export AbstractSpectralDatasetMeta,
     trim_dataset_meta!,
     SpectralDataset,
     trim_dataset!,
+    group_dataset!,
     set_max_energy!,
     set_min_energy!,
     normalize_counts!,
-    get_energy_limits
+    get_energy_limits,
+    is_grouped,
+    is_normalized
 
 # abstract supertype
 abstract type AbstractSpectralDatasetMeta end
 
 # interface
 trim_dataset_meta!(::AbstractSpectralDatasetMeta, inds) = nothing
+group_dataset_meta!(::AbstractSpectralDatasetMeta, inds, reduction, T) = nothing
 
 # concrete type
 mutable struct SpectralDataset{M,R,T,C}
@@ -24,6 +28,9 @@ mutable struct SpectralDataset{M,R,T,C}
     channels::C
     normalized::Bool
 end
+
+is_grouped(::SpectralDataset) = true
+is_normalized(sd::SpectralDataset) = sd.normalized
 
 # get_response(sd::SpectralDataset) = sd.response
 # get_low_energy_bins(sd::SpectralDataset) = sd.low_energy_bins
@@ -42,11 +49,53 @@ function trim_dataset!(sd::SpectralDataset, inds)
     sd.channels = sd.channels[inds]
     trim_dataset_meta!(sd.meta, inds)
 end
+
+function group_dataset!(sd::SpectralDataset{M,R,V}, grouping;) where {M,R,V}
+    if is_grouped(sd)
+        return nothing
+    end
+
+    T = eltype(V)
+
+    indices = grouping_to_indices(grouping)
+
+    N = length(indices) - 1
+
+    energy_low = zeros(T, N)
+    energy_high = zeros(T, N)
+    new_counts = zeros(T, N)
+    counts_error = zeros(T, N)
+    
+
+    tmp_channels = zeros(T, N)
+    grouping_indices_callback(indices) do (i, index1, index2)
+        energy_low[i] = sd.low_energy_bins[index1]
+        energy_high[i] = sd.high_energy_bins[index2]
+
+        new_counts[i] = @views sum(sd.counts[index1:index2])
+        # todo: actually see how to calculate the errror
+        counts_error[i] = @views sum(sd.countserror[index1:index2])
+        # new channels
+        tmp_channels[i] = i
+    end
+
+    sd.counts = new_counts
+    sd.low_energy_bins = energy_low
+    sd.high_energy_bins = energy_high
+    sd.countserror = counts_error
+    sd.channels = tmp_channels
+
+    group_response!(sd.response, indices, T)
+    group_dataset_meta!(sd.meta, indices, T)
+    nothing
+end
+
 function set_max_energy!(sd::SpectralDataset, emax)
     inds = sd.high_energy_bins .≤ emax
     trim_dataset!(sd::SpectralDataset, inds)
     count(!, inds)
 end
+
 function set_min_energy!(sd::SpectralDataset, emin)
     inds = sd.low_energy_bins .≥ emin
     trim_dataset!(sd::SpectralDataset, inds)
