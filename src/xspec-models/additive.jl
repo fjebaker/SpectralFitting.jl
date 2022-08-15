@@ -348,5 +348,49 @@ invokemodel(energy, XS_DiskLine())
     incl::F6 = FitParam(30.0)
 end
 
+"""
+    XS_Gaussian(K, E, σ)
+
+$(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(4.0, 8.0, 100))
+invokemodel(energy, XS_Gaussian())
+```
+
+```
+                        XS_Gaussian                
+        ┌────────────────────────────────────────┐ 
+   0.09 │                                        │ 
+        │            .                           │ 
+        │           : :                          │ 
+        │           : :                          │ 
+        │           : '.                         │ 
+        │          .'  :                         │ 
+        │          :   :                         │ 
+        │          :   :                         │ 
+        │          :   '.                        │ 
+        │         :     :                        │ 
+        │         :     :                        │ 
+        │         :     :                        │ 
+        │        .'      :                       │ 
+        │        :       :                       │ 
+      0 │.......:         :......................│ 
+        └────────────────────────────────────────┘ 
+         0                                     20  
+                          E (keV)                  
+```
+"""
+@xspecmodel Additive :C_gaussian struct XS_Gaussian{F1,F2,F3}
+    "Normalisation"
+    K::F1 = FitParam(1.0)
+    "Line wavelength in Angstrom."
+    E::F2 = FrozenFitParam(6.4)
+    "Line width in Angstrom."
+    σ::F3 = FitParam(1.0)
+end
+
 export XS_PowerLaw,
-    XS_BlackBody, XS_BremsStrahlung, XS_Laor, XS_DiskLine, XS_KerrDisk, XS_KyrLine
+    XS_BlackBody, XS_BremsStrahlung, XS_Laor, XS_DiskLine, XS_KerrDisk, XS_KyrLine, XS_Gaussian
