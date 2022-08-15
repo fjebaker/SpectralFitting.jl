@@ -1,13 +1,9 @@
 export AbstractSpectralDatasetMeta,
     trim_dataset_meta!,
     SpectralDataset,
-    AbstractMissionTrait,
-    NoAssociatedMission,
-    missiontrait,
     trim_dataset!,
     set_max_energy!,
     set_min_energy!,
-    drop_bad_channels!,
     normalize_counts!,
     get_energy_limits
 
@@ -28,14 +24,6 @@ mutable struct SpectralDataset{M,R,T,C}
     channels::C
     normalized::Bool
 end
-
-# for future use: mission specific parsing
-abstract type AbstractMissionTrait end
-struct NoAssociatedMission <: AbstractMissionTrait end
-
-missiontrait(T::Type{<:AbstractSpectralDatasetMeta}) = error("No trait set for $(T)")
-missiontrait(::M) where {M<:AbstractSpectralDatasetMeta} = missiontrait(M)
-missiontrait(::SpectralDataset{M}) where {M} = missiontrait(M)
 
 # get_response(sd::SpectralDataset) = sd.response
 # get_low_energy_bins(sd::SpectralDataset) = sd.low_energy_bins
@@ -65,10 +53,6 @@ function set_min_energy!(sd::SpectralDataset, emin)
     count(!, inds)
 end
 
-# interface depending on the meta
-drop_bad_channels!(sd::SpectralDataset; kwargs...) =
-    error("Not implemented for $(typeof(sd)).")
-
 # additional
 function normalize_counts!(sd::SpectralDataset)
     if !sd.normalized
@@ -79,7 +63,7 @@ function normalize_counts!(sd::SpectralDataset)
     end
 end
 
-get_energy_bins(rm::SpectralDataset{M,R,T}) where {M,R,T} = get_energy_bins(rm, T)
+get_energy_bins(sd::SpectralDataset{M,R,T}) where {M,R,T} = get_energy_bins(sd, T)
 
 function get_energy_bins(x, T::Type)
     energy = zeros(T, length(x.low_energy_bins) + 1)

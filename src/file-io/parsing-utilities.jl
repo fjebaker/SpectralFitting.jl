@@ -20,6 +20,7 @@ function build_matrix_response!(
     low_energy,
     high_energy,
     channels,
+    offset
 )
     for (i, (low_e, high_e, F, N)) in
         enumerate(zip(rm_low_energy, rm_high_energy, F_chan, N_chan))
@@ -38,41 +39,10 @@ function build_matrix_response!(
             if len == 0
                 break
             end
-            @views R[first:first+len-1, channel] .= M[index:index+len-1]
+            @views R[first+1-offset:first+len-offset, channel] .= M[index:index+len-1]
             index += len
         end
     end
-end
-
-function build_matrix_response(
-    # from rm table
-    rm_low_energy,
-    rm_high_energy,
-    F_chan,
-    N_chan,
-    matrix_lookup,
-    # from energy table
-    low_energy,
-    high_energy,
-    channels;
-    T::Type = Float64,
-)
-    n = length(channels)
-    R = spzeros(T, n, n)
-    build_matrix_response!(
-        R,
-        # from rm table
-        rm_low_energy,
-        rm_high_energy,
-        F_chan,
-        N_chan,
-        matrix_lookup,
-        # from energy table
-        low_energy,
-        high_energy,
-        channels,
-    )
-    R
 end
 
 function augmented_energy_channels(channels, rm::ResponseMatrix{T}) where {T}

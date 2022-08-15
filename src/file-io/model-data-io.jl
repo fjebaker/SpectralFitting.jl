@@ -136,7 +136,7 @@ function download_model_data(s::Symbol; kwargs...)
         mkdir(_model_data_storage_path)
     end
 
-    @info "Checking model data for $s."
+    @info "Checking model data for $s:"
     for src in _model_to_data_map[s]
         dest = joinpath(_model_data_storage_path, src)
         if !ispath(dest)

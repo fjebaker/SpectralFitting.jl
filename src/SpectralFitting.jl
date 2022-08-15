@@ -37,7 +37,7 @@ include("file-io/datasets.jl")
 include("file-io/response-matrix.jl")
 include("file-io/binning-utilities.jl")
 include("file-io/parsing-utilities.jl")
-include("file-io/no-associated-mission.jl")
+include("file-io/missions/abstract-mission.jl")
 include("file-io/fits-loading.jl")
 include("file-io/model-data-io.jl")
 
