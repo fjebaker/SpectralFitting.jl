@@ -104,49 +104,6 @@ modelkind(::Type{<:BlackBody}) = Additive()
 end
 ```
 
-## Fitting models to data
-
-The simplest and most-developed way of fitting so far is to use [LsqFit.jl](https://github.com/JuliaNLSolvers/LsqFit.jl), embedded in SpectralFitting.
-
-Adapting an example from the XSPEC documentation
-```julia
-using SpectralFitting
-using Plots
-
-grp_path = "/home/lx21966/Developer/datasets/examples/walkthrough/s54405.pha"
-rm_path = "/home/lx21966/Developer/datasets/examples/walkthrough/s54405.rsp"
-
-# read in the grouped fits file
-data = load_spectral_dataset(grp_path, rm_path)
-# only good quality
-drop_bad_channels!(data)
-# ignore above 15.00 kev
-set_max_energy!(data, 15.0)
-# normalize counts per keV in bin
-normalize_counts!(data)
-
-model = XS_PhotoelectricAbsorption() * XS_PowerLaw()
-
-# define energy range for the fit
-energy_fit = collect(range(0.1, 15.0, 300))
-free_params = get_free_model_params(model)
-
-# modified free_params in-place
-fitparams!(free_params, model, data, energy_fit)
-
-# use allocating version
-flux = invokemodel(energy_fit, model, free_params)
-
-# fold through instrument response and re-bin
-folded_flux = fold_response(flux, energy_fit, data.response)
-
-# plot data
-p = scatter(data.low_energy_bins, data.counts; xlims = (0.0, 15.0))
-
-# plot fitted parameters
-plot!(data.response.low_energy_bins, folded_flux; seriestype = :steppre)
-```
-
 ## Other currently undocumented features
 
 - MCMC fitting
