@@ -393,4 +393,10 @@ invokemodel(energy, XS_Gaussian())
 end
 
 export XS_PowerLaw,
-    XS_BlackBody, XS_BremsStrahlung, XS_Laor, XS_DiskLine, XS_KerrDisk, XS_KyrLine, XS_Gaussian
+    XS_BlackBody,
+    XS_BremsStrahlung,
+    XS_Laor,
+    XS_DiskLine,
+    XS_KerrDisk,
+    XS_KyrLine,
+    XS_Gaussian
