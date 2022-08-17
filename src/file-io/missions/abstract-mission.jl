@@ -1,57 +1,48 @@
-export AbstractMissionTrait,
-    NoAssociatedMission,
-    missiontrait,
-    drop_bad_channels!
+function group_quality_vector(mask, quality, inds)
+    new_quality = zeros(Int, length(inds) - 1)
+    bad_channels = Int[]
+    grouping_indices_callback(inds) do (i, index1, index2)
+        qs = @views quality[index1:index2]
+        ms = @views mask[index1:index2]
+        if any(!=(0), qs) # if any are bad quality
+            new_quality[i] = 1
+            # bad channel if not all of them are masked out
+            if !all(==(false), ms)
+                push!(bad_channels, i)
+            end
+        else
+            new_quality[i] = 0
+        end
+    end
+    if !isempty(bad_channels)
+        warn_bad_channels(bad_channels)
+    end
+    new_quality
+end
 
-# for future use: mission specific parsing
-abstract type AbstractMissionTrait end
-struct NoAssociatedMission <: AbstractMissionTrait end
-
-missiontrait(T::Type{<:AbstractSpectralDatasetMeta}) = error("No trait set for $(T)")
-missiontrait(::M) where {M<:AbstractSpectralDatasetMeta} = missiontrait(M)
-missiontrait(::SpectralDataset{M}) where {M} = missiontrait(M)
-
-# interface depending on the meta
-drop_bad_channels!(sd, M::AbstractMissionTrait; kwargs...) =
-    nothing
-drop_bad_channels!(sd::SpectralDataset; kwargs...) = drop_bad_channels!(sd, missiontrait(sd); kwargs...)
-
-# must return these four things
-function parse_rm_fits_file(mission::AbstractMissionTrait, fits, T)
-    # from matrix table
-    rm_low_energy = read(fits[2], "ENERG_LO")
-    rm_high_energy = read(fits[2], "ENERG_HI")
-    F_chan = eachcol(read(fits[2], "F_CHAN"))
-    N_chan = eachcol(read(fits[2], "N_CHAN"))
-    matrix_lookup = read(fits[2], "MATRIX")
-    # from energy table
-    low_energy_bins = read(fits[3], "E_MIN")
-    high_energy_bins = read(fits[3], "E_MAX")
-    channels = read(fits[3], "CHANNEL")
-
-    N = length(channels)
-
-    offset = mission == NoAssociatedMission() ? 1 : 0
-    matrix = spzeros(T, N, N)
-
-    build_matrix_response!(
-        matrix,
-        # from rm table
-        rm_low_energy,
-        rm_high_energy,
-        F_chan,
-        N_chan,
-        matrix_lookup,
-        # from energy table
-        low_energy_bins,
-        high_energy_bins,
-        channels,
-        offset
-    )
-
-    (matrix, channels, low_energy_bins, high_energy_bins)
+function warn_bad_channels(bad_channels)
+    warns = String[]
+    N = length(bad_channels)
+    j = 1
+    for (i, Δ) in enumerate(diff(bad_channels))
+        if Δ != 1
+            if i - j == 0
+                push!(warns, "$i")
+            else
+                push!(warns, "$j-$i")
+            end
+            j = i
+        end
+    end
+    if N - j == 0
+        push!(warns, "$j")
+    else
+        push!(warns, "$j-$N")
+    end
+    chans = join(warns, ", ")
+    @warn "Grouped channels $chans contain bad quality channels."
 end
 
 # include missions
 include("no-associated-mission.jl")
-include("xmm-newton-mission.jl")
+include("Xmm-newton-mission.jl")
