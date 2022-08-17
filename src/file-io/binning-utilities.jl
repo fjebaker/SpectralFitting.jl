@@ -1,43 +1,59 @@
 export rebin_flux, make_flux, make_fluxes
 
-rebin_flux(flux, curr_energy, dest_energy_bins::AbstractVector) =
-    rebin_flux(flux, curr_energy, first(dest_energy_bins), @view(dest_energy_bins[2:end]))
-rebin_flux(flux, curr_energy, rm::ResponseMatrix) =
-    rebin_flux(flux, curr_energy, first(rm.energy_bins_low), rm.energy_bins_high)
+function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
+    downsample_rebin(
+        flux,
+        current_energy,
+        @view(dest_energy_bins[1:end-1]),
+        @view(dest_energy_bins[2:end])
+    )
+end
 
-function rebin_flux(flux, curr_energy, E_min::Number, energy_bins_high::AbstractVector)
-    # ensure we are sub-sampling, and not up-sampling
-    @assert (lenngth(curr_energy) ≤ length(energy_bins_high) + 1)
+function rebin_flux(flux, current_energy, rm::ResponseMatrix)
+    downsample_rebin(flux, current_energy, rm.energy_bins_low, rm.energy_bins_high)
+end
 
-    N = length(energy_bins_high)
-    out_flux = zeros(eltype(flux), N)
-
-    # find the initial index into energy
-    current_i = findfirst(>(E_min), curr_energy)
-
-    for (flux_index, E_max_bins) in enumerate(energy_bins_high)
-        # find where energy is outside of bin
-        next_i = findnext(>(E_max_bins), curr_energy, current_i+1)
-        isnothing(next_i) && break
-
-        # sum everything that is definitely inbetween
-        @views out_flux[flux_index] += sum(flux[current_i:next_i-2])
-
-        # calculate overlap flux: width of energy bin
-        ΔE = curr_energy[next_i] - curr_energy[next_i-1]
-        # width of bin in current flux bin
-        δE = E_max_bins - curr_energy[next_i-1]
-        ratio = (δE / ΔE)
-        @views out_flux[flux_index] += ratio * flux[next_i-1]
-
-        # if not at end of flux array, carry over
-        if flux_index < N
-            out_flux[flux_index+1] += (1 - ratio) * flux[next_i-1]
-        end
-        current_i = next_i
+function downsample_rebin(input, current_bins, target_bins_low, target_bins_high)
+    # ensure we are down-sampling, and not up-sampling
+    if (length(current_bins) ≤ length(target_bins_high) + 1)
+        throw(
+            "Rebinning must down-sample to fewer destination bins than source bins. Use interpolation methods for up-sampling.",
+        )
     end
 
-    out_flux
+    N = length(target_bins_low)
+    output = zeros(eltype(input), N)
+
+    # find first dest energy that is greater than first src energy
+    i = findfirst(>(first(current_bins)), target_bins_high)
+    # view into target bins of interest
+    trunc_bin_low = @view(target_bins_low[i:end])
+    trunc_bin_high = @view(target_bins_high[i:end])
+
+    start = stop = 1
+    for (fi, Elow, Ehigh) in zip(i:N, trunc_bin_low, trunc_bin_high)
+        # find lower and upper limit index
+        start = findnext(>(Elow), current_bins, start)
+        stop = findnext(>(Ehigh), current_bins, stop)
+        # break if no energy is higher
+        isnothing(stop) && break
+
+        # sum the ones that are between immediately
+        output[fi] += @views sum(input[start:stop-2])
+
+        # deal with edge bin by calculating overlap
+        ΔE = current_bins[stop] - current_bins[stop-1]
+        # amount of the bin in the current dest bin
+        δE = Ehigh - current_bins[stop-1]
+        ratio = (δE / ΔE)
+        output[fi] += ratio * input[stop-1]
+
+        # if not at end of input array, carry over the rest
+        if fi < N
+            output[fi+1] += (1 - ratio) * input[stop-1]
+        end
+    end
+    output
 end
 
 function get_energy_bins(x, T::Type)
@@ -88,6 +104,14 @@ function augmented_energy_channels(channels, rm::ResponseMatrix{T}) where {T}
     (Emin, Emax)
 end
 
+function energy_to_channel(E, channels, energy_bins_low, energy_bins_high, start)
+    @views energy_to_channel(
+        E,
+        channels[start:end],
+        energy_bins_low[start:end],
+        energy_bins_high[start:end],
+    )
+end
 function energy_to_channel(E, channels, energy_bins_low, energy_bins_high)
     for (c, low_e, high_e) in zip(channels, energy_bins_low, energy_bins_high)
         if (E ≥ low_e) && (high_e > E)
@@ -100,23 +124,19 @@ end
 
 function grouping_to_indices(grouping)
     indices = Int[]
-    
     for (i, g) in enumerate(grouping)
         if g == 1
             push!(indices, i)
         end
     end
-
     push!(indices, length(grouping))
-
     indices
 end
 
 function grouping_indices_callback(func, indices)
-    for i in 1:length(indices)-1
+    for i = 1:length(indices)-1
         index1 = indices[i]
         index2 = indices[i+1] - 1
         func((i, index1, index2))
     end
-    indices
 end
