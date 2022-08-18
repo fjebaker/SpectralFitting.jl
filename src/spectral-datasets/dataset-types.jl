@@ -16,10 +16,10 @@ group_meta(::AbstractMetadata, mask, inds) = nothing
 struct ResponseMatrix{T}
     matrix::SparseMatrixCSC{T,Int}
     channels::Vector{Int}
+    channel_energy_bins_low::Vector{T}
+    channel_energy_bins_high::Vector{T}
     energy_bins_low::Vector{T}
     energy_bins_high::Vector{T}
-    rm_energy_bins_low::Vector{T}
-    rm_energy_bins_high::Vector{T}
 end
 
 @enum Normalisation None Energy Channel

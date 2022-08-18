@@ -96,8 +96,8 @@ function augmented_energy_channels(channels, rm::ResponseMatrix{T}) where {T}
     @inbounds for (i, c) in enumerate(channels)
         if c ≤ N
             index = findfirst(==(c), rm.channels)
-            Emax[i] = rm.energy_bins_high[index]
-            Emin[i] = rm.energy_bins_low[index]
+            Emax[i] = rm.channel_energy_bins_high[index]
+            Emin[i] = rm.channel_energy_bins_low[index]
         end
     end
     (Emin, Emax)
