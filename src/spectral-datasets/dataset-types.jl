@@ -22,8 +22,6 @@ struct ResponseMatrix{T}
     energy_bins_high::Vector{T}
 end
 
-@enum Normalisation None Energy Channel
-
 abstract type AbstractDataset{T,M} end
 
 # concrete type
