@@ -4,16 +4,16 @@ function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
         flux,
         current_energy,
-        @view(dest_energy_bins[1:end-1]),
+        #@view(dest_energy_bins[1:end-1]),
         @view(dest_energy_bins[2:end])
     )
 end
 
 function rebin_flux(flux, current_energy, rm::ResponseMatrix)
-    downsample_rebin(flux, current_energy, rm.energy_bins_low, rm.energy_bins_high)
+    downsample_rebin(flux, current_energy, rm.energy_bins_high)
 end
 
-function downsample_rebin(input, current_bins, target_bins_low, target_bins_high)
+function downsample_rebin(input, current_bins, target_bins_high)
     # ensure we are down-sampling, and not up-sampling
     if (length(current_bins) ≤ length(target_bins_high) + 1)
         throw(
@@ -21,19 +21,17 @@ function downsample_rebin(input, current_bins, target_bins_low, target_bins_high
         )
     end
 
-    N = length(target_bins_low)
+    N = length(target_bins_high)
     output = zeros(eltype(input), N)
 
     # find first dest energy that is greater than first src energy
     i = findfirst(>(first(current_bins)), target_bins_high)
     # view into target bins of interest
-    trunc_bin_low = @view(target_bins_low[i:end])
     trunc_bin_high = @view(target_bins_high[i:end])
 
     start = stop = 1
-    for (fi, Elow, Ehigh) in zip(i:N, trunc_bin_low, trunc_bin_high)
+    for (fi, Ehigh) in zip(i:N, trunc_bin_high)
         # find lower and upper limit index
-        start = findnext(>(Elow), current_bins, start)
         stop = findnext(>(Ehigh), current_bins, stop)
         # break if no energy is higher
         isnothing(stop) && break
@@ -52,6 +50,7 @@ function downsample_rebin(input, current_bins, target_bins_low, target_bins_high
         if fi < N
             output[fi+1] += (1 - ratio) * input[stop-1]
         end
+        start = stop
     end
     output
 end

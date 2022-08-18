@@ -53,7 +53,6 @@ end
 function _group_dataset(data::SpectralDataset{T,M}, grouping) where {T,M}
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
-    @show N
 
     energy_low = zeros(T, N)
     energy_high = zeros(T, N)

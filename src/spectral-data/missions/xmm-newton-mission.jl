@@ -68,7 +68,7 @@ function SpectralDataset(
     counts = read(fits[2], "COUNTS") ./ exp_time
 
     countserror = sqrt.(counts)
-    channels = read(fits[2], "CHANNEL")
+    channels = read(fits[2], "CHANNEL") 
     grouping = read(fits[2], "GROUPING")
 
     quality_vec::Vector{Int} = Int.(qs)
