@@ -92,7 +92,7 @@ function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
         new_mask[i] = !all(==(false), data.mask[index1:index2])
     end
 
-    meta = group_meta(data.meta, data.mask, indices)
+    #meta = group_meta(data.meta, data.mask, indices)
 
     SpectralDataset(
         energy_low,
@@ -102,7 +102,7 @@ function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
         new_errs,
         collect(1:N),
         BitVector(new_mask),
-        meta,
+        data.meta,
         data.response,
     )
 end
