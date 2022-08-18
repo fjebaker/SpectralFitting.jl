@@ -87,7 +87,7 @@ end
 end
 
 function invokemodel!(f, e, m::M) where {M<:SurrogateSpectralModel}
-    invokemodel!(f, e, M, m.surrogate, get_all_model_params_by_value(m)...)
+    invokemodel!(f, e, M, m.surrogate, get_model_params_by_value(m)...)
 end
 
 """

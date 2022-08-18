@@ -5,6 +5,7 @@ using LibXSPEC_jll
 import Base
 import Printf
 import Downloads
+import Statistics
 import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show_progress
 
 using FITSIO
@@ -33,13 +34,14 @@ include("surrogate-models.jl")
 include("parsing-utilities.jl")
 include("function-generation.jl")
 
-include("file-io/datasets.jl")
-include("file-io/response-matrix.jl")
-include("file-io/binning-utilities.jl")
-include("file-io/parsing-utilities.jl")
-include("file-io/no-associated-mission.jl")
-include("file-io/fits-loading.jl")
-include("file-io/model-data-io.jl")
+include("spectral-datasets/dataset-types.jl")
+include("spectral-datasets/ogip-io.jl")
+include("spectral-datasets/datasets.jl")
+include("spectral-datasets/response-matrix.jl")
+include("spectral-datasets/binning-utilities.jl")
+include("spectral-datasets/missions/abstract-mission.jl")
+
+include("model-data-io.jl")
 
 include("fitting.jl")
 include("plotting-recipes.jl")
