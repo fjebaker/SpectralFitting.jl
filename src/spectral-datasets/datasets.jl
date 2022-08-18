@@ -1,3 +1,5 @@
+export mask_bad_channels!, mask_energy!
+
 function SpectralDataset(
     meta::AbstractMetadata,
     rm::ResponseMatrix,
@@ -29,8 +31,11 @@ function Base.propertynames(::SpectralDataset)
 end
 
 function Base.getproperty(data::SpectralDataset, s::Symbol)
-    if s in (:channels, :energy_bins_low, :energy_bins_high, :counts, :countserror)
+    if s in (:energy_bins_low, :energy_bins_high, :counts, :countserror)
         @views getfield(data, s)[data.mask]
+    elseif s == :channels
+        channels = @views getfield(data, s)[data.mask]
+        channels .- (minimum(channels))
     elseif s == :energy_bin_widths
         get_energy_bin_widths(data)
     else
@@ -50,7 +55,18 @@ function mask_bad_channels!(data::SpectralDataset)
     data
 end
 
-function _group_dataset(data::SpectralDataset{T,M}, grouping) where {T,M}
+function mask_energy!(data::SpectralDataset, cond)
+    inds = cond.(unmasked_low_energy_bins(data))
+    data.mask[inds] .= false
+    data
+end
+
+unmasked_counts(data) = getfield(data, :counts)
+unmasked_low_energy_bins(data) = getfield(data, :energy_bins_low)
+unmasked_high_energy_bins(data) = getfield(data, :energy_bins_high)
+
+# DOES NOT DEEPCOPY RM
+function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
 
@@ -60,9 +76,9 @@ function _group_dataset(data::SpectralDataset{T,M}, grouping) where {T,M}
     new_errs = zeros(T, N)
     new_mask = zeros(Bool, N)
 
-    um_energy_bins_low = getfield(data, :energy_bins_low)
-    um_energy_bins_high = getfield(data, :energy_bins_high)
-    um_counts = getfield(data, :counts)
+    um_energy_bins_low = unmasked_low_energy_bins(data)
+    um_energy_bins_high = unmasked_high_energy_bins(data)
+    um_counts = unmasked_counts(data)
 
     grouping_indices_callback(indices) do (i, index1, index2)
         energy_low[i] = um_energy_bins_low[index1]
@@ -76,7 +92,6 @@ function _group_dataset(data::SpectralDataset{T,M}, grouping) where {T,M}
         new_mask[i] = !all(==(false), data.mask[index1:index2])
     end
 
-    rm = group_response(data.response, grouping)
     meta = group_meta(data.meta, data.mask, indices)
 
     SpectralDataset(
@@ -88,20 +103,8 @@ function _group_dataset(data::SpectralDataset{T,M}, grouping) where {T,M}
         collect(1:N),
         BitVector(new_mask),
         meta,
-        rm,
+        data.response,
     )
-end
-
-function set_max_energy!(data::SpectralDataset, emax)
-    inds = data.energy_bins_high .≤ emax
-    trim_dataset!(data::SpectralDataset, inds)
-    count(!, inds)
-end
-
-function set_min_energy!(data::SpectralDataset, emin)
-    inds = data.energy_bins_low .≥ emin
-    trim_dataset!(data::SpectralDataset, inds)
-    count(!, inds)
 end
 
 # printing

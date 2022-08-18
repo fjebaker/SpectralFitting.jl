@@ -38,5 +38,6 @@ mutable struct SpectralDataset{T,M} <: AbstractDataset{T,M}
     response::ResponseMatrix{T}
 end
 
-
 missiontrait(::SpectralDataset{T,M}) where {T,M} = missiontrait(M)
+
+export SpectralDataset, ResponseMatrix

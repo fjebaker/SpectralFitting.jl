@@ -53,7 +53,7 @@ function SpectralDataset(
     path,
     rm_path,
     arf_path;
-    T::Type = Float64,
+    T::Type = Float64
 ) where {D}
     fits = FITS(path)
     fits_rm = FITS(rm_path)
@@ -70,6 +70,9 @@ function SpectralDataset(
     countserror = sqrt.(counts)
     channels = read(fits[2], "CHANNEL")
     grouping = read(fits[2], "GROUPING")
+
+    close(fits)
+    close(fits_rm)
 
     quality_vec::Vector{Int} = Int.(qs)
     grouping_vec::Vector{Int} = Int.(grouping)

@@ -23,6 +23,8 @@ function ResponseMatrix(
     )
 end
 
+Base.:*(rm::ResponseMatrix, flux) = fold_response(flux, rm)
+
 @fastmath fold_response(flux, rm::ResponseMatrix) = rm.matrix * flux
 
 function fold_response(flux, energy, rm::ResponseMatrix)
@@ -32,12 +34,6 @@ function fold_response(flux, energy, rm::ResponseMatrix)
     else
         fold_response(flux, rm)
     end
-end
-
-function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) where {T}
-    nchans = length(rm.channels)
-    println(io, "ResponseMatrix with $nchans channels:")
-    Base.print_array(io, rm.matrix)
 end
 
 function group_response(rm::ResponseMatrix{T}, grouping) where {T}
@@ -96,4 +92,10 @@ function normalise_rows!(matrix)
         end
         w
     end
+end
+
+function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) where {T}
+    nchans = length(rm.channels)
+    println(io, "ResponseMatrix with $nchans channels:")
+    Base.print_array(io, rm.matrix)
 end

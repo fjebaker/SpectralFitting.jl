@@ -40,7 +40,8 @@ include("spectral-datasets/datasets.jl")
 include("spectral-datasets/response-matrix.jl")
 include("spectral-datasets/binning-utilities.jl")
 include("spectral-datasets/missions/abstract-mission.jl")
-include("spectral-datasets/model-data-io.jl")
+
+include("model-data-io.jl")
 
 include("fitting.jl")
 include("plotting-recipes.jl")

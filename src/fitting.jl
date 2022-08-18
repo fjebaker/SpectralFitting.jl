@@ -4,17 +4,26 @@ function fitparams!(
     params,
     model,
     dataset::SpectralDataset,
-    energy = get_energy_bins(dataset.response);
+    energy = energy_vector(dataset.response);
     kwargs...,
-)
+)   
+
+    folder(flux, energy) = begin
+        # fold instrument response + arf
+        folded_flux = fold_response(flux, energy, dataset.response)
+        # rebin and mask
+        grouped_flux = @views regroup(folded_flux, dataset.meta.grouping)[dataset.mask] 
+        # normalise against energy
+        grouped_flux ./ dataset.energy_bin_widths
+    end
     __fitparams!(
         params,
         model,
-        dataset.response,
+        folder,
         dataset.counts,
         dataset.countserror,
         energy,
-        dataset.channels;
+        ;
         kwargs...,
     )
 end
@@ -22,12 +31,12 @@ end
 function __fitparams!(
     params,
     model::M,
-    rm::ResponseMatrix,
+    folder,
     target,
     error_target,
-    energy,
-    channels;
-    kwargs...,
+    energy
+    ;
+    kwargs...
 ) where {M<:AbstractSpectralModel}
 
     p0 = get_value.(params)
@@ -37,14 +46,13 @@ function __fitparams!(
     fit = __lsq_fit(
         implementation(M),
         model,
+        folder,
         p0,
         lb,
         ub,
-        rm,
         target,
         error_target,
         energy,
-        channels;
         kwargs...,
     )
 
@@ -62,24 +70,23 @@ end
 function __lsq_fit(
     ::AbstractSpectralModelImplementation,
     model,
+    folder,
     p0,
     lb,
     ub,
-    rm,
     target,
     error_target,
     energy,
-    channels;
     kwargs...,
 )
     frozen_p = get_value.(get_frozen_model_params(model))
     fluxes = make_fluxes(energy, flux_count(model))
-    foldedmodel(x, p) =
-        @views fold_response(invokemodel!(fluxes, x, model, p, frozen_p), x, rm)[channels]
-
+    foldedmodel(x, p) = begin
+        flux = invokemodel!(fluxes, x, model, p, frozen_p)
+        folder(flux, x)
+    end
     # seems to cause nans and infs
     cov_err = @. 1 / (error_target^2)
-
     fit = LsqFit.curve_fit(
         foldedmodel,
         energy,
@@ -93,12 +100,12 @@ function __lsq_fit(
     fit
 end
 
-# function __lsq_fit(::JuliaImplementation, model, p0, lb, ub, rm, target, error_target, energy, channels; kwargs...)
+# function __lsq_fit(::JuliaImplementation, model, p0, lb, ub, rm, target, error_target, energy, mask; kwargs...)
 #     frozen_p = get_value.(get_frozen_model_params(model))
 #     d_fluxes = make_dual_fluxes(energy, flux_count(model))
 #     foldedmodel(x, p) = begin
 #         fluxes = map(i -> get_tmp(i, p[1]), d_fluxes)
-#         @views fold_response(invokemodel!(fluxes, x, model, p, frozen_p), x, rm)[channels]
+#         @views fold_response(invokemodel!(fluxes, x, model, p, frozen_p), x, rm)[mask]
 #     end
 
 #     # seems to cause nans and infs

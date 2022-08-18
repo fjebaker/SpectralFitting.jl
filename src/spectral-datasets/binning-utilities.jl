@@ -1,4 +1,4 @@
-export rebin_flux, make_flux, make_fluxes
+export rebin_flux, make_flux, make_fluxes, energy_vector, regroup
 
 function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
@@ -55,7 +55,15 @@ function downsample_rebin(input, current_bins, target_bins_high)
     output
 end
 
-function get_energy_bins(x, T::Type)
+function energy_vector(data::SpectralDataset)
+    energy_vector(data.response)
+end
+
+function energy_vector(response::ResponseMatrix{T}) where {T}
+    energy_vector(response, T)
+end
+
+function energy_vector(x, T::Type)
     energy = zeros(T, length(x.energy_bins_low) + 1)
     energy[1:end-1] .= x.energy_bins_low
     energy[end] = x.energy_bins_high[end]
@@ -111,6 +119,7 @@ function energy_to_channel(E, channels, energy_bins_low, energy_bins_high, start
         energy_bins_high[start:end],
     )
 end
+
 function energy_to_channel(E, channels, energy_bins_low, energy_bins_high)
     for (c, low_e, high_e) in zip(channels, energy_bins_low, energy_bins_high)
         if (E ≥ low_e) && (high_e > E)
@@ -138,4 +147,13 @@ function grouping_indices_callback(func, indices)
         index2 = indices[i+1] - 1
         func((i, index1, index2))
     end
+end
+
+function regroup(vector::Vector{<:Number}, grouping)
+    inds = SpectralFitting.grouping_to_indices(grouping)
+    output = zeros(eltype(vector), length(inds) - 1)
+    SpectralFitting.grouping_indices_callback(inds) do (i, start, stop)
+        output[i] = @views sum(vector[start:stop])
+    end
+    output
 end
