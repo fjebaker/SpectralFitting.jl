@@ -45,4 +45,4 @@ end
 
 # include missions
 include("no-associated-mission.jl")
-include("Xmm-newton-mission.jl")
+include("xmm-newton-mission.jl")
