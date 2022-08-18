@@ -213,7 +213,7 @@ function __generated_get_param_types(model::Type{<:CompositeSpectralModel})
     recursive_model_parse(model) do (left, right, _)
         add_param_types!(types, right)
         add_param_types!(types, left)
-        nothing
+        Nothing
     end
     types
 end
