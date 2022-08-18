@@ -104,10 +104,6 @@ function set_min_energy!(data::SpectralDataset, emin)
     count(!, inds)
 end
 
-get_energy_bins(data::SpectralDataset{T,M}) where {T,M} = get_energy_bins(data, T)
-
-get_energy_limits(x) = extrema(get_energy_bins(x))
-
 # printing
 
 function Base.show(io::IO, dataset::SpectralDataset{T,M}) where {T,M}

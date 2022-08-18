@@ -5,8 +5,8 @@ function ResponseMatrix(
     mission::AbstractMission,
     ::Type{T},
 )::ResponseMatrix{T} where {T}
-    (matrix, rm_channels, rm_E_lows, rm_E_highs) = parse_rm_fits_file(mission, fits, T)
-    ResponseMatrix(matrix, Int.(rm_channels), T.(rm_E_lows), T.(rm_E_highs))
+    (matrix, rm_channels, E_lows, E_highs, rm_E_lows, rm_E_highs) = parse_rm_fits_file(mission, fits, T)
+    ResponseMatrix(matrix, Int.(rm_channels), T.(E_lows), T.(E_highs), T.(rm_E_lows), T.(rm_E_highs))
 end
 
 # folding response
@@ -22,8 +22,6 @@ function fold_response(flux, energy, rm::ResponseMatrix)
     end
 end
 
-get_energy_bins(rm::ResponseMatrix{T}) where {T} = get_energy_bins(rm, T)
-
 function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) where {T}
     nchans = length(rm.channels)
     println(io, "ResponseMatrix with $nchans channels:")
@@ -31,33 +29,36 @@ function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) 
 end
 
 function group_response(rm::ResponseMatrix{T}, grouping) where {T}
-    indices = grouping_to_indices(grouping)
-    N = length(indices) - 1
-    R = spzeros(T, (N, N))
 
-    energy_low = zeros(T, N)
-    energy_high = zeros(T, N)
+    return deepcopy(rm)
 
-    grouping_indices_callback(indices) do (i, index1, index2)
-        energy_low[i] = rm.energy_bins_low[index1]
-        energy_high[i] = rm.energy_bins_high[index2]
+    # indices = grouping_to_indices(grouping)
+    # N = length(indices) - 1
+    # R = spzeros(T, (N, N))
 
-        # iterate over row
-        grouping_indices_callback(indices) do (j, index3, index4)
-            R[i, j] = @views sum(rm.matrix[index1:index2, index3:index4])
-            # R[i, j] = @views sum(rm.matrix[index3:index4, index1:index2])
-        end
+    # energy_low = zeros(T, N)
+    # energy_high = zeros(T, N)
 
-        # normalise row if non-zero
-        Σr = sum(R[i, :])
-        if Σr > 0.0
-            @views R[i, :] = R[i, :] / sum(R[i, :])
-        end
-    end
+    # grouping_indices_callback(indices) do (i, index1, index2)
+    #     energy_low[i] = rm.energy_bins_low[index1]
+    #     energy_high[i] = rm.energy_bins_high[index2]
 
-    # normalise
+    #     # iterate over row
+    #     grouping_indices_callback(indices) do (j, index3, index4)
+    #         R[i, j] = @views sum(rm.matrix[index1:index2, index3:index4])
+    #         # R[i, j] = @views sum(rm.matrix[index3:index4, index1:index2])
+    #     end
 
-    ResponseMatrix(R, collect(1:N), energy_low, energy_high)
+    #     # normalise row if non-zero
+    #     Σr = sum(R[i, :])
+    #     if Σr > 0.0
+    #         @views R[i, :] .= R[i, :] ./ Σr
+    #     end
+    # end
+
+    # # normalise
+
+    # ResponseMatrix(R, collect(1:N), energy_low, energy_high)
 end
 
 function build_matrix_response!(
@@ -76,10 +77,10 @@ function build_matrix_response!(
     for (i, (low_e, high_e, F, N)) in enumerate(zip(rmf_E_lows, rmf_E_highs, Fchan, Nchan))
         M = matrix_lookup[i]
         # find which channel
-        av_energy = (high_e + low_e) / 2
+        av_energy = low_e
 
         channel = energy_to_channel(av_energy, channels, low_energy, high_energy)
-        if channel < 1
+        if channel < 0
             @warn "No channel for response energy $(low_e) to $(high_e). Skipping."
             continue
         end
@@ -89,7 +90,7 @@ function build_matrix_response!(
             if len == 0
                 break
             end
-            @views R[first+1:first+len, channel] .= M[index:index+len-1]
+            @views R[first+1:first+len, i] .= M[index:index+len-1]
             index += len
         end
     end
@@ -106,10 +107,11 @@ function parse_rm_fits_file(mission::AbstractMission, fits, T)
     # from energy table
     E_lows = read(fits[3], "E_MIN")
     E_highs = read(fits[3], "E_MAX")
-    channels = read(fits[3], "CHANNEL") .+ 1
+    channels = read(fits[3], "CHANNEL") 
 
-    N = length(channels)
-    matrix = spzeros(T, N, N)
+    N_rows = Int(read_header(fits[2])["DETCHANS"])
+    N_cols = length(rmf_E_lows)
+    matrix = spzeros(T, N_rows, N_cols)
 
     build_matrix_response!(
         matrix,
@@ -125,5 +127,17 @@ function parse_rm_fits_file(mission::AbstractMission, fits, T)
         channels
     )
 
-    return (matrix, channels, E_lows, E_highs)
+    # normalise_rows!(matrix)
+
+    return (matrix, channels, E_lows, E_highs, rmf_E_lows, rmf_E_highs)
+end
+
+
+function normalise_rows!(matrix)
+    @views for i in 1:size(matrix, 2)
+        ΣR = sum(matrix[i, :])
+        if ΣR > 0.0
+            matrix[i, :] .= matrix[i, :] / ΣR
+        end
+    end
 end
