@@ -36,37 +36,20 @@ function fold_response(flux, energy, rm::ResponseMatrix)
     end
 end
 
-function group_response(rm::ResponseMatrix{T}, grouping) where {T}
+function group_response_channels(rm::ResponseMatrix{T}, grouping) where {T}
+    indices = grouping_to_indices(grouping)
+    N = length(indices) - 1
+    R = spzeros(T, (N, size(rm.matrix, 2)))
+    energy_low = zeros(T,N)
+    energy_high = zeros(T,N)
 
-    return deepcopy(rm)
+    grouping_indices_callback(indices) do (i, index1, index2)
+        @views R[i, :] .= vec(sum(rm.matrix[index1:index2, :], dims=1))
+        energy_low[i] = rm.channel_energy_bins_low[index1]
+        energy_high[i] = rm.channel_energy_bins_high[index1]
+    end
 
-    # indices = grouping_to_indices(grouping)
-    # N = length(indices) - 1
-    # R = spzeros(T, (N, N))
-
-    # energy_low = zeros(T, N)
-    # energy_high = zeros(T, N)
-
-    # grouping_indices_callback(indices) do (i, index1, index2)
-    #     energy_low[i] = rm.energy_bins_low[index1]
-    #     energy_high[i] = rm.energy_bins_high[index2]
-
-    #     # iterate over row
-    #     grouping_indices_callback(indices) do (j, index3, index4)
-    #         R[i, j] = @views sum(rm.matrix[index1:index2, index3:index4])
-    #         # R[i, j] = @views sum(rm.matrix[index3:index4, index1:index2])
-    #     end
-
-    #     # normalise row if non-zero
-    #     Σr = sum(R[i, :])
-    #     if Σr > 0.0
-    #         @views R[i, :] .= R[i, :] ./ Σr
-    #     end
-    # end
-
-    # # normalise
-
-    # ResponseMatrix(R, collect(1:N), energy_low, energy_high)
+    ResponseMatrix(R, collect(1:N), energy_low, energy_high, rm.energy_bins_low, rm.energy_bins_high)
 end
 
 function build_matrix_response!(R, rmf::OGIP_RMF_Matrix)

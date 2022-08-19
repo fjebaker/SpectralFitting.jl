@@ -64,8 +64,7 @@ function SpectralDataset(
 
     exp_time = read_header(fits[2])["EXPOSURE"]
 
-    # turn into counts per second
-    counts = read(fits[2], "COUNTS") ./ exp_time
+    counts = read(fits[2], "COUNTS")
 
     countserror = sqrt.(counts)
     channels = read(fits[2], "CHANNEL")
