@@ -4,8 +4,8 @@ struct PhotoelectricAbsorption{T,F1} <: AbstractTableModel{T}
     ηH::F1
     function PhotoelectricAbsorption(ηH::F) where {F}
         data = get_model_data(PhotoelectricAbsorption)
-        E = data[1]["E"]
-        σ = data[1]["σ"]
+        E::Vector{Float64} = data[1]["E"]
+        σ::Vector{Float64} = data[1]["σ"]
         table = LinearInterpolation(E, σ, extrapolation_bc=Line())
         new{typeof(table),F}(table, ηH)
     end
