@@ -68,6 +68,7 @@ The first time any XSPEC model is invoked, SpectralFitting checks to see whether
 XS_PowerLaw
 XS_BlackBody
 XS_BremsStrahlung
+XS_Gaussian
 XS_Laor
 XS_DiskLine
 XS_PhotoelectricAbsorption
