@@ -53,7 +53,7 @@ function SpectralDataset(
     path,
     rm_path,
     arf_path;
-    T::Type = Float64
+    T::Type = Float64,
 ) where {D}
     fits = FITS(path)
     fits_rm = FITS(rm_path)

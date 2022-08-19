@@ -1,10 +1,6 @@
 export ResponseMatrix, fold_response
 
-function ResponseMatrix(
-    fits,
-    ::AbstractMission,
-    ::Type{T},
-)::ResponseMatrix{T} where {T}
+function ResponseMatrix(fits, ::AbstractMission, ::Type{T})::ResponseMatrix{T} where {T}
     # temporary structs to make parsing easier
     rmf = OGIP_RMF_Matrix(fits, T)
     chan = OGIP_RMF_Channels(fits, T)
@@ -40,16 +36,23 @@ function group_response_channels(rm::ResponseMatrix{T}, grouping) where {T}
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
     R = spzeros(T, (N, size(rm.matrix, 2)))
-    energy_low = zeros(T,N)
-    energy_high = zeros(T,N)
+    energy_low = zeros(T, N)
+    energy_high = zeros(T, N)
 
     grouping_indices_callback(indices) do (i, index1, index2)
-        @views R[i, :] .= vec(sum(rm.matrix[index1:index2, :], dims=1))
+        @views R[i, :] .= vec(sum(rm.matrix[index1:index2, :], dims = 1))
         energy_low[i] = rm.channel_energy_bins_low[index1]
         energy_high[i] = rm.channel_energy_bins_high[index1]
     end
 
-    ResponseMatrix(R, collect(1:N), energy_low, energy_high, rm.energy_bins_low, rm.energy_bins_high)
+    ResponseMatrix(
+        R,
+        collect(1:N),
+        energy_low,
+        energy_high,
+        rm.energy_bins_low,
+        rm.energy_bins_high,
+    )
 end
 
 function build_matrix_response!(R, rmf::OGIP_RMF_Matrix)
