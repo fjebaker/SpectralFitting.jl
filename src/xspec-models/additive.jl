@@ -172,7 +172,7 @@ invokemodel(energy, XS_KerrDisk())
     "Break radius seperating inner and outer disk (gᵣ)."
     break_r::F5 = FrozenFitParam(6.0)
     "Dimensionless black hole spin."
-    a::F6 = FitParam(0.998)
+    a::F6 = FitParam(0.998, upper_limit=1.0)
     "Disk inclination angle to line of sight (degrees)."
     incl::F7 = FrozenFitParam(30.0)
     "Inner radius of the disk in units of rₘₛ."
@@ -224,7 +224,7 @@ invokemodel(energy, XS_KyrLine())
     "Normalisation."
     K::F1 = FitParam(1.0)
     "Dimensionless black hole spin."
-    a::F2 = FitParam(0.998)
+    a::F2 = FitParam(0.998, upper_limit=1.0)
     "Observer inclination (0 is on pole, degrees)."
     θ_obs::F3 = FitParam(30.0)
     "Inner radius of the disk in units of GM/c²"
