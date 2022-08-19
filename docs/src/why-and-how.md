@@ -1,5 +1,12 @@
 # Why & how
 
+SpectralFitting.jl is a package for fitting models to spectral data, similar to [XSPEC](https://heasarc.gsfc.nasa.gov/xanadu/xspec/), [Sherpa](https://sherpa.readthedocs.io/en/latest/ciao.html) or [ISIS](https://space.mit.edu/CXC/isis/).
+
+The rationale for this package is to provide a unanimous interface for different model libraries, and to leverage the bleeding edge advancements in computing that are available in Julia, including the rich statistics ecosystem, with [automatic-differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and [_speed_](https://julialang.org/benchmarks/).
+
+SpectralFitting aims to provide highly optimised and flexible fitting algorithms, along with a library of spectral models, for use in any field of Astronomy that concerns itself with spectral data.
+
+
 ## Rewriting model calls during invocation
 
 ```@setup model_invocation
