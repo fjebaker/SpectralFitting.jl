@@ -88,10 +88,8 @@ macro xspecmodel(model_kind, func_name, model)
             init_string = "",
         )
             @assert length(flux) + 1 == length(energy)
-            if !_is_model_data_downloaded(m)
-                @warn "Model data for $(model_base_name(m)) is not present!\nRequisite model data may be fetched with `SpectralFitting.download_model_data($m)`."
-                error("Missing data.")
-            end
+            ensure_model_data(m)
+
             if length(UNTRACKED_ERROR) < length(flux)
                 resize_untracked_error(length(flux))
             end

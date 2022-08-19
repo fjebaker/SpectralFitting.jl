@@ -15,22 +15,23 @@ using ForwardDiff
 using PreallocationTools
 using MemoizedMethods
 using LinearAlgebra
+using FileIO
+using Interpolations
 
 import Crayons
 import Parameters: @with_kw
 
 using DocStringExtensions
 
-# import Turing
-# import Optimization
-
 include("abstract-models.jl")
+
 include("fitparam.jl")
 include("ccall-wrapper.jl")
+
 include("composite-models.jl")
+include("table-models.jl")
 include("surrogate-models.jl")
-# include("model-processing.jl")
-# include("model-building.jl")
+
 include("parsing-utilities.jl")
 include("function-generation.jl")
 
@@ -54,6 +55,7 @@ include("xspec-models/convolutional.jl")
 # include julia models
 include("julia-models/model-utilities.jl")
 include("julia-models/additive.jl")
+include("julia-models/multiplicative.jl")
 
 function __init__()
     # check if we have the minimum model data already

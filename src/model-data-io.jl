@@ -46,9 +46,6 @@ function register_model_data(s::Symbol, filenames::String...)
 end
 
 _is_model_data_downloaded(M::Type{<:AbstractSpectralModel}) =
-    _is_model_data_downloaded(implementation(M), M)
-_is_model_data_downloaded(::AbstractSpectralModelImplementation, _)::Bool = true
-_is_model_data_downloaded(::XSPECImplementation, M)::Bool =
     _is_model_data_downloaded(Base.typename(M).name)
 function _is_model_data_downloaded(s::Symbol)::Bool
     if get(_model_available_memoize_cache, s, false)
@@ -146,4 +143,26 @@ function download_model_data(s::Symbol; kwargs...)
     end
     @info "All requisite model data for $s downloaded."
     return nothing
+end
+
+function ensure_model_data(M::Type)
+    if !_is_model_data_downloaded(M)
+        @warn "Model data for $(model_base_name(M)) is not present!\nRequisite model data may be fetched with `SpectralFitting.download_model_data($(model_base_name(M)))`."
+        error("Missing data.")
+    end
+end
+
+function load_and_unpack_model_data(M)
+    files = _model_to_data_map[Base.typename(M).name]
+    # load all of the data files
+    contents = map(files) do f
+        path = joinpath(_model_data_storage_path, f)
+        load(path)
+    end
+    contents
+end
+
+function get_model_data(M::Type)
+    ensure_model_data(M)
+    load_and_unpack_model_data(M)
 end

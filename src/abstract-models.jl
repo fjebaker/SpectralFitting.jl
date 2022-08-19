@@ -236,8 +236,7 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params_value(model)
 ```
 """
-get_params_value(m::AbstractSpectralModel) =
-    (get_value(i) for i in get_params(m))
+get_params_value(m::AbstractSpectralModel) = (get_value(i) for i in get_params(m))
 # todo: make this a proper iterator? also better name
 
 """
