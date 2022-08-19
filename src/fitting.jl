@@ -1,4 +1,19 @@
-export fitparams!
+export wrap_model
+
+function wrap_model(model::AbstractSpectralModel, data::SpectralDataset{T}; energy = energy_vector(data)) where {T}
+    fluxes = make_fluxes(energy, flux_count(model), T)
+    frozen_params = get_value.(get_frozen_model_params(model))
+    ΔE = data.energy_bin_widths
+    # pre-mask the response matrix to ensure channel out corresponds to the active data points
+    R = data.response.matrix[data.mask,:]
+    # pre-allocate the output 
+    outflux = zeros(T, length(ΔE))
+    (energy, params) -> begin
+        invokemodel!(fluxes, energy, model, params, frozen_params)
+        mul!(outflux, R, fluxes[1])
+        @. outflux = outflux / ΔE
+    end 
+end
 
 function fitparams!(
     params,
@@ -7,14 +22,10 @@ function fitparams!(
     energy = energy_vector(dataset.response);
     kwargs...,
 )   
-
+    R = dataset.response.matrix[dataset.mask, :]
     folder(flux, energy) = begin
         # fold instrument response + arf
-        folded_flux = fold_response(flux, energy, dataset.response)
-        # rebin and mask
-        grouped_flux = @views regroup(folded_flux, dataset.meta.grouping)[dataset.mask] 
-        # normalise against energy
-        grouped_flux ./ dataset.energy_bin_widths
+        (R * flux) ./ dataset.energy_bin_widths
     end
     __fitparams!(
         params,
@@ -86,7 +97,7 @@ function __lsq_fit(
         folder(flux, x)
     end
     # seems to cause nans and infs
-    cov_err = @. 1 / (error_target^2)
+    cov_err = @. 1 / (error_target)^2
     fit = LsqFit.curve_fit(
         foldedmodel,
         energy,
