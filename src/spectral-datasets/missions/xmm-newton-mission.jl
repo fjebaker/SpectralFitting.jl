@@ -53,7 +53,7 @@ function SpectralDataset(
     path,
     rm_path,
     arf_path;
-    T::Type = Float64
+    T::Type = Float64,
 ) where {D}
     fits = FITS(path)
     fits_rm = FITS(rm_path)
@@ -64,8 +64,7 @@ function SpectralDataset(
 
     exp_time = read_header(fits[2])["EXPOSURE"]
 
-    # turn into counts per second
-    counts = read(fits[2], "COUNTS") ./ exp_time
+    counts = read(fits[2], "COUNTS")
 
     countserror = sqrt.(counts)
     channels = read(fits[2], "CHANNEL")

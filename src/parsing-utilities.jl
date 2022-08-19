@@ -38,16 +38,18 @@ function index_models!(
 ) where {M1,M2}
     left_run = :(getproperty($running, :left))
     right_run = :(getproperty($running, :right))
-    if M2 <: CompositeSpectralModel
-        index_models!(index, right_run, M2)
-    else
-        push!(index, right_run)
-    end
+    # order is very imporant!!
+    # have to recursively go down left branch then right
     if M1 <: CompositeSpectralModel
         index_models!(index, left_run, M1)
-    else
-        push!(index, left_run)
     end
+    if M2 <: CompositeSpectralModel
+        index_models!(index, right_run, M2)
+    end
+    # but we add right then left
+    # need to do it like this to match `recursive_model_parse`
+    !(M2 <: CompositeSpectralModel) && push!(index, right_run)
+    !(M1 <: CompositeSpectralModel) && push!(index, left_run)
 end
 
 function index_models(model::Type{<:CompositeSpectralModel})

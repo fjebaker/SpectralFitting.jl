@@ -1,4 +1,4 @@
-export mask_bad_channels!, mask_energy!
+export mask_bad_channels!, mask_energy!, transform!
 
 function SpectralDataset(
     meta::AbstractMetadata,
@@ -86,12 +86,13 @@ function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
 
         selection = @views um_counts[index1:index2]
         new_counts[i] = sum(selection)
-        new_errs[i] = Statistics.std(selection)
+        new_errs[i] = sum(sqrt, selection)
 
         # if not all are masked out, set true
         new_mask[i] = !all(==(false), data.mask[index1:index2])
     end
 
+    response = group_response_channels(data.response, grouping)
     #meta = group_meta(data.meta, data.mask, indices)
 
     SpectralDataset(
@@ -103,7 +104,7 @@ function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
         collect(1:N),
         BitVector(new_mask),
         data.meta,
-        data.response,
+        response,
     )
 end
 

@@ -19,12 +19,13 @@ export AbstractSpectralModel,
     get_param_symbols,
     get_param,
     get_param_count,
-    get_model_params,
-    get_model_params_by_value,
+    get_params,
+    get_params_value,
     get_param_symbol_pairs,
     invokemodel,
     invokemodel!,
-    flux_count
+    flux_count,
+    update_params!
 
 
 # models
@@ -210,7 +211,7 @@ get_param_count(::M) where {M<:AbstractSpectralModel} = get_param_count(M)
 get_param_count(M::Type{<:AbstractSpectralModel}) = length(get_param_types(M))
 
 """
-    get_model_params(m::AbstractSpectralModel)
+    get_params(m::AbstractSpectralModel)
 
 Get a generator of all model parameters of an [`AbstractSpectralModel`](@ref).
 
@@ -218,14 +219,13 @@ Get a generator of all model parameters of an [`AbstractSpectralModel`](@ref).
 
 ```julia
 model = XS_BlackBody() + XS_PowerLaw()
-get_model_params(model)
+get_params(model)
 ```
 """
-get_model_params(m::AbstractSpectralModel) =
-    (get_param(m, p) for p in get_param_symbols(m))
+get_params(m::AbstractSpectralModel) = (get_param(m, p) for p in get_param_symbols(m))
 
 """
-    get_model_params_by_value(m::AbstractSpectralModel)
+    get_params_value(m::AbstractSpectralModel)
 
 Get a generator of all model parameter values of an [`AbstractSpectralModel`](@ref). See [`get_value`](@ref).
 
@@ -233,11 +233,11 @@ Get a generator of all model parameter values of an [`AbstractSpectralModel`](@r
 
 ```julia
 model = XS_BlackBody() + XS_PowerLaw()
-get_model_params_by_value(model)
+get_params_value(model)
 ```
 """
-get_model_params_by_value(m::AbstractSpectralModel) =
-    (get_value(i) for i in get_model_params(m))
+get_params_value(m::AbstractSpectralModel) =
+    (get_value(i) for i in get_params(m))
 # todo: make this a proper iterator? also better name
 
 """
@@ -333,7 +333,7 @@ invokemodel!(flux, energy, model, p0)
 ```
 """
 function invokemodel!(f, e, m::M) where {M<:AbstractSpectralModel}
-    invokemodel!(f, e, M, get_model_params_by_value(m)...)
+    invokemodel!(f, e, M, get_params_value(m)...)
 end
 function invokemodel!(f, e, ::M, free_params) where {M<:AbstractSpectralModel}
     invokemodel!(f, e, M, free_params...)
@@ -390,10 +390,32 @@ flux_count(model)
 """
 flux_count(model::AbstractSpectralModel) = generated_maximum_flux_count(model)
 
+
+"""
+    update_params!(model::AbstractSpectralModel, values)
+    update_params!(model::AbstractSpectralModel, values, errors)
+
+Update the free model parameters with `values`, optionally also updating the `errors`.
+"""
+function update_params!(model::AbstractSpectralModel, values)
+    for (p, v, e) in zip(get_free_model_params(model), values)
+        set_value!(p, v)
+    end
+    model
+end
+function update_params!(model::AbstractSpectralModel, values, errors)
+    for (p, v, e) in zip(get_free_model_params(model), values, errors)
+        set_value!(p, v)
+        set_error!(p, e)
+    end
+    model
+end
+
+
 # printing
 
 function modelinfo(m::M) where {M<:AbstractSpectralModel}
-    params = join([get_value(p) for p in get_model_params(m)], ", ")
+    params = join([get_value(p) for p in get_params(m)], ", ")
     "$(model_base_name(M))[$(params)]"
 end
 

@@ -14,10 +14,10 @@ using Surrogates
 using ForwardDiff
 using PreallocationTools
 using MemoizedMethods
+using LinearAlgebra
 
 import Crayons
 import Parameters: @with_kw
-import LsqFit
 
 using DocStringExtensions
 
