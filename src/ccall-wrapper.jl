@@ -89,7 +89,7 @@ macro xspecmodel(model_kind, func_name, model)
         )
             @assert length(flux) + 1 == length(energy)
             ensure_model_data(m)
-            
+
             if length(UNTRACKED_ERROR) < length(flux)
                 resize_untracked_error(length(flux))
             end
