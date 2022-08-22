@@ -44,6 +44,14 @@ function Base.getproperty(data::SpectralDataset, s::Symbol)
     end
 end
 
+function fold_ancillary(data::SpectralDataset{T,M,P,K,A}) where {T,M,P,K,A}
+    if A === Nothing
+        data.response.matrix
+    else
+        data.ancillary.spec_response' .* data.response.matrix
+    end
+end
+
 function get_energy_bin_widths(data::SpectralDataset)
     data.energy_bins_high .- data.energy_bins_low
 end

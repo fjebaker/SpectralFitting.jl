@@ -9,7 +9,7 @@ function wrap_model(
     frozen_params = get_value.(get_frozen_model_params(model))
     ΔE = data.energy_bin_widths
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = data.response.matrix[data.mask, :]
+    R = fold_ancillary(data)[data.mask, :]
     # pre-allocate the output 
     outflux = zeros(T, length(ΔE))
     (energy, params) -> begin
@@ -25,7 +25,7 @@ function wrap_model_simple(
 ) where {T}
     ΔE = data.energy_bin_widths
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = data.response.matrix[data.mask, :]
+    R = fold_ancillary(data)[data.mask, :]
     # pre-allocate the output 
     (energy, params) -> begin
         flux = invokemodel(energy, model, params)
