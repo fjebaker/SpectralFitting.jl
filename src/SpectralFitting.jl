@@ -23,6 +23,9 @@ import Parameters: @with_kw
 
 using DocStringExtensions
 
+# unitful units
+include("units.jl")
+
 include("abstract-models.jl")
 
 include("fitparam.jl")
