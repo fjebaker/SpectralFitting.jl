@@ -62,6 +62,7 @@ function build_matrix_response!(R, rmf::OGIP_RMF_Matrix)
             if len == 0
                 break
             end
+            first -= rmf.first_channel
             @views R[first+1:first+len, i] .= M[index:index+len-1]
             index += len
         end

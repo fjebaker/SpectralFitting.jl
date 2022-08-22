@@ -1,6 +1,7 @@
 export mask_bad_channels!, mask_energy!
 
 function SpectralDataset(
+    units,
     spec::OGIP_Spectrum,
     rmf::OGIP_RMF,
     arf,
@@ -14,6 +15,7 @@ function SpectralDataset(
         ebins_high,
         spec.values,
         spec.stat_error,
+        units,
         meta,
         spec.poisson_error,
         rm,
@@ -28,14 +30,35 @@ function SpectralDataset(
 end
 
 function Base.propertynames(::SpectralDataset)
-    (fieldnames(SpectralDataset)..., :energy_bin_widths)
+    (fieldnames(SpectralDataset)..., :counts, :rate, :energy_bin_widths)
 end
 
+unmasked_counts(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,P} =
+    getfield(data, s)
+
+unmasked_counts(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P} =
+    getfield(data, s) .* data.exposure_time
+
+unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,P} =
+    getfield(data, s) ./ data.exposure_time
+
+unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P} =
+    getfield(data, s)
+
 function Base.getproperty(data::SpectralDataset, s::Symbol)
-    if s in (:energy_bins_low, :energy_bins_high, :counts, :countserror)
+    if s in (:energy_bins_low, :energy_bins_high, :_errors, :_data)
         @views getfield(data, s)[data.mask]
+    elseif s == :counts
+        @views unmasked_counts(data, :_data)[data.mask]
+    elseif s == :rate
+        @views unmasked_rate(data, :_data)[data.mask]
+    elseif s == :countserror
+        @views unmasked_counts(data, :_errors)[data.mask]
+    elseif s == :rateerror
+        @views unmasked_rate(data, :_errors)[data.mask]
     elseif s == :channels
         channels = @views getfield(data, s)[data.mask]
+        # channels must start at 0
         channels .- (minimum(channels))
     elseif s == :energy_bin_widths
         get_energy_bin_widths(data)
@@ -44,7 +67,7 @@ function Base.getproperty(data::SpectralDataset, s::Symbol)
     end
 end
 
-function fold_ancillary(data::SpectralDataset{T,M,P,K,A}) where {T,M,P,K,A}
+function fold_ancillary(data::SpectralDataset{T,M,P,U,A}) where {T,M,P,U,A}
     if A === Nothing
         data.response.matrix
     else
@@ -70,11 +93,10 @@ function mask_energy!(data::SpectralDataset, cond)
     data
 end
 
-unmasked_counts(data) = getfield(data, :counts)
 unmasked_low_energy_bins(data) = getfield(data, :energy_bins_low)
 unmasked_high_energy_bins(data) = getfield(data, :energy_bins_high)
 
-function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
+function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
 
@@ -104,6 +126,7 @@ function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
     quality = group_quality_vector(data.mask, data.quality, indices)
 
     SpectralDataset(
+        data.units,
         energy_low,
         energy_high,
         new_counts,
@@ -127,32 +150,32 @@ function Base.show(io::IO, dataset::SpectralDataset{T,M}) where {T,M}
     print(io, "SpectralDataset[$(missiontrait(M))N=$(nrow(dataset.dataframe))]")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", dataset::SpectralDataset{T,M}) where {T,M}
-    e_min = Printf.@sprintf "%g" minimum(dataset.energy_bins_low)
-    e_max = Printf.@sprintf "%g" maximum(dataset.energy_bins_high)
+function Base.show(io::IO, ::MIME"text/plain", data::SpectralDataset{T,M}) where {T,M}
+    e_min = Printf.@sprintf "%g" minimum(data.energy_bins_low)
+    e_max = Printf.@sprintf "%g" maximum(data.energy_bins_high)
 
-    rmf_e_min = Printf.@sprintf "%g" minimum(dataset.response.energy_bins_low)
-    rmf_e_max = Printf.@sprintf "%g" maximum(dataset.response.energy_bins_high)
+    rmf_e_min = Printf.@sprintf "%g" minimum(data.response.energy_bins_low)
+    rmf_e_max = Printf.@sprintf "%g" maximum(data.response.energy_bins_high)
 
-    rate_min = Printf.@sprintf "%g" minimum(dataset.counts)
-    rate_max = Printf.@sprintf "%g" maximum(dataset.counts)
-    exposure_time = Printf.@sprintf "%g" dataset.exposure_time
+    rate_min = Printf.@sprintf "%g" minimum(data.counts)
+    rate_max = Printf.@sprintf "%g" maximum(data.counts)
+    exposure_time = Printf.@sprintf "%g" data.exposure_time
 
-    is_grouped = all(==(1), dataset.grouping) ? "yes" : "no"
+    is_grouped = all(==(1), data.grouping) ? "yes" : "no"
 
-    has_background = isnothing(dataset.background) ? "no" : "yes"
+    has_background = isnothing(data.background) ? "no" : "yes"
 
-    has_ancillary = isnothing(dataset.ancillary) ? "no" : "yes"
+    has_ancillary = isnothing(data.ancillary) ? "no" : "yes"
 
-    descr = """SpectralDataset with $(length(dataset.channels)) populated channels:
+    descr = """SpectralDataset with $(length(data.channels)) populated channels:
        Mission: $(typeof(missiontrait(M)))
         . Exposure time: $(exposure_time) s
         . E min      : $(rpad(e_min, 12)) E max : $(e_max)
-        . Counts     : $(rpad(rate_min, 12)) to      $(rate_max)
+        . Data       : $(rpad(rate_min, 12)) to      $(rate_max) $(data.units)
         . Grouped    : $(is_grouped)
         . Background : $(has_background)
        Instrument Response
-        . $(length(dataset.response.channels)) RMF Channels
+        . $(length(data.response.channels)) RMF Channels
         . E min      : $(rpad(rmf_e_min, 12)) E max : $(rmf_e_max)
         . Anc        : $(has_ancillary)
     """

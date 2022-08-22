@@ -18,7 +18,7 @@ struct OGIP_Spectrum{T}
     instrument::String
 end
 
-function OGIP_Spectrum(fits::FITS, ::Type{T}) where {T}
+function OGIP_Spectrum(fits::FITS, ::Type{T})::OGIP_Spectrum{T} where {T}
     header = read_header(fits[2])
     is_poisson = header["POISSERR"] == "T" ? true : false
     instrument = header["INSTRUME"]
@@ -67,7 +67,7 @@ struct OGIP_ARF{T}
     energy_bins_high::Vector{T}
 end
 
-function OGIP_ARF(fits::FITS, ::Type{T}) where {T}
+function OGIP_ARF(fits::FITS, ::Type{T})::OGIP_ARF{T} where {T}
     OGIP_ARF(
         T.(read(fits[2], "SPECRESP")),
         T.(read(fits[2], "ENERG_LO")),
@@ -81,7 +81,7 @@ struct OGIP_RMF_Channels{T}
     energy_bins_high::Vector{T}
 end
 
-function OGIP_RMF_Channels(fits::FITS, ::Type{T}) where {T}
+function OGIP_RMF_Channels(fits::FITS, ::Type{T})::OGIP_RMF_Channels{T} where {T}
     OGIP_RMF_Channels(
         Int.(read(fits[3], "CHANNEL")),
         T.(read(fits[3], "E_MIN")),
@@ -100,7 +100,12 @@ struct OGIP_RMF_Matrix{T,M}
     number_of_energies::Int
 end
 
-function OGIP_RMF_Matrix(fits::FITS, first_channel, number_of_channels, ::Type{T}) where {T}
+function OGIP_RMF_Matrix(
+    fits::FITS,
+    first_channel,
+    number_of_channels,
+    ::Type{T},
+)::OGIP_RMF_Matrix{T} where {T}
     e_lows = T.(read(fits[2], "ENERG_LO"))
     OGIP_RMF_Matrix(
         Int.(read(fits[2], "F_CHAN")),
@@ -114,7 +119,7 @@ function OGIP_RMF_Matrix(fits::FITS, first_channel, number_of_channels, ::Type{T
     )
 end
 
-function OGIP_RMF_Matrix(fits::FITS, T::Type)
+function OGIP_RMF_Matrix(fits::FITS, ::Type{T})::OGIP_RMF_Matrix{T} where {T}
     first_channel, number_of_channels = parse_rmf_fits_header(fits)
     OGIP_RMF_Matrix(fits, first_channel, number_of_channels, T)
 end

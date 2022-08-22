@@ -29,14 +29,15 @@ struct ResponseMatrix{T}
 end
 
 # concrete type
-mutable struct SpectralDataset{T,M,P,K,A,B}
+mutable struct SpectralDataset{T,M,P,U,A,B}
     # store high and low seperately
     # incase discontinuous dataset
     energy_bins_low::Vector{T}
     energy_bins_high::Vector{T}
-    # counts and countserror have seperate type to support optional unit tracking
-    counts::Vector{K}
-    countserror::Vector{K}
+
+    _data::Vector{T}
+    _errors::Vector{T}
+    units::U
 
     meta::M
     poisson_errors::P

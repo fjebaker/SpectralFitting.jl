@@ -28,5 +28,5 @@ function SpectralDataset(
     rm = OGIP_RMF(rm_path; T)
     arf = OGIP_ARF(arf_path; T)
     meta = XmmNewtonMeta(D(), path, rm_path, arf_path)
-    SpectralDataset(spec, rm, arf, nothing, meta)
+    SpectralDataset(SpectralUnits.u"counts", spec, rm, arf, nothing, meta)
 end
