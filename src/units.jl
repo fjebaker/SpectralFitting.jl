@@ -1,9 +1,9 @@
 module SpectralUnits
-    using Reexport
-    @reexport using Unitful
+using Reexport
+@reexport using Unitful
 
-    @dimension 𝐄 "events" Events
-    @refunit counts "counts" Counts 𝐄 false
+@dimension 𝐄 "events" Events
+@refunit counts "counts" Counts 𝐄 false
 
-    export counts
+export counts
 end
