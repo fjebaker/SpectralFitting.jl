@@ -142,8 +142,7 @@ end
 # algebra grammar
 add_models(_, _, ::M1, ::M2) where {M1,M2} =
     error("Left and right models must be Additive.")
-add_models(m1, m2, ::Additive, ::Additive) =
-    CompositeModel(m1, m2, AdditionOperator())
+add_models(m1, m2, ::Additive, ::Additive) = CompositeModel(m1, m2, AdditionOperator())
 add_models(m1::M1, m2::M2) where {M1,M2} = add_models(m1, m2, modelkind(M1), modelkind(M2))
 Base.:+(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralModel} =
     add_models(m1, m2, modelkind(M1), modelkind(M2))
@@ -364,10 +363,6 @@ function _readable_expression_info(model::CompositeModel)
     expr, infos
 end
 
-function Base.show(
-    io::IO,
-    ::MIME"text/plain",
-    cm::CompositeModel{M1,M2},
-) where {M1,M2}
+function Base.show(io::IO, ::MIME"text/plain", cm::CompositeModel{M1,M2}) where {M1,M2}
     _printinfo(io, cm)
 end

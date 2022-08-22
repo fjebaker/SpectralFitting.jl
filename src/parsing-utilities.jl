@@ -31,11 +31,7 @@ function _make_unique_readable_symbol(p, symbol_bank; delim = '_')
     symb
 end
 
-function index_models!(
-    index,
-    running,
-    ::Type{<:CompositeModel{M1,M2}},
-) where {M1,M2}
+function index_models!(index, running, ::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     left_run = :(getproperty($running, :left))
     right_run = :(getproperty($running, :right))
     # order is very imporant!!

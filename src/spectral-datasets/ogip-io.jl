@@ -12,7 +12,7 @@ struct OGIP_Spectrum{T}
     # may be counts or rate depending
     values::Vector{T}
     stat_error::Vector{T}
-    
+
     # metadata
     telescope::String
     instrument::String
@@ -34,7 +34,7 @@ function OGIP_Spectrum(fits::FITS, ::Type{T}) where {T}
 
     column_names = FITSIO.colnames(fits[2])
     units, values = if "RATE" ∈ column_names
-        :rate, T.(read(fits[2], "RATE")) 
+        :rate, T.(read(fits[2], "RATE"))
     else
         :counts, T.(read(fits[2], "COUNTS"))
     end
@@ -57,7 +57,7 @@ function OGIP_Spectrum(fits::FITS, ::Type{T}) where {T}
         values,
         stat_errors,
         telescope,
-        instrument
+        instrument,
     )
 end
 
@@ -71,7 +71,7 @@ function OGIP_ARF(fits::FITS, ::Type{T}) where {T}
     OGIP_ARF(
         T.(read(fits[2], "SPECRESP")),
         T.(read(fits[2], "ENERG_LO")),
-        T.(read(fits[2], "ENERG_HI"))
+        T.(read(fits[2], "ENERG_HI")),
     )
 end
 
@@ -152,9 +152,25 @@ struct OGIP_RMF{T}
     ogip_rmf_channels::OGIP_RMF_Channels{T}
 end
 
-OGIP_RMF(fits::FITS, T::Type) = OGIP_RMF(OGIP_RMF_Matrix(fits, T), OGIP_RMF_Channels(fits, T))
+OGIP_RMF(fits::FITS, T::Type) =
+    OGIP_RMF(OGIP_RMF_Matrix(fits, T), OGIP_RMF_Channels(fits, T))
 
 # utility constructors for path specs
-OGIP_Spectrum(path::String; T = Float64) = OGIP_Spectrum(FITS(path), T)
-OGIP_ARF(path::String; T = Float64) = OGIP_ARF(FITS(path), T)
-OGIP_RMF(path::String; T = Float64) = OGIP_RMF(FITS(path), T)
+function OGIP_Spectrum(path::String; T = Float64)
+    fits = FITS(path)
+    spec = OGIP_Spectrum(fits, T)
+    close(fits)
+    spec
+end
+function OGIP_ARF(path::String; T = Float64)
+    fits = FITS(path)
+    arf = OGIP_ARF(fits, T)
+    close(fits)
+    arf
+end
+function OGIP_RMF(path::String; T = Float64)
+    fits = FITS(path)
+    rmf = OGIP_RMF(fits, T)
+    close(fits)
+    rmf
+end

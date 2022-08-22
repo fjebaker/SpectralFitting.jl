@@ -12,6 +12,12 @@ trim_meta!(::AbstractMetadata, inds) = nothing
 
 group_meta(::AbstractMetadata, mask, inds) = nothing
 
+struct AncillaryResponse{T}
+    energy_bins_low::Vector{T}
+    energy_bins_high::Vector{T}
+    spec_response::Vector{T}
+end
+
 # could be Response or Redistribution : how do we track this? 
 struct ResponseMatrix{T}
     matrix::SparseMatrixCSC{T,Int}
@@ -22,20 +28,29 @@ struct ResponseMatrix{T}
     energy_bins_high::Vector{T}
 end
 
-abstract type AbstractDataset{T,M} end
-
 # concrete type
-mutable struct SpectralDataset{T,M} <: AbstractDataset{T,M}
+mutable struct SpectralDataset{T,M,P,K,A,B}
     # store high and low seperately
     # incase discontinuous dataset
     energy_bins_low::Vector{T}
     energy_bins_high::Vector{T}
-    counts::Vector{T}
-    countserror::Vector{T}
-    channels::Vector{Int}
-    mask::BitVector
+    # counts and countserror have seperate type to support optional unit tracking
+    counts::Vector{K}
+    countserror::Vector{K}
+
     meta::M
+    poisson_errors::P
     response::ResponseMatrix{T}
+    ancillary::A
+    background::B
+
+    channels::Vector{Int}
+    grouping::Vector{Int}
+    quality::Vector{Int}
+
+    mask::BitVector
+
+    exposure_time::T
 end
 
 missiontrait(::SpectralDataset{T,M}) where {T,M} = missiontrait(M)
