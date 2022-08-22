@@ -155,7 +155,7 @@ function wrap_model_as_objective(M::Type{<:AbstractSpectralModel}; ΔE = 1e-1)
         invokemodel!(flux, energies, M, x[2:end]...)[1]
     end
 end
-function wrap_model_as_objective(model::CompositeSpectralModel; ΔE = 1e-1)
+function wrap_model_as_objective(model::CompositeModel; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
         flux = make_fluxes(energies, flux_count(model), typeof(x[2]))
@@ -199,7 +199,7 @@ function make_surrogate_function(
     S::Type = RadialBasis,
     sample_type = SobolSample(),
     verbose = false,
-) where {M<:AbstractSpectralModel,T<:NTuple{2,N}} where {N}
+) where {M<:AbstractSpectralModel,T<:NTuple{N,P}} where {N,P}
     # do tests here to make sure lower and upper bounds are okay
     obj = wrap_model_as_objective(model)
 
@@ -209,7 +209,7 @@ function make_surrogate_function(
     end
 
     # build surrogate
-    (X::Vector{T}, Y::Vector{N}) =
+    (X::Vector{T}, Y::Vector{P}) =
         _initial_space(obj, lowerbounds, upperbounds, sample_type, seed_samples)
     surrogate = S(X, Y, lowerbounds, upperbounds)
     # optimize surrogate

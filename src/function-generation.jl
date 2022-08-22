@@ -105,7 +105,7 @@ function add_flux_resolution!(ga::GenerationAggregate, op::Symbol)
     push_statement!(ga, :(@.($fl = $expr)))
 end
 
-function assemble_aggregate_info(model::Type{<:CompositeSpectralModel})
+function assemble_aggregate_info(model::Type{<:CompositeModel})
     ga = GenerationAggregate()
     recursive_model_parse(model) do (left, right, op_type)
         # get operation symbol
@@ -208,7 +208,7 @@ function __generated_get_param_types(model::Type{<:AbstractSpectralModel})
     add_param_types!(types, model)
     types
 end
-function __generated_get_param_types(model::Type{<:CompositeSpectralModel})
+function __generated_get_param_types(model::Type{<:CompositeModel})
     types = Type[]
     recursive_model_parse(model) do (left, right, _)
         add_param_types!(types, right)
