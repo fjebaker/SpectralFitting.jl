@@ -1,4 +1,4 @@
-export wrap_model
+export wrap_model, wrap_model_simple
 
 function wrap_model(
     model::AbstractSpectralModel,
@@ -9,12 +9,27 @@ function wrap_model(
     frozen_params = get_value.(get_frozen_model_params(model))
     ΔE = data.energy_bin_widths
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = data.response.matrix[data.mask, :]
+    R = fold_ancillary(data)[data.mask, :]
     # pre-allocate the output 
     outflux = zeros(T, length(ΔE))
     (energy, params) -> begin
         invokemodel!(fluxes, energy, model, params, frozen_params)
         mul!(outflux, R, fluxes[1])
         @. outflux = outflux / ΔE
+    end
+end
+
+function wrap_model_simple(
+    model::AbstractSpectralModel,
+    data::SpectralDataset{T};
+) where {T}
+    ΔE = data.energy_bin_widths
+    # pre-mask the response matrix to ensure channel out corresponds to the active data points
+    R = fold_ancillary(data)[data.mask, :]
+    # pre-allocate the output 
+    (energy, params) -> begin
+        flux = invokemodel(energy, model, params)
+        flux = (R * flux)
+        @. flux = flux / ΔE
     end
 end

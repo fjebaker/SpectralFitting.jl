@@ -313,7 +313,7 @@ In-place variant of [`invokemodel`](@ref), calculating the flux of an [`Abstract
 given by `model`, optionally overriding the free and/or frozen parameter values. These arguments
 may be a vector or tuple with element type [`AbstractFitParameter`](@ref) or `Number`.
 
-The number of fluxes to allocate for a model may change if using any [`CompositeSpectralModel`](@ref)
+The number of fluxes to allocate for a model may change if using any [`CompositeModel`](@ref)
 as the `model`. It is generally recommended to use [`flux_count`](@ref) to ensure the correct number
 of flux arrays are allocated with [`make_fluxes`](@ref) when using composite models.
 

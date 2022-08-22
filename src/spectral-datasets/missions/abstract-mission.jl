@@ -43,6 +43,8 @@ function warn_bad_channels(bad_channels)
     @warn "Grouped channels $chans contain bad quality channels."
 end
 
+infer_units(s) = SpectralUnits.infer_units(s)
+
 # include missions
 include("no-associated-mission.jl")
 include("xmm-newton-mission.jl")

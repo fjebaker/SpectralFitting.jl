@@ -1,21 +1,20 @@
 export ResponseMatrix, fold_response
 
-function ResponseMatrix(fits, ::AbstractMission, ::Type{T})::ResponseMatrix{T} where {T}
-    # temporary structs to make parsing easier
-    rmf = OGIP_RMF_Matrix(fits, T)
-    chan = OGIP_RMF_Channels(fits, T)
+function ResponseMatrix(rmf::OGIP_RMF{T}) where {T}
+    rm = rmf.ogip_matrix
+    chan = rmf.ogip_rmf_channels
     # allocate sparse matrix
-    matrix = spzeros(T, rmf.number_of_channels, rmf.number_of_energies)
+    matrix = spzeros(T, rm.number_of_channels, rm.number_of_energies)
     # populate it
-    build_matrix_response!(matrix, rmf)
-    # unpack and return
+    build_matrix_response!(matrix, rm)
+    # unpack and return 
     ResponseMatrix(
         matrix,
         chan.channels,
         chan.energy_bins_low,
         chan.energy_bins_high,
-        rmf.energy_bins_low,
-        rmf.energy_bins_high,
+        rm.energy_bins_low,
+        rm.energy_bins_high,
     )
 end
 
@@ -63,6 +62,7 @@ function build_matrix_response!(R, rmf::OGIP_RMF_Matrix)
             if len == 0
                 break
             end
+            first -= rmf.first_channel
             @views R[first+1:first+len, i] .= M[index:index+len-1]
             index += len
         end

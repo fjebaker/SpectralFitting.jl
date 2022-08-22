@@ -6,7 +6,6 @@ The rationale for this package is to provide a unanimous interface for different
 
 SpectralFitting aims to provide highly optimised and flexible fitting algorithms, along with a library of spectral models, for use in any field of Astronomy that concerns itself with spectral data.
 
-
 ## Rewriting model calls during invocation
 
 ```@setup model_invocation
@@ -61,7 +60,7 @@ invokemodel!(flux2, energy, XS_PhotoelectricAbsorption())
 sum(flux1)
 ```
 
-It is precisely this re-writing that SpectralFitting performs via [`@generated`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Generated-functions) functions. We can inspect the code used to generate the invocation body after defining a [`CompositeSpectralModel`](@ref):
+It is precisely this re-writing that SpectralFitting performs via [`@generated`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Generated-functions) functions. We can inspect the code used to generate the invocation body after defining a [`CompositeModel`](@ref):
 
 ```@example model_invocation
 fluxes = (flux1, flux2)
@@ -103,7 +102,7 @@ This generated function also takes care of some other things for us, such as unp
 
 This is achieved by moving as much information as possible about the model and its construction to its type, such that all of the invocation and parameter unpacking may be inferred at compile time.
 
-Naturally, the [`CompositeSpectralModel`](@ref) types also support the out-of-place [`invokemodel`](@ref) and will allocate the minimum number of flux arrays needed, inferred using [`flux_count`](@ref):
+Naturally, the [`CompositeModel`](@ref) types also support the out-of-place [`invokemodel`](@ref) and will allocate the minimum number of flux arrays needed, inferred using [`flux_count`](@ref):
 
 ```@example model_invocation
 flux = invokemodel(energy, model)

@@ -1,45 +1,77 @@
-export mask_bad_channels!, mask_energy!, transform!
+export mask_bad_channels!, mask_energy!
 
 function SpectralDataset(
+    units,
+    spec::OGIP_Spectrum,
+    rmf::OGIP_RMF,
+    arf,
+    background,
     meta::AbstractMetadata,
-    rm::ResponseMatrix,
-    counts,
-    countserror,
-    channels;
-    T::Type = Float64,
 )
-    energy_bins_low, energy_bins_high = augmented_energy_channels(channels, rm)
-
-    counts_vec::Vector{T} = T.(counts)
-    countserr_vec::Vector{T} = T.(countserror)
-    channels_vec::Vector{Int} = Int.(channels)
-
+    rm = ResponseMatrix(rmf)
+    ebins_low, ebins_high = augmented_energy_channels(spec.channels, rm)
     SpectralDataset(
-        energy_bins_low,
-        energy_bins_high,
-        counts_vec,
-        countserr_vec,
-        channels_vec,
-        BitVector([true for _ in counts_vec]),
+        ebins_low,
+        ebins_high,
+        spec.values,
+        spec.stat_error,
+        units,
         meta,
+        spec.poisson_error,
         rm,
+        arf,
+        background,
+        spec.channels,
+        spec.grouping,
+        spec.quality,
+        BitVector([true for _ in spec.values]),
+        spec.exposure_time,
     )
 end
 
 function Base.propertynames(::SpectralDataset)
-    (fieldnames(SpectralDataset)..., :energy_bin_widths)
+    (fieldnames(SpectralDataset)..., :counts, :rate, :energy_bin_widths)
 end
 
+unmasked_counts(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,P} =
+    getfield(data, s)
+
+unmasked_counts(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P} =
+    getfield(data, s) .* data.exposure_time
+
+unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,P} =
+    getfield(data, s) ./ data.exposure_time
+
+unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P} =
+    getfield(data, s)
+
 function Base.getproperty(data::SpectralDataset, s::Symbol)
-    if s in (:energy_bins_low, :energy_bins_high, :counts, :countserror)
+    if s in (:energy_bins_low, :energy_bins_high, :_errors, :_data)
         @views getfield(data, s)[data.mask]
+    elseif s == :counts
+        @views unmasked_counts(data, :_data)[data.mask]
+    elseif s == :rate
+        @views unmasked_rate(data, :_data)[data.mask]
+    elseif s == :countserror
+        @views unmasked_counts(data, :_errors)[data.mask]
+    elseif s == :rateerror
+        @views unmasked_rate(data, :_errors)[data.mask]
     elseif s == :channels
         channels = @views getfield(data, s)[data.mask]
+        # channels must start at 0
         channels .- (minimum(channels))
     elseif s == :energy_bin_widths
         get_energy_bin_widths(data)
     else
         getfield(data, s)
+    end
+end
+
+function fold_ancillary(data::SpectralDataset{T,M,P,U,A}) where {T,M,P,U,A}
+    if A === Nothing
+        data.response.matrix
+    else
+        data.ancillary.spec_response' .* data.response.matrix
     end
 end
 
@@ -50,7 +82,7 @@ end
 # interface
 
 function mask_bad_channels!(data::SpectralDataset)
-    bad_indices = data.meta.quality .!= 0
+    bad_indices = data.quality .!= 0
     data.mask[bad_indices] .= false
     data
 end
@@ -61,12 +93,10 @@ function mask_energy!(data::SpectralDataset, cond)
     data
 end
 
-unmasked_counts(data) = getfield(data, :counts)
 unmasked_low_energy_bins(data) = getfield(data, :energy_bins_low)
 unmasked_high_energy_bins(data) = getfield(data, :energy_bins_high)
 
-# DOES NOT DEEPCOPY RM
-function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
+function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
 
@@ -93,18 +123,24 @@ function regroup(data::SpectralDataset{T,M}, grouping) where {T,M}
     end
 
     response = group_response_channels(data.response, grouping)
-    #meta = group_meta(data.meta, data.mask, indices)
+    quality = group_quality_vector(data.mask, data.quality, indices)
 
     SpectralDataset(
+        data.units,
         energy_low,
         energy_high,
         new_counts,
-        # todo: better error estimate?
         new_errs,
-        collect(1:N),
-        BitVector(new_mask),
         data.meta,
+        data.poisson_errors,
         response,
+        data.ancillary,
+        data.background,
+        collect(1:N),
+        [1 for _ in new_counts],
+        quality,
+        BitVector(new_mask),
+        data.exposure_time,
     )
 end
 
@@ -114,23 +150,34 @@ function Base.show(io::IO, dataset::SpectralDataset{T,M}) where {T,M}
     print(io, "SpectralDataset[$(missiontrait(M))N=$(nrow(dataset.dataframe))]")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", dataset::SpectralDataset{T,M}) where {T,M}
-    e_min = Printf.@sprintf "%g" minimum(dataset.energy_bins_low)
-    e_max = Printf.@sprintf "%g" maximum(dataset.energy_bins_high)
+function Base.show(io::IO, ::MIME"text/plain", data::SpectralDataset{T,M}) where {T,M}
+    e_min = Printf.@sprintf "%g" minimum(data.energy_bins_low)
+    e_max = Printf.@sprintf "%g" maximum(data.energy_bins_high)
 
-    rmf_e_min = Printf.@sprintf "%g" minimum(dataset.response.energy_bins_low)
-    rmf_e_max = Printf.@sprintf "%g" maximum(dataset.response.energy_bins_high)
+    rmf_e_min = Printf.@sprintf "%g" minimum(data.response.energy_bins_low)
+    rmf_e_max = Printf.@sprintf "%g" maximum(data.response.energy_bins_high)
 
-    rate_min = Printf.@sprintf "%g" minimum(dataset.counts)
-    rate_max = Printf.@sprintf "%g" maximum(dataset.counts)
+    rate_min = Printf.@sprintf "%g" minimum(data.counts)
+    rate_max = Printf.@sprintf "%g" maximum(data.counts)
+    exposure_time = Printf.@sprintf "%g" data.exposure_time
 
-    descr = """SpectralDataset with $(length(dataset.channels)) populated channels:
+    is_grouped = all(==(1), data.grouping) ? "yes" : "no"
+
+    has_background = isnothing(data.background) ? "no" : "yes"
+
+    has_ancillary = isnothing(data.ancillary) ? "no" : "yes"
+
+    descr = """SpectralDataset with $(length(data.channels)) populated channels:
        Mission: $(typeof(missiontrait(M)))
-        . E min  : $(rpad(e_min, 12)) E max : $(e_max)
-        . Counts : $(rpad(rate_min, 12)) to      $(rate_max)
+        . Exposure time: $(exposure_time) s
+        . E min      : $(rpad(e_min, 12)) E max : $(e_max)
+        . Data       : $(rpad(rate_min, 12)) to      $(rate_max) $(data.units)
+        . Grouped    : $(is_grouped)
+        . Background : $(has_background)
        Instrument Response
-        . $(length(dataset.response.channels)) RMF Channels
-        . E min  : $(rpad(rmf_e_min, 12)) E max : $(rmf_e_max)
+        . $(length(data.response.channels)) RMF Channels
+        . E min      : $(rpad(rmf_e_min, 12)) E max : $(rmf_e_max)
+        . Anc        : $(has_ancillary)
     """
     print(io, descr)
 end

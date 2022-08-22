@@ -11,9 +11,6 @@ import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show
 using FITSIO
 using SparseArrays
 using Surrogates
-using ForwardDiff
-using PreallocationTools
-using MemoizedMethods
 using LinearAlgebra
 using FileIO
 using Interpolations
@@ -22,6 +19,9 @@ import Crayons
 import Parameters: @with_kw
 
 using DocStringExtensions
+
+# unitful units
+include("units.jl")
 
 include("abstract-models.jl")
 

@@ -17,7 +17,7 @@ Convolutional
 
 ## Model abstraction
 
-All spectral models are a sub-type of [`AbstractSpectralModel`](@ref), including [`CompositeSpectralModel`](@ref) and [`SurrogateSpectralModel`](@ref).
+All spectral models are a sub-type of [`AbstractSpectralModel`](@ref), including [`CompositeModel`](@ref) and [`SurrogateSpectralModel`](@ref).
 
 ```@docs
 AbstractSpectralModel
