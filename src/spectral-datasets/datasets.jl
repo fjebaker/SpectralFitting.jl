@@ -33,6 +33,8 @@ function Base.propertynames(::SpectralDataset)
     (fieldnames(SpectralDataset)..., :counts, :rate, :energy_bin_widths)
 end
 
+unmasked(data::SpectralDataset, s) = getfield(data, s)
+
 unmasked_counts(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,P} =
     getfield(data, s)
 
@@ -88,13 +90,11 @@ function mask_bad_channels!(data::SpectralDataset)
 end
 
 function mask_energy!(data::SpectralDataset, cond)
-    inds = cond.(unmasked_low_energy_bins(data))
+    inds = cond.(unmasked(data, :energy_bins_low))
     data.mask[inds] .= false
     data
 end
 
-unmasked_low_energy_bins(data) = getfield(data, :energy_bins_low)
-unmasked_high_energy_bins(data) = getfield(data, :energy_bins_high)
 
 function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     indices = grouping_to_indices(grouping)
@@ -102,20 +102,20 @@ function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
 
     energy_low = zeros(T, N)
     energy_high = zeros(T, N)
-    new_counts = zeros(T, N)
+    new_data = zeros(T, N)
     new_errs = zeros(T, N)
     new_mask = zeros(Bool, N)
 
-    um_energy_bins_low = unmasked_low_energy_bins(data)
-    um_energy_bins_high = unmasked_high_energy_bins(data)
-    um_counts = unmasked_counts(data)
+    um_energy_bins_low = unmasked(data, :energy_bins_low)
+    um_energy_bins_high = unmasked(data, :energy_bins_high)
+    um_data = unmasked(data, :_data)
 
     grouping_indices_callback(indices) do (i, index1, index2)
         energy_low[i] = um_energy_bins_low[index1]
         energy_high[i] = um_energy_bins_high[index2]
 
-        selection = @views um_counts[index1:index2]
-        new_counts[i] = sum(selection)
+        selection = @views um_data[index1:index2]
+        new_data[i] = sum(selection)
         new_errs[i] = sum(sqrt, selection)
 
         # if not all are masked out, set true
@@ -126,18 +126,18 @@ function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     quality = group_quality_vector(data.mask, data.quality, indices)
 
     SpectralDataset(
-        data.units,
         energy_low,
         energy_high,
-        new_counts,
+        new_data,
         new_errs,
+        data.units,
         data.meta,
         data.poisson_errors,
         response,
         data.ancillary,
         data.background,
         collect(1:N),
-        [1 for _ in new_counts],
+        [1 for _ in new_data],
         quality,
         BitVector(new_mask),
         data.exposure_time,
