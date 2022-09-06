@@ -11,7 +11,7 @@ Below are a number of examples illustrating what this package may be used for.
 
 ## Using the model library
 
-The model library details an model algebra (see [`AbstractSpectralModelKind`](@ref)). An example use of this may be to construct a complex model from a series of simpler models, and invoke the models on a given energy grid:
+The model library details a model algebra (see [`AbstractSpectralModelKind`](@ref)). An example use of this may be to construct a complex model from a series of simpler models, and invoke the models on a given energy grid:
 
 ```@example sf_examples 
 using SpectralFitting
