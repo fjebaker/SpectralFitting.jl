@@ -9,7 +9,7 @@ about the mean.
 Derived from likelihood of binomial distributions being the beta function.
 """
 function count_error(k, σ)
-    p = cdf(Normal(), σ)
+    p = Distributions.cdf(Distributions.Normal(), σ)
     kₑ = gamma_inc_inv(k+1, p, 1-p)
     abs(k - kₑ)
 end

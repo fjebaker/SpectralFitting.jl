@@ -7,6 +7,7 @@ import Printf
 import Downloads
 import Statistics
 import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show_progress
+import Distributions
 
 using FITSIO
 using SparseArrays
@@ -14,7 +15,6 @@ using Surrogates
 using LinearAlgebra
 using FileIO
 using Interpolations
-using Distributions
 using SpecialFunctions
 
 import Crayons
