@@ -10,7 +10,7 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Why & How" => "why-and-how.md",
-        # "Examples" => "examples.md",
+        "Examples" => "examples.md",
         # "Transitioning from XSPEC" => "transitioning-from-xspec.md",
         "Models" => [
             "Using models" => "using-models.md",
