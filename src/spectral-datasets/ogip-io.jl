@@ -20,7 +20,7 @@ end
 
 function OGIP_Spectrum(fits::FITS, ::Type{T})::OGIP_Spectrum{T} where {T}
     header = read_header(fits[2])
-    is_poisson = header["POISSERR"] == "T" ? true : false
+    is_poisson = header["POISSERR"]
     instrument = header["INSTRUME"]
     telescope = header["TELESCOP"]
     exposure_time = T(header["EXPOSURE"])
@@ -39,9 +39,15 @@ function OGIP_Spectrum(fits::FITS, ::Type{T})::OGIP_Spectrum{T} where {T}
         :counts, T.(read(fits[2], "COUNTS"))
     end
     stat_errors = if "STAT_ERR" ∈ column_names
+        if is_poisson
+            @warn "Both STAT_ERR column present and POISSERR flag set. Using STAT_ERR."
+        end
         T.(read(fits[2], "STAT_ERR"))
+    elseif is_poisson
+        @. T(count_error(values, 1.0))
     else
-        T[]
+        @warn "Unknown error statistics. Setting zero for all."
+        T[0 for _ in values]
     end
 
     OGIP_Spectrum(

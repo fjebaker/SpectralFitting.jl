@@ -14,6 +14,8 @@ using Surrogates
 using LinearAlgebra
 using FileIO
 using Interpolations
+using Distributions
+using SpecialFunctions
 
 import Crayons
 import Parameters: @with_kw
@@ -34,6 +36,8 @@ include("surrogate-models.jl")
 
 include("parsing-utilities.jl")
 include("function-generation.jl")
+
+include("poisson.jl")
 
 include("spectral-datasets/dataset-types.jl")
 include("spectral-datasets/ogip-io.jl")

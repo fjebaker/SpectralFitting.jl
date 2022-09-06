@@ -109,6 +109,7 @@ function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     um_energy_bins_low = unmasked(data, :energy_bins_low)
     um_energy_bins_high = unmasked(data, :energy_bins_high)
     um_data = unmasked(data, :_data)
+    um_errors = unmasked(data, :_errors)
 
     grouping_indices_callback(indices) do (i, index1, index2)
         energy_low[i] = um_energy_bins_low[index1]
@@ -116,7 +117,7 @@ function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
 
         selection = @views um_data[index1:index2]
         new_data[i] = sum(selection)
-        new_errs[i] = sum(sqrt, selection)
+        new_errs[i] = count_error(sum(selection), 1.0)
 
         # if not all are masked out, set true
         new_mask[i] = !all(==(false), data.mask[index1:index2])
