@@ -3,6 +3,8 @@ push!(LOAD_PATH, "src")
 using Documenter
 using SpectralFitting
 
+SpectralFitting.download_all_model_data()
+
 makedocs(
     modules = [SpectralFitting],
     clean = true,
