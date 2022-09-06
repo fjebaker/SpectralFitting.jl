@@ -1,7 +1,7 @@
 name = "SpectralFitting"
 uuid = "f2c56810-742e-4b72-8bf4-27af3bb81a12"
 authors = ["Fergus Baker <fergusbkr@gmail.com>"]
-version = "0.1.11"
+version = "0.1.12"
 
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
@@ -11,6 +11,7 @@ Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 FITSIO = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LibXSPEC_jll = "50917eeb-3e3c-5f3a-99bd-93e1c30e1561"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
