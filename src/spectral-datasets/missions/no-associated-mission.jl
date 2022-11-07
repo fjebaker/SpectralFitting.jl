@@ -12,7 +12,7 @@ end
 missiontrait(::Type{<:BasicMetadata}) = NoMission()
 
 function SpectralDataset(::NoMission, path, rm_path; T::Type = Float64, units = nothing)
-    spec = OGIP_Events(path; T)
+    spec = OGIP_GroupedEvents(path; T)
     rmf = OGIP_RMF(rm_path; T)
     meta = BasicMetadata(path, rm_path, spec.telescope, spec.instrument)
     _units = if isnothing(units) # if no units given, have to guess them from the data

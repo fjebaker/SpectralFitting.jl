@@ -10,7 +10,7 @@ function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
 end
 
 function rebin_flux(flux, current_energy, rm::ResponseMatrix)
-    downsample_rebin(flux, current_energy, rm.energy_bins_high)
+    downsample_rebin(flux, current_energy, rm.bins_high)
 end
 
 function downsample_rebin(input, current_bins, target_bins_high)
@@ -64,9 +64,9 @@ function energy_vector(response::ResponseMatrix{T}) where {T}
 end
 
 function energy_vector(x, T::Type)
-    energy = zeros(T, length(x.energy_bins_low) + 1)
-    energy[1:end-1] .= x.energy_bins_low
-    energy[end] = x.energy_bins_high[end]
+    energy = zeros(T, length(x.bins_low) + 1)
+    energy[1:end-1] .= x.bins_low
+    energy[end] = x.bins_high[end]
     energy
 end
 
@@ -104,24 +104,24 @@ function augmented_energy_channels(channels, rm::ResponseMatrix{T}) where {T}
     @inbounds for (i, c) in enumerate(channels)
         if c ≤ N
             index = findfirst(==(c), rm.channels)
-            Emax[i] = rm.channel_energy_bins_high[index]
-            Emin[i] = rm.channel_energy_bins_low[index]
+            Emax[i] = rm.channel_bins_high[index]
+            Emin[i] = rm.channel_bins_low[index]
         end
     end
     (Emin, Emax)
 end
 
-function energy_to_channel(E, channels, energy_bins_low, energy_bins_high, start)
+function energy_to_channel(E, channels, bins_low, bins_high, start)
     @views energy_to_channel(
         E,
         channels[start:end],
-        energy_bins_low[start:end],
-        energy_bins_high[start:end],
+        bins_low[start:end],
+        bins_high[start:end],
     )
 end
 
-function energy_to_channel(E, channels, energy_bins_low, energy_bins_high)
-    for (c, low_e, high_e) in zip(channels, energy_bins_low, energy_bins_high)
+function energy_to_channel(E, channels, bins_low, bins_high)
+    for (c, low_e, high_e) in zip(channels, bins_low, bins_high)
         if (E ≥ low_e) && (high_e > E)
             return convert(Int, c)
         end

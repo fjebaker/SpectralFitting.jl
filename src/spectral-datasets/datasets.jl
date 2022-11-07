@@ -2,7 +2,7 @@ export mask_bad_channels!, mask_energy!
 
 function SpectralDataset(
     units,
-    spec::OGIP_Events,
+    spec::OGIP_GroupedEvents,
     rmf::OGIP_RMF,
     arf,
     background,
@@ -48,7 +48,7 @@ unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P}
     getfield(data, s)
 
 function Base.getproperty(data::SpectralDataset, s::Symbol)
-    if s in (:energy_bins_low, :energy_bins_high, :_errors, :_data)
+    if s in (:bins_low, :bins_high, :_errors, :_data)
         @views getfield(data, s)[data.mask]
     elseif s == :counts
         @views unmasked_counts(data, :_data)[data.mask]
@@ -78,7 +78,7 @@ function fold_ancillary(data::SpectralDataset{T,M,P,U,A}) where {T,M,P,U,A}
 end
 
 function get_energy_bin_widths(data::SpectralDataset)
-    data.energy_bins_high .- data.energy_bins_low
+    data.bins_high .- data.bins_low
 end
 
 # interface
@@ -90,7 +90,7 @@ function mask_bad_channels!(data::SpectralDataset)
 end
 
 function mask_energy!(data::SpectralDataset, cond)
-    inds = cond.(unmasked(data, :energy_bins_low))
+    inds = cond.(unmasked(data, :bins_low))
     data.mask[inds] .= false
     data
 end
@@ -106,14 +106,14 @@ function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     new_errs = zeros(T, N)
     new_mask = zeros(Bool, N)
 
-    um_energy_bins_low = unmasked(data, :energy_bins_low)
-    um_energy_bins_high = unmasked(data, :energy_bins_high)
+    um_bins_low = unmasked(data, :bins_low)
+    um_bins_high = unmasked(data, :bins_high)
     um_data = unmasked(data, :_data)
     um_errors = unmasked(data, :_errors)
 
     grouping_indices_callback(indices) do (i, index1, index2)
-        energy_low[i] = um_energy_bins_low[index1]
-        energy_high[i] = um_energy_bins_high[index2]
+        energy_low[i] = um_bins_low[index1]
+        energy_high[i] = um_bins_high[index2]
 
         selection = @views um_data[index1:index2]
         new_data[i] = sum(selection)
@@ -152,11 +152,11 @@ function Base.show(io::IO, dataset::SpectralDataset{T,M}) where {T,M}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", data::SpectralDataset{T,M}) where {T,M}
-    e_min = Printf.@sprintf "%g" minimum(data.energy_bins_low)
-    e_max = Printf.@sprintf "%g" maximum(data.energy_bins_high)
+    e_min = Printf.@sprintf "%g" minimum(data.bins_low)
+    e_max = Printf.@sprintf "%g" maximum(data.bins_high)
 
-    rmf_e_min = Printf.@sprintf "%g" minimum(data.response.energy_bins_low)
-    rmf_e_max = Printf.@sprintf "%g" maximum(data.response.energy_bins_high)
+    rmf_e_min = Printf.@sprintf "%g" minimum(data.response.bins_low)
+    rmf_e_max = Printf.@sprintf "%g" maximum(data.response.bins_high)
 
     rate_min = Printf.@sprintf "%g" minimum(data.counts)
     rate_max = Printf.@sprintf "%g" maximum(data.counts)

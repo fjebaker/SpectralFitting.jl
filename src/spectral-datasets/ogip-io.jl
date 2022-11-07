@@ -1,4 +1,4 @@
-struct OGIP_EventsHeader{T}
+struct OGIP_GroupedEventsHeader{T}
     exposure_time::T
     background_scale::T
     area_scale::T
@@ -10,8 +10,8 @@ struct OGIP_EventsHeader{T}
     instrument::String
 end
 
-struct OGIP_Events{T}
-    header::OGIP_EventsHeader{T}
+struct OGIP_GroupedEvents{T}
+    header::OGIP_GroupedEventsHeader{T}
     channels::Vector{Int}
     quality::Vector{Int}
     grouping::Vector{Int}
@@ -35,7 +35,7 @@ function _read_exposure_time(header)
     0.0
 end
 
-function OGIP_Events(fits::FITS, ::Type{T})::OGIP_Events{T} where {T}
+function OGIP_GroupedEvents(fits::FITS, ::Type{T})::OGIP_GroupedEvents{T} where {T}
     header = read_header(fits[2])
     # if not set, assume not poisson errors
     is_poisson = get(header, "POISSERR", false)
@@ -68,7 +68,7 @@ function OGIP_Events(fits::FITS, ::Type{T})::OGIP_Events{T} where {T}
         T[0 for _ in values]
     end
 
-    ogip_header = OGIP_EventsHeader(
+    ogip_header = OGIP_GroupedEventsHeader(
         exposure_time,
         background_scale,
         area_scale,
@@ -78,13 +78,13 @@ function OGIP_Events(fits::FITS, ::Type{T})::OGIP_Events{T} where {T}
         telescope,
         instrument,
     )
-    OGIP_Events(ogip_header, channels, quality, grouping, values, stat_errors)
+    OGIP_GroupedEvents(ogip_header, channels, quality, grouping, values, stat_errors)
 end
 
 struct OGIP_ARF{T}
     spec_response::Vector{T}
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
 end
 
 function OGIP_ARF(fits::FITS, ::Type{T})::OGIP_ARF{T} where {T}
@@ -97,8 +97,8 @@ end
 
 struct OGIP_RMF_Channels{T}
     channels::Vector{Int}
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
 end
 
 function OGIP_RMF_Channels(fits::FITS, ::Type{T})::OGIP_RMF_Channels{T} where {T}
@@ -112,8 +112,8 @@ end
 struct OGIP_RMF_Matrix{T,M}
     Fchan::Matrix{Int}
     Nchan::Matrix{Int}
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
     matrix_rows::M
     first_channel::Int
     number_of_channels::Int
@@ -181,9 +181,9 @@ OGIP_RMF(fits::FITS, T::Type) =
     OGIP_RMF(OGIP_RMF_Matrix(fits, T), OGIP_RMF_Channels(fits, T))
 
 # utility constructors for path specs
-function OGIP_Events(path::String; T = Float64)
+function OGIP_GroupedEvents(path::String; T = Float64)
     fits = FITS(path)
-    spec = OGIP_Events(fits, T)
+    spec = OGIP_GroupedEvents(fits, T)
     close(fits)
     spec
 end

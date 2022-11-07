@@ -11,10 +11,10 @@ function ResponseMatrix(rmf::OGIP_RMF{T}) where {T}
     ResponseMatrix(
         matrix,
         chan.channels,
-        chan.energy_bins_low,
-        chan.energy_bins_high,
-        rm.energy_bins_low,
-        rm.energy_bins_high,
+        chan.bins_low,
+        chan.bins_high,
+        rm.bins_low,
+        rm.bins_high,
     )
 end
 
@@ -23,7 +23,7 @@ Base.:*(rm::ResponseMatrix, flux) = fold_response(flux, rm)
 @fastmath fold_response(flux, rm::ResponseMatrix) = rm.matrix * flux
 
 function fold_response(flux, energy, rm::ResponseMatrix)
-    if length(rm.energy_bins_low) != length(energy) - 1
+    if length(rm.bins_low) != length(energy) - 1
         out_flux = rebin_flux(flux, energy, rm)
         fold_response(out_flux, rm)
     else
@@ -35,22 +35,22 @@ function group_response_channels(rm::ResponseMatrix{T}, grouping) where {T}
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
     R = spzeros(T, (N, size(rm.matrix, 2)))
-    energy_low = zeros(T, N)
-    energy_high = zeros(T, N)
+    bin_low = zeros(T, N)
+    bin_high = zeros(T, N)
 
     grouping_indices_callback(indices) do (i, index1, index2)
         @views R[i, :] .= vec(sum(rm.matrix[index1:index2, :], dims = 1))
-        energy_low[i] = rm.channel_energy_bins_low[index1]
-        energy_high[i] = rm.channel_energy_bins_high[index1]
+        bin_low[i] = rm.channel_bins_low[index1]
+        bin_high[i] = rm.channel_bins_high[index1]
     end
 
     ResponseMatrix(
         R,
         collect(1:N),
-        energy_low,
-        energy_high,
-        rm.energy_bins_low,
-        rm.energy_bins_high,
+        bin_low,
+        bin_high,
+        rm.bins_low,
+        rm.bins_high,
     )
 end
 

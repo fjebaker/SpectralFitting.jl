@@ -13,8 +13,8 @@ trim_meta!(::AbstractMetadata, inds) = nothing
 group_meta(::AbstractMetadata, mask, inds) = nothing
 
 struct AncillaryResponse{T}
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
     spec_response::Vector{T}
 end
 
@@ -22,10 +22,10 @@ end
 struct ResponseMatrix{T}
     matrix::SparseMatrixCSC{T,Int}
     channels::Vector{Int}
-    channel_energy_bins_low::Vector{T}
-    channel_energy_bins_high::Vector{T}
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    channel_bins_low::Vector{T}
+    channel_bins_high::Vector{T}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
 end
 
 # concrete type
@@ -42,8 +42,8 @@ mutable struct SpectralDataset{
     # store high and low seperately
     # incase discontinuous dataset
     # - will there ever be discontinuous bins??
-    energy_bins_low::VecType
-    energy_bins_high::VecType
+    bins_low::VecType
+    bins_high::VecType
 
     _data::VecType
     _errors::VecType
