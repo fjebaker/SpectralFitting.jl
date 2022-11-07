@@ -24,7 +24,7 @@ function SpectralDataset(
     arf_path;
     T::Type = Float64,
 ) where {D}
-    spec = OGIP_Spectrum(path; T)
+    spec = OGIP_GroupedEvents(path; T)
     rm = OGIP_RMF(rm_path; T)
     arf = OGIP_ARF(arf_path; T)
     meta = XmmNewtonMeta(D(), path, rm_path, arf_path)

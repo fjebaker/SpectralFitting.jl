@@ -13,8 +13,8 @@ trim_meta!(::AbstractMetadata, inds) = nothing
 group_meta(::AbstractMetadata, mask, inds) = nothing
 
 struct AncillaryResponse{T}
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
     spec_response::Vector{T}
 end
 
@@ -22,31 +22,41 @@ end
 struct ResponseMatrix{T}
     matrix::SparseMatrixCSC{T,Int}
     channels::Vector{Int}
-    channel_energy_bins_low::Vector{T}
-    channel_energy_bins_high::Vector{T}
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    channel_bins_low::Vector{T}
+    channel_bins_high::Vector{T}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
 end
 
 # concrete type
-mutable struct SpectralDataset{T,M,P,U,A,B}
+mutable struct SpectralDataset{
+    T,
+    MetaType,
+    PoissType,
+    UnitType,
+    AncType,
+    BkgType,
+    GroupType,
+    VecType,
+}
     # store high and low seperately
     # incase discontinuous dataset
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    # - will there ever be discontinuous bins??
+    bins_low::VecType
+    bins_high::VecType
 
-    _data::Vector{T}
-    _errors::Vector{T}
-    units::U
+    _data::VecType
+    _errors::VecType
+    units::UnitType
 
-    meta::M
-    poisson_errors::P
+    meta::MetaType
+    poisson_errors::PoissType
     response::ResponseMatrix{T}
-    ancillary::A
-    background::B
+    ancillary::AncType
+    background::BkgType
 
     channels::Vector{Int}
-    grouping::Vector{Int}
+    grouping::GroupType
     quality::Vector{Int}
 
     mask::BitVector
