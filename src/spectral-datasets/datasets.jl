@@ -2,7 +2,7 @@ export mask_bad_channels!, mask_energy!
 
 function SpectralDataset(
     units,
-    spec::OGIP_Spectrum,
+    spec::OGIP_Events,
     rmf::OGIP_RMF,
     arf,
     background,

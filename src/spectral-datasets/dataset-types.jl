@@ -29,24 +29,34 @@ struct ResponseMatrix{T}
 end
 
 # concrete type
-mutable struct SpectralDataset{T,M,P,U,A,B}
+mutable struct SpectralDataset{
+    T,
+    MetaType,
+    PoissType,
+    UnitType,
+    AncType,
+    BkgType,
+    GroupType,
+    VecType,
+}
     # store high and low seperately
     # incase discontinuous dataset
-    energy_bins_low::Vector{T}
-    energy_bins_high::Vector{T}
+    # - will there ever be discontinuous bins??
+    energy_bins_low::VecType
+    energy_bins_high::VecType
 
-    _data::Vector{T}
-    _errors::Vector{T}
-    units::U
+    _data::VecType
+    _errors::VecType
+    units::UnitType
 
-    meta::M
-    poisson_errors::P
+    meta::MetaType
+    poisson_errors::PoissType
     response::ResponseMatrix{T}
-    ancillary::A
-    background::B
+    ancillary::AncillaryResponse
+    background::BkgType
 
     channels::Vector{Int}
-    grouping::Vector{Int}
+    grouping::GroupType
     quality::Vector{Int}
 
     mask::BitVector
