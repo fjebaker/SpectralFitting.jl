@@ -52,7 +52,7 @@ mutable struct SpectralDataset{
     meta::MetaType
     poisson_errors::PoissType
     response::ResponseMatrix{T}
-    ancillary::AncillaryResponse
+    ancillary::AncType
     background::BkgType
 
     channels::Vector{Int}

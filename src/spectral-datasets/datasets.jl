@@ -17,7 +17,7 @@ function SpectralDataset(
         spec.stat_error,
         units,
         meta,
-        spec.poisson_error,
+        spec.header.poisson_error,
         rm,
         arf,
         background,
@@ -25,7 +25,7 @@ function SpectralDataset(
         spec.grouping,
         spec.quality,
         BitVector([true for _ in spec.values]),
-        spec.exposure_time,
+        spec.header.exposure_time,
     )
 end
 
