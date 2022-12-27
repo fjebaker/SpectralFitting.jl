@@ -1,23 +1,35 @@
 using Test
 using SpectralFitting
 
-# test specific setup
-struct DummyAdditive{T,F} <: AbstractSpectralModel
-    K::FitParam{T}
-    a::FitParam{T}
-    b::FitParam{T}
-    function DummyAdditive(;K = FitParam(1.0), a=FitParam(1.0), b=FitParam(5.0))
-        new{SpectralFitting.parameter_type(K),SpectralFitting.FreeParameters{(:K,:a)}}(K, a, b)
-    end
-end
-SpectralFitting.modelkind(::Type{<:DummyAdditive{T,F}}) where {T,F} = Additive()
+include("../dummies.jl")
 
 add_model = DummyAdditive()
+mul_model = DummyMultiplicative()
 
-SpectralFitting.modelkind(add_model)
-SpectralFitting.modelkind(typeof(add_model))
+# allowed operations
+cm = add_model + add_model
+@test modelkind(cm) == SpectralFitting.Additive()
+cm = mul_model * add_model
+@test modelkind(cm) == SpectralFitting.Additive()
+cm = mul_model * mul_model 
+@test modelkind(cm) == SpectralFitting.Multiplicative()
 
-new_model = add_model + add_model
-# SpectralFitting.generated_model_types(new_model)
-# SpectralFitting.generated_model_types(PowerLaw() + PowerLaw())
-# info = SpectralFitting.assemble_aggregate_info(typeof(new_model))
+# don't care so much about the error message just the error
+@test_throws "" add_model * add_model
+@test_throws "" add_model * mul_model 
+@test_throws "" mul_model + mul_model 
+
+
+# check if parsing works okay too
+model = mul_model * add_model
+info = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
+# model order should be always right then left 
+for (i, check) in zip(info, ([:K, :a, :b], [:a, :b]))
+    @test i.symbols == check
+end
+for (i, check) in zip(info, ([:K, :a], [:a]))
+    @test i.free == check
+end
+for (i, check) in zip(info, ([:b], [:b]))
+    @test i.frozen == check
+end
