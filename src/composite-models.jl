@@ -74,13 +74,14 @@ model = XS_PhotoelectricAbsorption() * (XS_PowerLaw() + XS_BlackBody())
 typeof(model) <: CompositeModel # true
 ```
 """
-struct CompositeModel{M1,M2,O} <: AbstractSpectralModel
+struct CompositeModel{M1,M2,O,K} <: AbstractSpectralModel{K}
     left::M1
     right::M2
     op::O
+    CompositeModel(m1::M1, m2::M2, op::O) where {M1, M2<:AbstractSpectralModel{K},O} where {K} = new{M1,M2,O,K}(m1, m2, op)
 end
 
-modelkind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2} = modelkind(M2)
+modelkind(::Type{<:CompositeModel{M1,M2,O,K}}) where {M1,M2,O,K} = K()
 function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     if (implementation(M1) isa XSPECImplementation) ||
        (implementation(M2) isa XSPECImplementation)
@@ -141,13 +142,13 @@ end
 
 # algebra grammar
 add_models(_, _, ::M1, ::M2) where {M1,M2} =
-    error("Left and right models must be Additive.")
+    throw("Left and right models must be Additive.")
 add_models(m1, m2, ::Additive, ::Additive) = CompositeModel(m1, m2, AdditionOperator())
 add_models(m1::M1, m2::M2) where {M1,M2} = add_models(m1, m2, modelkind(M1), modelkind(M2))
 Base.:+(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralModel} =
     add_models(m1, m2, modelkind(M1), modelkind(M2))
 
-mult_models(_, _, ::M1, ::M2) where {M1,M2} = error("Left model must be Multiplicative.")
+mult_models(_, _, ::M1, ::M2) where {M1,M2} = throw("Left model must be Multiplicative.")
 mult_models(m1, m2, ::Multiplicative, ::AbstractSpectralModelKind) =
     CompositeModel(m1, m2, MultiplicationOperator())
 mult_models(m1::M1, m2::M2) where {M1,M2} =
@@ -156,7 +157,7 @@ Base.:*(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralMod
     mult_models(m1, m2, modelkind(M1), modelkind(M2))
 
 conv_models(_, _, ::M1, ::M2) where {M1,M2} =
-    error("Left model must be Convolutional and right model must be Additive.")
+    throw("Left model must be Convolutional and right model must be Additive.")
 conv_models(m1, m2, ::Convolutional, ::Additive) =
     CompositeModel(m1, m2, ConvolutionOperator())
 conv_models(m1::M1, m2::M2) where {M1,M2} =
@@ -259,6 +260,11 @@ function _expression_string(cm::CompositeModel{M1,M2}) where {M1,M2}
     _expression_string(left, right, modelkind(M1))
 end
 
+function _all_model_types(model::CompositeModel)
+    ga = FunctionGeneration.assemble_aggregate_info(typeof(model))
+    ga.models
+end
+
 function Base.show(io::IO, ::CompositeModel)
     print(io, "CompositeModel")
 end
@@ -266,7 +272,7 @@ end
 # such an ugly function
 function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     l_buffer = 5
-    model_types = generated_model_types(model)
+    model_types = _all_model_types(model)
     n_components = length(model_types)
     expr, infos = _readable_expression_info(model)
 

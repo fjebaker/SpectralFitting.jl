@@ -1,4 +1,4 @@
-abstract type AbstractTableModel{T} <: AbstractSpectralModel end
+abstract type AbstractTableModel{T,K} <: AbstractSpectralModel{K} end
 
 closurekind(::Type{<:AbstractTableModel}) = WithClosures()
 

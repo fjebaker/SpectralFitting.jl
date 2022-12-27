@@ -33,7 +33,7 @@ invokemodel(energy, PowerLaw())
                          E (keV)
 ```
 """
-struct PowerLaw{T,F} <: AbstractSpectralModel
+struct PowerLaw{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
     K::FitParam{T}
     "Photon index."
@@ -42,7 +42,6 @@ struct PowerLaw{T,F} <: AbstractSpectralModel
         new{parameter_type(K),FreeParameters{(:K,:a)}}(K, a)
     end
 end
-modelkind(::Type{<:PowerLaw}) = Additive()
 @fastmath function invoke!(flux, energy, ::Type{<:PowerLaw}, a)
     α = 1 - a
     α⁻¹ = inv(α)
@@ -86,13 +85,12 @@ invokemodel(energy, BlackBody())
                          E (keV)
 ```
 """
-@with_kw struct BlackBody{F1,F2} <: AbstractSpectralModel
+@with_kw struct BlackBody{F1,F2} <: AbstractSpectralModel{Additive}
     "Normalisation."
     K::F1 = FitParam(1.0)
     "Temperature (keV)."
     kT::F2 = FitParam(3.0)
 end
-modelkind(::Type{<:BlackBody}) = Additive()
 @fastmath function invoke!(flux, energy, ::Type{<:BlackBody}, kT)
     integration_kernel!(flux, energy) do E, δE
         8.0525 * E^2 * δE / (kT^4 * (exp(E / kT) - 1))

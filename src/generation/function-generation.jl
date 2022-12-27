@@ -4,12 +4,12 @@
 module FunctionGeneration
 
 import SpectralFitting
-import SpectralFitting: AbstractSpectralModel, AbstractSpectralModelKind,Convolutional, CompositeModel, operation_symbol
+import SpectralFitting: AbstractSpectralModel, AbstractSpectralModelKind,Convolutional, CompositeModel, operation_symbol, modelkind
 include("parsing-utilities.jl")
 
 mutable struct GenerationAggregate
     statements::Vector{Expr}
-    parameters::Vector{Symbol}
+    infos::Vector{ModelInfo}
     closure_params::Vector{Symbol}
     models::Vector{Type}
     flux_count::Int
@@ -18,15 +18,9 @@ mutable struct GenerationAggregate
 end
 
 push_closure_param!(g::GenerationAggregate, s::Symbol) = push!(g.closure_params, s)
-push_param!(g::GenerationAggregate, s::Symbol) = push!(g.parameters, s)
+push_info!(g::GenerationAggregate, s::ModelInfo) = push!(g.infos, s)
 push_statement!(g::GenerationAggregate, s::Expr) = push!(g.statements, s)
 push_model!(g::GenerationAggregate, t::Type) = push!(g.models, t)
-
-function new_param!(ga::GenerationAggregate, p::Symbol)
-    param = Base.gensym(p)
-    push_param!(ga, param)
-    param
-end
 
 function new_closure_param!(ga::GenerationAggregate, p::Symbol)
     param = Base.gensym(p)
@@ -74,9 +68,8 @@ function add_invoke_statment!(
     flux,
     M::Type{<:AbstractSpectralModel},
 )
-    params = map(all_parameter_symbols(M)) do p
-        new_param!(ga, p)
-    end
+    info = getinfo(M)
+    push_info!(ga, info)
     closure_params = map(closure_parameter_symbols(M)) do p
         new_closure_param!(ga, p)
     end
@@ -85,7 +78,7 @@ function add_invoke_statment!(
         energy,
         $(model_base_name(M)),
         $(closure_params...),
-        $(params...),
+        $(info.symbols...),
     ))
     push_model!(ga, M)
     push_statement!(ga, s)
@@ -202,10 +195,6 @@ function generated_get_param_types(model::Type{<:CompositeModel})
     types
 end
 
-end # module
-
-# needs to be scoped in the spectral fitting module and
-# not in the FunctionGeneration module, else silent world age errors
 function assemble_aggregate_info(model::Type{<:CompositeModel})
     ga = FunctionGeneration.GenerationAggregate()
     FunctionGeneration.recursive_model_parse(model) do (left, right, op_type)
@@ -230,3 +219,6 @@ function assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
     FunctionGeneration.add_invoke_statment!(ga, flux, model)
     ga
 end
+
+end # module
+

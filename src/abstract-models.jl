@@ -31,16 +31,17 @@ export AbstractSpectralModel,
 
 # models
 """
-    abstract type AbstractSpectralModel
+    abstract type AbstractSpectralModel{K}
 
 Supertype of all spectral models. Sub-types must implement the following interface
 - [`modelkind`](@ref)
 - [`SpectralFitting.invoke!`](@ref)
+
+The parametric type parameter `K` defines the [`AbstractSpectralModelKind`](@ref).
 """
-abstract type AbstractSpectralModel end
+abstract type AbstractSpectralModel{K} end
 numbertype(::AbstractSpectralModel) = Sys.WORD_SIZE == 64 ? Float64 : Float32
 
-# traits
 """
     abstract type AbstractSpectralModelKind
 
@@ -91,7 +92,7 @@ struct Convolutional <: AbstractSpectralModelKind end
 
 Return the kind of model given by `M`: either `Additive`, `Multiplicative`, or `Convolutional`.
 """
-modelkind(m::Type{<:AbstractSpectralModel}) = error("Model kind is not defined: implement `modelkind` for $m.")
+modelkind(::Type{<:AbstractSpectralModel{K}}) where {K} = K()
 modelkind(::M) where {M <: AbstractSpectralModel} = modelkind(M)
 
 abstract type AbstractSpectralModelImplementation end

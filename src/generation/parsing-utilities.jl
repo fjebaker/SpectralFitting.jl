@@ -1,3 +1,37 @@
+struct ModelInfo
+    symbols::Vector{Symbol}
+    free::Vector{Symbol}
+    frozen::Vector{Symbol}
+end
+
+function getinfo(model::Type{<:AbstractSpectralModel})
+    symbs = [all_parameter_symbols(model)...]
+    free = [free_parameter_symbols(model)...]
+    frozen = [frozen_parameter_symbols(model)...]
+    ModelInfo(symbs, free, frozen)
+end
+
+function getinfo(model::Type{<:CompositeModel})
+    infos = ModelInfo[]
+    addinfo!(infos, model)
+    infos
+end
+
+function addinfo!(infos, model::Type{<:AbstractSpectralModel})
+    push!(infos, getinfo(model))
+end
+function addinfo!(infos, model::Type{<:CompositeModel})
+    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
+        if (right !== Nothing)
+            addinfo!(infos, right)
+        end
+        if (left !== Nothing)
+            addinfo!(infos, left)
+        end
+        Nothing
+    end 
+end
+
 unpack_model(::Type{<:CompositeModel{M1,M2,O}}) where {M1,M2,O} = (M1, M2, O)
 unpack_model(m::CompositeModel{M1,M2,O}) where {M1,M2,O} =
     m.left, m.right, operation_symbol(O)
@@ -67,12 +101,12 @@ function free_parameter_symbols(M::Type{<:AbstractSpectralModel})
 end
 
 function frozen_parameter_symbols(M::Type{<:AbstractSpectralModel})
-    all_symbols = Set(_all_parameter_symbols(M))
-    free = Set(_free_parameter_symbols(M))
+    all_symbols = Set(all_parameter_symbols(M))
+    free = Set(free_parameter_symbols(M))
     tuple(setdiff(all_symbols, free)...)
 end
+
     
 # only needed for WithClosures()
 closure_parameter_symbols(::Type{<:AbstractSpectralModel}) = ()
-
 model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name

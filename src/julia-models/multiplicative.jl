@@ -1,4 +1,4 @@
-struct PhotoelectricAbsorption{T,F1} <: AbstractTableModel{T}
+struct PhotoelectricAbsorption{T,F1} <: AbstractTableModel{T,Multiplicative}
     table::T
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."
     ηH::F1
@@ -12,7 +12,6 @@ struct PhotoelectricAbsorption{T,F1} <: AbstractTableModel{T}
 end
 PhotoelectricAbsorption(; ηH = FitParam(1.0)) = PhotoelectricAbsorption(ηH)
 register_model_data(PhotoelectricAbsorption, "cross_sections_phabs_angr.jld")
-modelkind(::Type{<:PhotoelectricAbsorption}) = Multiplicative()
 @fastmath function invoke!(flux, energy, ::Type{<:PhotoelectricAbsorption}, table, ηH)
     E = @views energy[1:end-1]
     @. flux = exp(-ηH * table(E))
