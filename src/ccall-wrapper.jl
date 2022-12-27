@@ -6,6 +6,7 @@ end
 
 macro wrap_xspec_model_ccall(
     func_name,
+    callsite,
     input,
     output,
     err,
@@ -15,7 +16,7 @@ macro wrap_xspec_model_ccall(
 )
     quote
         ccall(
-            ($(func_name), libXSFunctions),
+            ($(func_name), $(callsite)),
             Cvoid,
             (Ref{Float64}, Int32, Ref{Float64}, Int32, Ref{Float64}, Ref{Float64}, Cstring),
             $(input),
@@ -57,7 +58,7 @@ implementation(::Type{<:XS_PowerLaw})
 invoke!(::Type{<:XS_PowerLaw})
 ```
 """
-macro xspecmodel(model_kind, func_name, model)
+macro xspecmodel(model_kind, func_info, model)
     model_args = model.args[3]
     model_name = model.args[2].args[1]
     model_type_params = model.args[2].args[2:end]
@@ -67,6 +68,14 @@ macro xspecmodel(model_kind, func_name, model)
     # remove normalisation as a parameter from Additive models
     if model_kind == :Additive
         deleteat!(model_args_symbols, 1)
+    end
+
+    if func_info isa QuoteNode
+        func_name = func_info
+        callsite = libXSFunctions 
+    else
+        func_name = func_info.args[1]
+        callsite = func_info.args[2]
     end
 
     parsed_model_args = [:(get_value($i)) for i in model_args_symbols]
@@ -96,6 +105,7 @@ macro xspecmodel(model_kind, func_name, model)
 
             @wrap_xspec_model_ccall(
                 $(func_name),
+                $(callsite),
                 energy,
                 flux,
                 UNTRACKED_ERROR,
