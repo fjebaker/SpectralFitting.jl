@@ -4,7 +4,7 @@
 module FunctionGeneration
 
 import SpectralFitting
-import SpectralFitting: AbstractSpectralModel, AbstractSpectralModelKind,Convolutional, CompositeModel, operation_symbol, modelkind
+import SpectralFitting: AbstractSpectralModel, AbstractSpectralModelKind,Convolutional, CompositeModel, operation_symbol, modelkind,has_closure_params
 include("parsing-utilities.jl")
 
 mutable struct GenerationAggregate
@@ -148,19 +148,21 @@ function generated_model_call!(fluxes, energy, model, params)
 end
 
 function assemble_parameter_assignment(ga::GenerationAggregate, model)
-    free_symbols = _free_parameter_symbols(model)
-    param_symbols = _all_parameter_symbols(model)
     # unpack free and frozen seperately
     i_frozen = 0
     i_free = 0
-    map(enumerate(ga.parameters)) do (i, s)
-        real_symbol = param_symbols[i]
-        if real_symbol in free_symbols
-            :($s = free_params[$(i_free += 1)])
-        else
-            :($s = frozen_params[$(i_frozen += 1)])
+    all = map(ga.infos) do info
+        assignments = map(info.symbols) do p
+            param = Base.gensym(p)
+            if (p in info.frozen)
+                :($(param) = frozen_params[$(i_frozen += 1)])
+            else
+                :($(param) = free_params[$(i_free += 1)])
+            end
         end
+        assignments
     end
+    reduce(hcat, all)
 end
 
 function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
