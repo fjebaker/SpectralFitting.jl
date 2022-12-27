@@ -14,8 +14,6 @@ export AbstractSpectralModel,
     closurekind,
     has_closure_params,
     get_param_types,
-    #model_base_name,
-    #get_closure_param_fields,
     get_param_symbols,
     get_param,
     get_param_count,
@@ -25,7 +23,10 @@ export AbstractSpectralModel,
     invokemodel,
     invokemodel!,
     flux_count,
-    update_params!
+    update_params!,
+    freeze_parameter,
+    free_parameter
+    
 
 
 # models
@@ -86,10 +87,12 @@ struct Convolutional <: AbstractSpectralModelKind end
 
 """
     modelkind(M::Type{<:AbstractSpectralModel})
+    modelkind(::AbstractSpectralModel)
 
 Return the kind of model given by `M`: either `Additive`, `Multiplicative`, or `Convolutional`.
 """
-modelkind(m::Type{<:AbstractSpectralModel}) = error("Not defined for $(typeof(m)).")
+modelkind(m::Type{<:AbstractSpectralModel}) = error("Model kind is not defined: implement `modelkind` for $m.")
+modelkind(::M) where {M <: AbstractSpectralModel} = modelkind(M)
 
 abstract type AbstractSpectralModelImplementation end
 struct XSPECImplementation <: AbstractSpectralModelImplementation end
@@ -140,13 +143,6 @@ The only exception to this are [`Additive`](@ref) models, where the normalisatio
 `K` is not passed to `invoke!`.
 """
 invoke!(flux, energy, M::AbstractSpectralModel, params...) = error("Not defined for $(M).")
-
-
-
-model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
-
-# only needed for WithClosures()
-get_closure_param_fields(::Type{<:AbstractSpectralModel}) = ()
 
 """
     get_param_types(model::AbstractSpectralModel)
@@ -415,12 +411,12 @@ end
 
 function modelinfo(m::M) where {M<:AbstractSpectralModel}
     params = join([get_value(p) for p in get_params(m)], ", ")
-    "$(model_base_name(M))[$(params)]"
+    "$(FunctionGeneration.model_base_name(M))[$(params)]"
 end
 
 function Base.show(io::IO, ::MIME"text/plain", m::M) where {M<:AbstractSpectralModel}
     params = [String(s) => p for (s, p) in get_param_symbol_pairs(m)]
-    print(io, "$(model_base_name(M))\n")
+    print(io, "$(FunctionGeneration.model_base_name(M))\n")
 
     pad = maximum(i -> length(first(i)), params) + 1
 
@@ -428,4 +424,16 @@ function Base.show(io::IO, ::MIME"text/plain", m::M) where {M<:AbstractSpectralM
         print(io, "   $(rpad(s, pad)) => ")
         println(io, val)
     end
+end
+
+# parameter utilities
+function remake_model(T::Type, model::AbstractSpectralModel)
+    T(get_param_symbol_pairs(model)...)
+end
+
+function freeze_parameter(model, symbols...)
+    error("Not implemented yet.")
+end
+function free_parameter(model, symbols...)
+    error("Not implemented yet.")
 end

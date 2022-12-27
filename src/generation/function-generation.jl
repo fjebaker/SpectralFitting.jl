@@ -1,6 +1,12 @@
 # add_invoke_statment!(params, flux, M)
 # parameter_symbols_and_types(M)
 
+module FunctionGeneration
+
+import SpectralFitting
+import SpectralFitting: AbstractSpectralModel, AbstractSpectralModelKind,Convolutional, CompositeModel, operation_symbol
+include("parsing-utilities.jl")
+
 mutable struct GenerationAggregate
     statements::Vector{Expr}
     parameters::Vector{Symbol}
@@ -68,10 +74,10 @@ function add_invoke_statment!(
     flux,
     M::Type{<:AbstractSpectralModel},
 )
-    params = map(get_param_symbols(M)) do p
+    params = map(all_parameter_symbols(M)) do p
         new_param!(ga, p)
     end
-    closure_params = map(get_closure_param_fields(M)) do p
+    closure_params = map(closure_parameter_symbols(M)) do p
         new_closure_param!(ga, p)
     end
     s = :(invokemodel!(
@@ -105,30 +111,6 @@ function add_flux_resolution!(ga::GenerationAggregate, op::Symbol)
     push_statement!(ga, :(@.($fl = $expr)))
 end
 
-function assemble_aggregate_info(model::Type{<:CompositeModel})
-    ga = GenerationAggregate()
-    recursive_model_parse(model) do (left, right, op_type)
-        # get operation symbol
-        op = operation_symbol(op_type)
-        if (right !== Nothing)
-            add_invokation!(ga, right, modelkind(right))
-        end
-        if (left !== Nothing)
-            add_invokation!(ga, left, modelkind(left))
-        end
-        if (!isnothing(op))
-            add_flux_resolution!(ga, op)
-        end
-        Nothing
-    end
-    ga
-end
-function assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
-    ga = GenerationAggregate()
-    flux = get_flux_symbol(inc_flux!(ga))
-    add_invoke_statment!(ga, flux, model)
-    ga
-end
 
 function assemble_closures(ga::GenerationAggregate, model)
     assignments = Expr[]
@@ -150,12 +132,12 @@ function assemble_closures(ga::GenerationAggregate, model)
     assignments
 end
 
-function __generated_maximum_flux_count(model)
+function generated_maximum_flux_count(model)
     ga = assemble_aggregate_info(model)
     :($(ga.maximum_flux_count))
 end
 
-function __generated_model_call!(fluxes, energy, model, params)
+function generated_model_call!(fluxes, energy, model, params)
     ga = assemble_aggregate_info(model)
     flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
     p_assign = [:($s = params[$i]) for (i, s) in enumerate(ga.parameters)]
@@ -173,20 +155,22 @@ function __generated_model_call!(fluxes, energy, model, params)
 end
 
 function assemble_parameter_assignment(ga::GenerationAggregate, model)
-    p_types = get_param_types(model)
+    free_symbols = _free_parameter_symbols(model)
+    param_symbols = _all_parameter_symbols(model)
     # unpack free and frozen seperately
     i_frozen = 0
     i_free = 0
     map(enumerate(ga.parameters)) do (i, s)
-        if is_frozen(p_types[i])
-            :($s = frozen_params[$(i_frozen += 1)])
-        else
+        real_symbol = param_symbols[i]
+        if real_symbol in free_symbols
             :($s = free_params[$(i_free += 1)])
+        else
+            :($s = frozen_params[$(i_frozen += 1)])
         end
     end
 end
 
-function __generated_model_call!(fluxes, energy, model, free_params, frozen_params)
+function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
     ga = assemble_aggregate_info(model)
     flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
     p_assign = assemble_parameter_assignment(ga, model)
@@ -203,12 +187,12 @@ function __generated_model_call!(fluxes, energy, model, free_params, frozen_para
     end
 end
 
-function __generated_get_param_types(model::Type{<:AbstractSpectralModel})
+function generated_get_param_types(model::Type{<:AbstractSpectralModel})
     types = Type[]
     add_param_types!(types, model)
     types
 end
-function __generated_get_param_types(model::Type{<:CompositeModel})
+function generated_get_param_types(model::Type{<:CompositeModel})
     types = Type[]
     recursive_model_parse(model) do (left, right, _)
         add_param_types!(types, right)
@@ -218,46 +202,31 @@ function __generated_get_param_types(model::Type{<:CompositeModel})
     types
 end
 
-function __generated_get_model_types(model)
-    ga = assemble_aggregate_info(model)
-    :(($(ga.models...),))
-end
+end # module
 
-@generated function generated_model_parameter_count(model)
-    :($(model_parameter_count(model)))
+# needs to be scoped in the spectral fitting module and
+# not in the FunctionGeneration module, else silent world age errors
+function assemble_aggregate_info(model::Type{<:CompositeModel})
+    ga = FunctionGeneration.GenerationAggregate()
+    FunctionGeneration.recursive_model_parse(model) do (left, right, op_type)
+        # get operation symbol
+        op = operation_symbol(op_type)
+        if (right !== Nothing)
+            FunctionGeneration.add_invokation!(ga, right, modelkind(right))
+        end
+        if (left !== Nothing)
+            FunctionGeneration.add_invokation!(ga, left, modelkind(left))
+        end
+        if (!isnothing(op))
+            FunctionGeneration.add_flux_resolution!(ga, op)
+        end
+        Nothing
+    end
+    ga
 end
-
-@generated function generated_frozen_model_parameter_count(model)
-    :($(model_frozen_parameter_count(model)))
-end
-
-@generated function generated_free_model_parameter_count(model)
-    :($(model_free_parameter_count(model)))
-end
-
-@generated function generated_model_call!(fluxes, energy, model, params)
-    __generated_model_call!(fluxes, energy, model, params)
-end
-
-@generated function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
-    __generated_model_call!(fluxes, energy, model, free_params, frozen_params)
-end
-
-@generated function generated_maximum_flux_count(model)
-    __generated_maximum_flux_count(model)
-end
-
-@generated function generated_get_param_types(model)
-    types = __generated_get_param_types(model)
-    :($types)
-end
-
-@generated function generated_get_model_number_type(model)
-    types = first(__generated_get_param_types(model)).types
-    T = isempty(types) ? types : first(types)
-    :($T)
-end
-
-@generated function generated_get_model_types(model)
-    __generated_get_model_types(model)
+function assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
+    ga = FunctionGeneration.GenerationAggregate()
+    flux = FunctionGeneration.get_flux_symbol(FunctionGeneration.inc_flux!(ga))
+    FunctionGeneration.add_invoke_statment!(ga, flux, model)
+    ga
 end

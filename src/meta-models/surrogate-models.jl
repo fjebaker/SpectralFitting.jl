@@ -36,13 +36,13 @@ struct SurrogateSpectralModel{K,S,P,Z} <: AbstractSpectralModel
 end
 
 closurekind(::Type{<:SurrogateSpectralModel}) = WithClosures()
-model_base_name(::Type{<:SurrogateSpectralModel{K}}) where {K} =
+FunctionGeneration.model_base_name(::Type{<:SurrogateSpectralModel{K}}) where {K} =
     :(SurrogateSpectralModel{$K})
 
 # model generation
-get_closure_param_fields(::Type{<:SurrogateSpectralModel}) = (:surrogate,)
+FunctionGeneration.closure_parameter_symbols(::Type{<:SurrogateSpectralModel}) = (:surrogate,)
 get_param_types(::Type{<:SurrogateSpectralModel{K,S,P,Z}}) where {K,S,P,Z} = P.types
-get_param_symbols(M::Type{<:SurrogateSpectralModel}) =
+all_parameter_symbols(M::Type{<:SurrogateSpectralModel}) =
     [Symbol(:P, i) for i in eachindex(get_param_types(M))]
 
 # runtime access

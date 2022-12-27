@@ -221,7 +221,7 @@ end
 function _add_symbols_and_params_to_index!(params, m)
     if !isnothing(m)
         foreach(get_param_symbol_pairs(m)) do (s, p)
-            symb = _make_unique_readable_symbol(s, first.(params))
+            symb = FunctionGeneration._make_unique_readable_symbol(s, first.(params))
             push!(params, symb => p)
         end
     end
@@ -248,7 +248,7 @@ function get_param(model::CompositeModel, s::Symbol)
 end
 
 # printing
-_expression_string(model::M) where {M<:AbstractSpectralModel} = modelinfo(M)
+_expression_string(::M) where {M<:AbstractSpectralModel} = modelinfo(M)
 _expression_string(left, right, ::Multiplicative) = "$left * $right"
 _expression_string(left, right, ::Convolutional) = "$left($right)"
 _expression_string(left, right, ::Additive) = "($left + $right)"
@@ -266,7 +266,7 @@ end
 # such an ugly function
 function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     l_buffer = 5
-    model_types = generated_get_model_types(model)
+    model_types = generated_model_types(model)
     n_components = length(model_types)
     expr, infos = _readable_expression_info(model)
 
@@ -282,12 +282,12 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     params = Pair{Symbol,AbstractFitParameter}[]
     model_list = map(infos.models) do (symbol, m)
         _ps = map(get_param_symbol_pairs(m)) do (ps, p)
-            ups = _make_unique_readable_symbol(ps, first.(params))
+            ups = FunctionGeneration._make_unique_readable_symbol(ps, first.(params))
             push!(params, ups => p)
             String(ups)
         end
         p_string = join(_ps, ", ")
-        symbol => ("$(model_base_name(typeof(m)))", p_string)
+        symbol => ("$(FunctionGeneration.model_base_name(typeof(m)))", p_string)
     end
 
     pad1 = maximum(i -> length(String(i[1])), params) + l_buffer
@@ -337,7 +337,7 @@ _unique_model_symbol(::Convolutional, infos) = Symbol('c', infos.c[] += 1)
 function _readable_expression_info(model::CompositeModel)
     models = Pair{Symbol,AbstractSpectralModel}[]
     infos = (models = models, a = Ref(0), m = Ref(0), c = Ref(0))
-    expr = recursive_model_parse(model) do (left, right, op)
+    expr = FunctionGeneration.recursive_model_parse(model) do (left, right, op)
         r_symb = if right isa AbstractSpectralModel
             rs = _unique_model_symbol(right, infos)
             push!(models, rs => right)

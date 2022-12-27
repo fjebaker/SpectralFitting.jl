@@ -54,7 +54,25 @@ function index_models(model::Type{<:CompositeModel})
     index
 end
 
-
 function index_models(::Type{<:AbstractSpectralModel})
     [:model]
 end
+
+function all_parameter_symbols(model::Type{<:AbstractSpectralModel})
+    fieldnames(model)
+end
+
+function free_parameter_symbols(M::Type{<:AbstractSpectralModel})
+    first(M.parameters[end].parameters)
+end
+
+function frozen_parameter_symbols(M::Type{<:AbstractSpectralModel})
+    all_symbols = Set(_all_parameter_symbols(M))
+    free = Set(_free_parameter_symbols(M))
+    tuple(setdiff(all_symbols, free)...)
+end
+    
+# only needed for WithClosures()
+closure_parameter_symbols(::Type{<:AbstractSpectralModel}) = ()
+
+model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
