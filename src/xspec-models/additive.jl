@@ -33,11 +33,17 @@ invokemodel(energy, XS_PowerLaw())
                          E (keV)
 ```
 """
-@xspecmodel Additive :C_powerlaw struct XS_PowerLaw{F1,F2}
+@xspecmodel :C_powerlaw struct XS_PowerLaw{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Photon index."
-    a::F2 = FitParam(0.5)
+    a::FitParam{T}
+    function XS_PowerLaw(; K = FitParam(1.0), a = FitParam(1.0))
+        new{SpectralFitting.parameter_type(K),SpectralFitting.FreeParameters{(:K, :a)}}(
+            K,
+            a,
+        )
+    end
 end
 
 """
@@ -75,11 +81,14 @@ invokemodel(energy, XS_BlackBody())
                          E (keV)
 ```
 """
-@xspecmodel Additive :C_bbody struct XS_BlackBody{F1,F2}
+@xspecmodel :C_bbody struct XS_BlackBody{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Temperature (keV)."
-    T::F2 = FitParam(3.0)
+    T::FitParam{T}
+    function XS_BlackBody(; K = FitParam(1.0), T = FitParam(3.0))
+        new{parameter_type(K),FreeParameters{(:K, :T)}}(K, T)
+    end
 end
 
 """
@@ -117,11 +126,14 @@ invokemodel(energy, XS_BremsStrahlung())
                        E (keV)
 ```
 """
-@xspecmodel Additive :C_bremss struct XS_BremsStrahlung{F1,F2}
+@xspecmodel :C_bremss struct XS_BremsStrahlung{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Plasma temperature (keV)."
-    T::F2 = FitParam(7.0)
+    T::FitParam{T}
+    function XS_BremsStrahlung(; K = FitParam(1.0), T = FitParam(7.0))
+        new{parameter_type(K),FreeParameters{(:K, :T)}}(K, T)
+    end
 end
 
 
@@ -160,27 +172,52 @@ invokemodel(energy, XS_KerrDisk())
                           E (keV)
 ```
 """
-@xspecmodel Additive :C_kerrdisk struct XS_KerrDisk{F1,F2,F3,F4,F5,F6,F7,F8,F9,F10}
+@xspecmodel :C_kerrdisk struct XS_KerrDisk{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Rest frame line energy (keV)."
-    lineE::F2 = FrozenFitParam(6.4)
+    lineE::FitParam{T}
     "Emissivity index for inner disk."
-    index1::F3 = FrozenFitParam(3.0)
+    index1::FitParam{T}
     "Emissivity index for outer disk."
-    index2::F4 = FrozenFitParam(3.0)
+    index2::FitParam{T}
     "Break radius seperating inner and outer disk (gᵣ)."
-    break_r::F5 = FrozenFitParam(6.0)
+    break_r::FitParam{T}
     "Dimensionless black hole spin."
-    a::F6 = FitParam(0.998, upper_limit = 1.0)
+    a::FitParam{T}
     "Disk inclination angle to line of sight (degrees)."
-    incl::F7 = FrozenFitParam(30.0)
+    incl::FitParam{T}
     "Inner radius of the disk in units of rₘₛ."
-    inner_r::F8 = FrozenFitParam(1.0)
+    inner_r::FitParam{T}
     "Outer radius of the disk in units of rₘₛ."
-    outer_r::F9 = FrozenFitParam(400.0)
+    outer_r::FitParam{T}
     "Redshift."
-    z::F10 = FrozenFitParam(0.0)
+    z::FitParam{T}
+    function XS_KerrDisk(;
+        K = FitParam(1.0),
+        lineE = FitParam(6.4),
+        index1 = FitParam(3.0),
+        index2 = FitParam(3.0),
+        break_r = FitParam(6.0),
+        a = FitParam(0.998, lower_limit = 0, upper_limit = 1.0),
+        θ = FitParam(30.0),
+        inner_r = FitParam(1.0),
+        outer_r = FitParam(400.0),
+        z = FitParam(0.0),
+    )
+        new{parameter_type(K),FreeParameters{(:K, :a)}}(
+            K,
+            lineE,
+            index1,
+            index2,
+            break_r,
+            a,
+            θ,
+            inner_r,
+            outer_r,
+            z,
+        )
+    end
 end
 register_model_data(XS_KerrDisk, "kerrtable.fits")
 
@@ -220,29 +257,56 @@ invokemodel(energy, XS_KyrLine())
                           E (keV)
 ```
 """
-@xspecmodel Additive :C_kyrline struct XS_KyrLine{F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12}
+@xspecmodel :C_kyrline struct XS_KyrLine{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Dimensionless black hole spin."
-    a::F2 = FitParam(0.998, upper_limit = 1.0)
+    a::FitParam{T}
     "Observer inclination (0 is on pole, degrees)."
-    θ_obs::F3 = FitParam(30.0)
+    θ_obs::FitParam{T}
     "Inner radius of the disk in units of GM/c²"
-    inner_r::F4 = FrozenFitParam(1.0)
+    inner_r::FitParam{T}
     "0: integrate from rᵢₙ. 1: integrate from rₘₛ."
-    ms_flag::F5 = FrozenFitParam(1)
+    ms_flag::FitParam{T}
     "Outer radius of the disk in units of GM/c²"
-    outer_r::F6 = FrozenFitParam(400.0)
+    outer_r::FitParam{T}
     "Rest frame line energy (keV)."
-    lineE::F7 = FrozenFitParam(6.4)
-    α::F8 = FrozenFitParam(3.0)
-    β::F9 = FrozenFitParam(3.0)
+    lineE::FitParam{T}
+    α::FitParam{T}
+    β::FitParam{T}
     "Break radius seperating inner and outer disk (GM/c²)."
-    break_r::F10 = FrozenFitParam(400.0)
+    break_r::FitParam{T}
     "Overall Doppler shift."
-    z::F11 = FrozenFitParam(0.0)
+    z::FitParam{T}
     "0: isotropic emission, 1: Laor's limb darkening, 2: Haard's limb brightening."
-    limb::F12 = FrozenFitParam(1)
+    limb::FitParam{T}
+    function XS_KerrDisk(;
+        K = FitParam(1.0),
+        a = FitParam(0.998, lower_limit = 0, upper_limit = 1.0),
+        θ = FitParam(30.0),
+        inner_r = FitParam(1.0),
+        outer_r = FitParam(400.0),
+        lineE = FitParam(6.4),
+        α = FitParam(3.0),
+        β = FitParam(3.0),
+        break_r = FitParam(6.0),
+        z = FitParam(0.0),
+        limb = FitParam(1.0),
+    )
+        new{parameter_type(K),FreeParameters{(:K, :a, :θ)}}(
+            K,
+            a,
+            θ,
+            inner_r,
+            outer_r,
+            lineE,
+            α,
+            β,
+            break_r,
+            z,
+            limb,
+        )
+    end
 end
 register_model_data(XS_KyrLine, "KBHline01.fits")
 
@@ -282,19 +346,36 @@ invokemodel(energy, XS_Laor())
                           E (keV)
 ```
 """
-@xspecmodel Additive :C_laor struct XS_Laor{F1,F2,F3,F4,F5,F6}
+@xspecmodel :C_laor struct XS_Laor{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Rest frame line energy (keV)."
-    lineE::F2 = FitParam(6.4)
+    lineE::FitParam{T}
     "Power law dependence of emissitivy. Scales R⁻ᵅ."
-    a::F3 = FrozenFitParam(3.0)
+    a::FitParam{T}
     "Inner radius of the accretion disk (GM/c)."
-    inner_r::F4 = FrozenFitParam(1.235)
+    inner_r::FitParam{T}
     "Outer radius of the accretion disk (GM/c)."
-    outer_r::F5 = FrozenFitParam(400.0)
+    outer_r::FitParam{T}
     "Disk inclination angle to line of sight (degrees, 0 is pole on)."
-    incl::F6 = FitParam(30.0, upper_limit = 180)
+    θ::FitParam{T}
+    function XS_Laor(;
+        K = FitParam(1.0),
+        lineE = FitParam(6.4),
+        a = FitParam(3.0),
+        inner_r = FitParam(1.235),
+        outer_r = FitParam(400.0),
+        θ = FitParam(30.0, upper_limit = 180),
+    )
+        new{parameter_type(K),FreeParameters{(:K, :lineE)}}(
+            K,
+            lineE,
+            a,
+            inner_r,
+            outer_r,
+            θ,
+        )
+    end
 end
 register_model_data(XS_Laor, "ari.mod")
 
@@ -333,19 +414,36 @@ invokemodel(energy, XS_DiskLine())
                           E (keV)
 ```
 """
-@xspecmodel Additive :C_diskline struct XS_DiskLine{F1,F2,F3,F4,F5,F6}
+@xspecmodel :C_diskline struct XS_DiskLine{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Rest frame line energy (keV)."
-    lineE::F2 = FitParam(6.7)
+    lineE::FitParam{T}
     "Power law dependence of emissitivy. If < 10, scales Rᵅ."
-    β::F3 = FrozenFitParam(-2.0)
+    β::FitParam{T}
     "Inner radius of the accretion disk (GM/c)."
-    inner_r::F4 = FrozenFitParam(10.0)
+    inner_r::FitParam{T}
     "Outer radius of the accretion disk (GM/c)."
-    outer_r::F5 = FrozenFitParam(1000.0)
+    outer_r::FitParam{T}
     "Disk inclination angle to line of sight (degrees, 0 is pole on)."
-    incl::F6 = FitParam(30.0, upper_limit = 180)
+    θ::FitParam{T}
+    function XS_DiskLine(;
+        K = FitParam(1.0),
+        lineE = FitParam(6.7),
+        β = FitParam(-2.0),
+        inner_r = FitParam(10.0),
+        outer_r = FitParam(1000.0),
+        θ = FitParam(30.0, upper_limit = 180),
+    )
+        new{parameter_type(K),FreeParameters{(:K, :lineE)}}(
+            K,
+            lineE,
+            β,
+            inner_r,
+            outer_r,
+            θ,
+        )
+    end
 end
 
 """
@@ -383,13 +481,16 @@ invokemodel(energy, XS_Gaussian())
                           E (keV)                  
 ```
 """
-@xspecmodel Additive :C_gaussian struct XS_Gaussian{F1,F2,F3}
+@xspecmodel :C_gaussian struct XS_Gaussian{T,F} <: AbstractSpectralModel{Additive}
     "Normalisation"
-    K::F1 = FitParam(1.0)
+    K::FitParam{T}
     "Line wavelength in Angstrom."
-    E::F2 = FrozenFitParam(6.4)
+    E::FitParam{T}
     "Line width in Angstrom."
-    σ::F3 = FitParam(1.0)
+    σ::FitParam{T}
+    function XS_Gaussian(; K = FitParam(1.0), E = FitParam(6.4), σ = FitParam(1.0))
+        new{parameter_type(K),FreeParameters{(:K, :σ)}}(K, E, σ)
+    end
 end
 
 export XS_PowerLaw,

@@ -18,7 +18,7 @@ macro wrap_xspec_model_ccall(
         ccall(
             ($(func_name), $(callsite)),
             Cvoid,
-            (Ref{Float64}, Int32, Ref{Float64}, Int32, Ref{Float64}, Ref{Float64}, Cstring),
+            (Ref{Float64}, Cint, Ref{Float64}, Cint, Ref{Float64}, Ref{Float64}, Cstring),
             $(input),
             length($(input)) - 1,
             $(parameters),
@@ -58,49 +58,47 @@ implementation(::Type{<:XS_PowerLaw})
 invoke!(::Type{<:XS_PowerLaw})
 ```
 """
-macro xspecmodel(model_kind, func_info, model)
+macro xspecmodel(c_function, model)
     model_args = model.args[3]
-    model_name = model.args[2].args[1]
-    model_type_params = model.args[2].args[2:end]
-    model_args_symbols = [
-        :($(i.args[1].args[1])) for i in model_args.args if (i isa Expr) && (i.head == :(=))
-    ]
-    # remove normalisation as a parameter from Additive models
-    if model_kind == :Additive
-        deleteat!(model_args_symbols, 1)
+    model_name = model.args[2].args[1].args[1]
+    model_type_params = model.args[2].args[1].args[2:end]
+    model_kind = model.args[2].args[end]
+    symbols = [i.args[1] for i in model_args.args if (i isa Expr) && (i.head == :(::))]
+
+    if model_kind.args[2] == :Additive
+        # get rid of the normalisation from function arguments
+        symbols = symbols[2:end]
     end
 
-    if func_info isa QuoteNode
-        func_name = func_info
+    if c_function isa QuoteNode
+        func_name = c_function
         callsite = libXSFunctions
     else
-        func_name = func_info.args[1]
-        callsite = func_info.args[2]
+        func_name = c_function.args[1]
+        callsite = c_function.args[2]
     end
 
-    parsed_model_args = [:(get_value($i)) for i in model_args_symbols]
 
     quote
-        @with_kw struct $(model_name){$(model_type_params...)} <: AbstractSpectralModel
-            $(model.args[3].args...)
+        struct $(model_name){$(model_type_params...)} <: $(model_kind)
+            $(model_args.args...)
         end
 
-        modelkind(::Type{<:$(model_name)}) = $(model_kind)()
         implementation(::Type{<:$(model_name)}) = XSPECImplementation()
 
-        function invoke!(
+        function SpectralFitting.invoke!(
             flux::AbstractArray,
             energy::AbstractArray,
             m::Type{<:$(model_name)},
-            $(model_args_symbols...);
+            $(symbols...);
             spectral_number = 1,
             init_string = "",
         )
             @assert length(flux) + 1 == length(energy)
-            ensure_model_data(m)
+            SpectralFitting.ensure_model_data(m)
 
-            if length(UNTRACKED_ERROR) < length(flux)
-                resize_untracked_error(length(flux))
+            if length(SpectralFitting.UNTRACKED_ERROR) < length(flux)
+                SpectralFitting.resize_untracked_error(length(flux))
             end
 
             @wrap_xspec_model_ccall(
@@ -108,14 +106,15 @@ macro xspecmodel(model_kind, func_info, model)
                 $(callsite),
                 energy,
                 flux,
-                UNTRACKED_ERROR,
-                [$(parsed_model_args...)],
+                SpectralFitting.UNTRACKED_ERROR,
+                [$(symbols...)],
                 spectral_number,
                 init_string
             )
         end
+        $(model_name)
     end |> esc
 end
 
 
-export @xspecmodel
+export @xspecmodel, @wrap_xspec_model_ccall
