@@ -263,7 +263,7 @@ invokemodel(energy, XS_KyrLine())
     "Dimensionless black hole spin."
     a::FitParam{T}
     "Observer inclination (0 is on pole, degrees)."
-    θ_obs::FitParam{T}
+    θ::FitParam{T}
     "Inner radius of the disk in units of GM/c²"
     inner_r::FitParam{T}
     "0: integrate from rᵢₙ. 1: integrate from rₘₛ."
@@ -280,11 +280,12 @@ invokemodel(energy, XS_KyrLine())
     z::FitParam{T}
     "0: isotropic emission, 1: Laor's limb darkening, 2: Haard's limb brightening."
     limb::FitParam{T}
-    function XS_KerrDisk(;
+    function XS_KyrLine(;
         K = FitParam(1.0),
         a = FitParam(0.998, lower_limit = 0, upper_limit = 1.0),
         θ = FitParam(30.0),
         inner_r = FitParam(1.0),
+        ms_flag = FitParam(0.0),
         outer_r = FitParam(400.0),
         lineE = FitParam(6.4),
         α = FitParam(3.0),
@@ -298,6 +299,7 @@ invokemodel(energy, XS_KyrLine())
             a,
             θ,
             inner_r,
+            ms_flag,
             outer_r,
             lineE,
             α,

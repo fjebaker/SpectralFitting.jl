@@ -80,7 +80,7 @@ macro xspecmodel(c_function, model)
 
 
     quote
-        struct $(model_name){$(model_type_params...)} <: $(model_kind)
+        Base.@__doc__ struct $(model_name){$(model_type_params...)} <: $(model_kind)
             $(model_args.args...)
         end
 
