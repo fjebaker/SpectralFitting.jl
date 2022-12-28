@@ -6,5 +6,9 @@ FUZZ_ALL_MODELS = [
     DummyMultiplicativeTableModel(),
     PowerLaw(),
     BlackBody(),
-    PhotoelectricAbsorption(),
 ]
+
+# has data requirements, so skip on the CI
+if get(ENV, "CI", false) == false
+    push!(FUZZ_ALL_MODELS, PhotoelectricAbsorption())
+end 
