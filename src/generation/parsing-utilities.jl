@@ -1,3 +1,38 @@
+struct ModelInfo
+    symbols::Vector{Symbol}
+    free::Vector{Symbol}
+    frozen::Vector{Symbol}
+    generated_symbols::Vector{Symbol}
+end
+
+function getinfo(model::Type{<:AbstractSpectralModel})
+    symbs = [all_parameter_symbols(model)...]
+    free = [free_parameter_symbols(model)...]
+    frozen = [frozen_parameter_symbols(model)...]
+    ModelInfo(symbs, free, frozen, [Base.gensym(s) for s in symbs])
+end
+
+function getinfo(model::Type{<:CompositeModel})
+    infos = ModelInfo[]
+    addinfo!(infos, model)
+    infos
+end
+
+function addinfo!(infos, model::Type{<:AbstractSpectralModel})
+    push!(infos, getinfo(model))
+end
+function addinfo!(infos, model::Type{<:CompositeModel})
+    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
+        if (right !== Nothing)
+            addinfo!(infos, right)
+        end
+        if (left !== Nothing)
+            addinfo!(infos, left)
+        end
+        Nothing
+    end
+end
+
 unpack_model(::Type{<:CompositeModel{M1,M2,O}}) where {M1,M2,O} = (M1, M2, O)
 unpack_model(m::CompositeModel{M1,M2,O}) where {M1,M2,O} =
     m.left, m.right, operation_symbol(O)
@@ -54,7 +89,26 @@ function index_models(model::Type{<:CompositeModel})
     index
 end
 
-
 function index_models(::Type{<:AbstractSpectralModel})
     [:model]
 end
+
+function all_parameter_symbols(model::Type{<:AbstractSpectralModel})
+    fieldnames(model)
+end
+
+function free_parameter_symbols(M::Type{<:AbstractSpectralModel})
+    first(M.parameters[end].parameters)
+end
+
+function frozen_parameter_symbols(M::Type{<:AbstractSpectralModel})
+    all_symbols = Set(all_parameter_symbols(M))
+    free = Set(free_parameter_symbols(M))
+    tuple(setdiff(all_symbols, free)...)
+end
+
+function closure_parameter_symbols(::Type{<:AbstractSpectralModel})
+    error("This specialisation should never need to be invoked.")
+end
+
+model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name

@@ -31,11 +31,12 @@ include("fitparam.jl")
 include("ccall-wrapper.jl")
 
 include("composite-models.jl")
-include("table-models.jl")
-include("surrogate-models.jl")
 
-include("parsing-utilities.jl")
-include("function-generation.jl")
+include("generation/function-generation.jl")
+include("generation/wrappers.jl")
+
+include("meta-models/table-models.jl")
+# include("meta-models/surrogate-models.jl")
 
 include("poisson.jl")
 

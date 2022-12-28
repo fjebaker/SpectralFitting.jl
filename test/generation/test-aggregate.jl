@@ -1,0 +1,22 @@
+using Test
+using SpectralFitting
+
+include("../dummies.jl")
+model = DummyAdditive()
+
+info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model))
+@test length(info.infos) == 1
+@test length(info.closure_params) == 0
+@test info.models == Type[typeof(model)]
+@test info.maximum_flux_count == 1
+@test length(info.statements) == 1
+
+# composite additive models
+new_model = model + model
+
+info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(new_model))
+@test length(info.infos) == 2
+@test length(info.closure_params) == 0
+@test info.models == Type[typeof(model), typeof(model)]
+@test info.maximum_flux_count == 2
+@test length(info.statements) == 3

@@ -74,13 +74,18 @@ model = XS_PhotoelectricAbsorption() * (XS_PowerLaw() + XS_BlackBody())
 typeof(model) <: CompositeModel # true
 ```
 """
-struct CompositeModel{M1,M2,O} <: AbstractSpectralModel
+struct CompositeModel{M1,M2,O,K} <: AbstractSpectralModel{K}
     left::M1
     right::M2
     op::O
+    CompositeModel(
+        m1::M1,
+        m2::M2,
+        op::O,
+    ) where {M1,M2<:AbstractSpectralModel{K},O} where {K} = new{M1,M2,O,K}(m1, m2, op)
 end
 
-modelkind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2} = modelkind(M2)
+modelkind(::Type{<:CompositeModel{M1,M2,O,K}}) where {M1,M2,O,K} = K()
 function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     if (implementation(M1) isa XSPECImplementation) ||
        (implementation(M2) isa XSPECImplementation)
@@ -95,12 +100,6 @@ function closurekind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     else
         WithoutClosures()
     end
-end
-
-# parameter access
-# get_param_symbols(M::Type{<:AbstractSpectralModel}) = fieldnames(M)
-function get_param_types(model::Type{<:SpectralFitting.CompositeModel})
-    __generated_get_param_types(model)
 end
 
 # utilities
@@ -141,13 +140,13 @@ end
 
 # algebra grammar
 add_models(_, _, ::M1, ::M2) where {M1,M2} =
-    error("Left and right models must be Additive.")
+    throw("Left and right models must be Additive.")
 add_models(m1, m2, ::Additive, ::Additive) = CompositeModel(m1, m2, AdditionOperator())
 add_models(m1::M1, m2::M2) where {M1,M2} = add_models(m1, m2, modelkind(M1), modelkind(M2))
 Base.:+(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralModel} =
     add_models(m1, m2, modelkind(M1), modelkind(M2))
 
-mult_models(_, _, ::M1, ::M2) where {M1,M2} = error("Left model must be Multiplicative.")
+mult_models(_, _, ::M1, ::M2) where {M1,M2} = throw("Left model must be Multiplicative.")
 mult_models(m1, m2, ::Multiplicative, ::AbstractSpectralModelKind) =
     CompositeModel(m1, m2, MultiplicationOperator())
 mult_models(m1::M1, m2::M2) where {M1,M2} =
@@ -156,7 +155,7 @@ Base.:*(m1::M1, m2::M2) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralMod
     mult_models(m1, m2, modelkind(M1), modelkind(M2))
 
 conv_models(_, _, ::M1, ::M2) where {M1,M2} =
-    error("Left model must be Convolutional and right model must be Additive.")
+    throw("Left model must be Convolutional and right model must be Additive.")
 conv_models(m1, m2, ::Convolutional, ::Additive) =
     CompositeModel(m1, m2, ConvolutionOperator())
 conv_models(m1::M1, m2::M2) where {M1,M2} =
@@ -176,7 +175,7 @@ __get_model_parameters!(params, adder!, model::AbstractSpectralModel) =
     _add_params_to_index!(params, adder!, model)
 
 function __get_model_parameters!(params, adder!, model::CompositeModel)
-    recursive_model_parse(model) do (left, right, _)
+    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
         _add_params_to_index!(params, adder!, right)
         _add_params_to_index!(params, adder!, left)
         nothing
@@ -192,21 +191,21 @@ __add_frozen!(_, _, ::FreeParameter) = nothing
 __add_frozen!(ps, p::F) where {F} = __add_frozen!(ps, p, fit_parameter_state(F))
 
 function get_free_model_params(model::AbstractSpectralModel)
-    T = generated_get_model_number_type(model)
+    T = generated_model_parameter_type(model)
     params = FitParam{T}[]
     __get_model_parameters!(params, __add_free!, model)
     params
 end
 
 function get_frozen_model_params(model::AbstractSpectralModel)
-    T = generated_get_model_number_type(model)
+    T = generated_model_parameter_type(model)
     params = FrozenFitParam{T}[]
     __get_model_parameters!(params, __add_frozen!, model)
     params
 end
 
 function get_params_value(model::CompositeModel)
-    T = generated_get_model_number_type(model)
+    T = generated_model_parameter_type(model)
     params = T[]
     __get_model_parameters!(params, (ps, p) -> push!(ps, get_value(p)), model)
     params
@@ -221,7 +220,7 @@ end
 function _add_symbols_and_params_to_index!(params, m)
     if !isnothing(m)
         foreach(get_param_symbol_pairs(m)) do (s, p)
-            symb = _make_unique_readable_symbol(s, first.(params))
+            symb = FunctionGeneration._make_unique_readable_symbol(s, first.(params))
             push!(params, symb => p)
         end
     end
@@ -248,7 +247,7 @@ function get_param(model::CompositeModel, s::Symbol)
 end
 
 # printing
-_expression_string(model::M) where {M<:AbstractSpectralModel} = modelinfo(M)
+_expression_string(::M) where {M<:AbstractSpectralModel} = modelinfo(M)
 _expression_string(left, right, ::Multiplicative) = "$left * $right"
 _expression_string(left, right, ::Convolutional) = "$left($right)"
 _expression_string(left, right, ::Additive) = "($left + $right)"
@@ -259,6 +258,11 @@ function _expression_string(cm::CompositeModel{M1,M2}) where {M1,M2}
     _expression_string(left, right, modelkind(M1))
 end
 
+function _all_model_types(model::CompositeModel)
+    ga = FunctionGeneration.assemble_aggregate_info(typeof(model))
+    ga.models
+end
+
 function Base.show(io::IO, ::CompositeModel)
     print(io, "CompositeModel")
 end
@@ -266,7 +270,7 @@ end
 # such an ugly function
 function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     l_buffer = 5
-    model_types = generated_get_model_types(model)
+    model_types = _all_model_types(model)
     n_components = length(model_types)
     expr, infos = _readable_expression_info(model)
 
@@ -282,12 +286,12 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     params = Pair{Symbol,AbstractFitParameter}[]
     model_list = map(infos.models) do (symbol, m)
         _ps = map(get_param_symbol_pairs(m)) do (ps, p)
-            ups = _make_unique_readable_symbol(ps, first.(params))
+            ups = FunctionGeneration._make_unique_readable_symbol(ps, first.(params))
             push!(params, ups => p)
             String(ups)
         end
         p_string = join(_ps, ", ")
-        symbol => ("$(model_base_name(typeof(m)))", p_string)
+        symbol => ("$(FunctionGeneration.model_base_name(typeof(m)))", p_string)
     end
 
     pad1 = maximum(i -> length(String(i[1])), params) + l_buffer
@@ -337,7 +341,7 @@ _unique_model_symbol(::Convolutional, infos) = Symbol('c', infos.c[] += 1)
 function _readable_expression_info(model::CompositeModel)
     models = Pair{Symbol,AbstractSpectralModel}[]
     infos = (models = models, a = Ref(0), m = Ref(0), c = Ref(0))
-    expr = recursive_model_parse(model) do (left, right, op)
+    expr = FunctionGeneration.recursive_model_parse(model) do (left, right, op)
         r_symb = if right isa AbstractSpectralModel
             rs = _unique_model_symbol(right, infos)
             push!(models, rs => right)

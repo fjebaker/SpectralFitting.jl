@@ -8,9 +8,9 @@ _model_available_memoize_cache = Dict{Symbol,Bool}()
 Downloads all model data for the models currently registered with [`SpectralFitting.register_model_data`](@ref).
 Calls [`SpectralFitting.download_model_data`](@ref) to perform the download.
 """
-function download_all_model_data()
+function download_all_model_data(; verbose = true)
     for s in keys(_model_to_data_map)
-        download_model_data(s)
+        download_model_data(s; verbose = verbose)
     end
 end
 
@@ -121,9 +121,13 @@ download_model_data(M::Type{<:AbstractSpectralModel}; kwargs...) =
     download_model_data(Base.typename(M).name; kwargs...)
 download_model_data(::M; kwargs...) where {M<:AbstractSpectralModel} =
     download_model_data(Base.typename(M).name; kwargs...)
-function download_model_data(s::Symbol; kwargs...)
+function download_model_data(s::Symbol; verbose = true, kwargs...)
+    _infolog(s) =
+        if verbose
+            @info s
+        end
     if _is_model_data_downloaded(s)
-        @info "Model data for $(s) is already downloaded."
+        _infolog("Model data for $(s) is already downloaded.")
         return nothing
     end
 
@@ -133,15 +137,15 @@ function download_model_data(s::Symbol; kwargs...)
         mkdir(_model_data_storage_path)
     end
 
-    @info "Checking model data for $s:"
+    _infolog("Checking model data for $s:")
     for src in _model_to_data_map[s]
         dest = joinpath(_model_data_storage_path, src)
         if !ispath(dest)
             _download_from_archive(src, dest; kwargs...)
-            @info "$src downloaded"
+            _infolog("$src downloaded")
         end
     end
-    @info "All requisite model data for $s downloaded."
+    _infolog("All requisite model data for $s downloaded.")
     return nothing
 end
 

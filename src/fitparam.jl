@@ -1,3 +1,8 @@
+"""
+Utility structure for tracking which parameters are free or frozen.
+"""
+struct FreeParameters{V} end
+
 function fit_param_default_error(val)
     # 10 % error
     round(abs(0.1 * val), sigdigits = 1)
@@ -48,6 +53,9 @@ mutable struct FitParam{T} <: AbstractFitParameter
         error = fit_param_default_error(val),
     ) where {T} = new{T}(val, error, lower_limit, upper_limit)
 end
+
+parameter_type(::Type{FitParam{T}}) where {T} = T
+parameter_type(::T) where {T<:FitParam} = parameter_type(T)
 
 function get_info_tuple(f::AbstractFitParameter)
     s1 = Printf.@sprintf "%.3g" get_value(f)

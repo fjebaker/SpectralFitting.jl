@@ -44,14 +44,7 @@ function group_response_channels(rm::ResponseMatrix{T}, grouping) where {T}
         bin_high[i] = rm.channel_bins_high[index1]
     end
 
-    ResponseMatrix(
-        R,
-        collect(1:N),
-        bin_low,
-        bin_high,
-        rm.bins_low,
-        rm.bins_high,
-    )
+    ResponseMatrix(R, collect(1:N), bin_low, bin_high, rm.bins_low, rm.bins_high)
 end
 
 function build_matrix_response!(R, rmf::OGIP_RMF_Matrix)
