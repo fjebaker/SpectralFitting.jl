@@ -40,7 +40,8 @@ FunctionGeneration.model_base_name(::Type{<:SurrogateSpectralModel{K}}) where {K
     :(SurrogateSpectralModel{$K})
 
 # model generation
-FunctionGeneration.closure_parameter_symbols(::Type{<:SurrogateSpectralModel}) = (:surrogate,)
+FunctionGeneration.closure_parameter_symbols(::Type{<:SurrogateSpectralModel}) =
+    (:surrogate,)
 get_param_types(::Type{<:SurrogateSpectralModel{K,S,P,Z}}) where {K,S,P,Z} = P.types
 all_parameter_symbols(M::Type{<:SurrogateSpectralModel}) =
     [Symbol(:P, i) for i in eachindex(get_param_types(M))]

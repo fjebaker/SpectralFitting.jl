@@ -78,7 +78,11 @@ struct CompositeModel{M1,M2,O,K} <: AbstractSpectralModel{K}
     left::M1
     right::M2
     op::O
-    CompositeModel(m1::M1, m2::M2, op::O) where {M1, M2<:AbstractSpectralModel{K},O} where {K} = new{M1,M2,O,K}(m1, m2, op)
+    CompositeModel(
+        m1::M1,
+        m2::M2,
+        op::O,
+    ) where {M1,M2<:AbstractSpectralModel{K},O} where {K} = new{M1,M2,O,K}(m1, m2, op)
 end
 
 modelkind(::Type{<:CompositeModel{M1,M2,O,K}}) where {M1,M2,O,K} = K()
@@ -96,12 +100,6 @@ function closurekind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     else
         WithoutClosures()
     end
-end
-
-# parameter access
-# get_param_symbols(M::Type{<:AbstractSpectralModel}) = fieldnames(M)
-function get_param_types(model::Type{<:SpectralFitting.CompositeModel})
-    __generated_get_param_types(model)
 end
 
 # utilities
@@ -177,7 +175,7 @@ __get_model_parameters!(params, adder!, model::AbstractSpectralModel) =
     _add_params_to_index!(params, adder!, model)
 
 function __get_model_parameters!(params, adder!, model::CompositeModel)
-    recursive_model_parse(model) do (left, right, _)
+    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
         _add_params_to_index!(params, adder!, right)
         _add_params_to_index!(params, adder!, left)
         nothing
@@ -193,21 +191,21 @@ __add_frozen!(_, _, ::FreeParameter) = nothing
 __add_frozen!(ps, p::F) where {F} = __add_frozen!(ps, p, fit_parameter_state(F))
 
 function get_free_model_params(model::AbstractSpectralModel)
-    T = generated_get_model_number_type(model)
+    T = generated_model_parameter_type(model)
     params = FitParam{T}[]
     __get_model_parameters!(params, __add_free!, model)
     params
 end
 
 function get_frozen_model_params(model::AbstractSpectralModel)
-    T = generated_get_model_number_type(model)
+    T = generated_model_parameter_type(model)
     params = FrozenFitParam{T}[]
     __get_model_parameters!(params, __add_frozen!, model)
     params
 end
 
 function get_params_value(model::CompositeModel)
-    T = generated_get_model_number_type(model)
+    T = generated_model_parameter_type(model)
     params = T[]
     __get_model_parameters!(params, (ps, p) -> push!(ps, get_value(p)), model)
     params

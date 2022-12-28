@@ -4,7 +4,14 @@
 module FunctionGeneration
 
 import SpectralFitting
-import SpectralFitting: AbstractSpectralModel, AbstractSpectralModelKind,Convolutional, CompositeModel, operation_symbol, modelkind,has_closure_params
+import SpectralFitting:
+    AbstractSpectralModel,
+    AbstractSpectralModelKind,
+    Convolutional,
+    CompositeModel,
+    operation_symbol,
+    modelkind,
+    has_closure_params
 include("parsing-utilities.jl")
 
 mutable struct GenerationAggregate
@@ -76,9 +83,9 @@ function add_invoke_statment!(
     s = :(invokemodel!(
         $flux,
         energy,
-        $(model_base_name(M)),
+        $(M),
         $(closure_params...),
-        $(info.symbols...),
+        $(info.generated_symbols...),
     ))
     push_model!(ga, M)
     push_statement!(ga, s)
@@ -133,7 +140,14 @@ end
 function generated_model_call!(fluxes, energy, model, params)
     ga = assemble_aggregate_info(model)
     flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
-    p_assign = [:($s = params[$i]) for (i, s) in enumerate(ga.parameters)]
+    i = 0
+    p_assign = reduce(
+        vcat,
+        [
+            [:($(s) = params[$(i += 1)]) for s in info.generated_symbols] for
+            info in ga.infos
+        ],
+    )
     closures = assemble_closures(ga, model)
     quote
         @fastmath begin
@@ -182,21 +196,6 @@ function generated_model_call!(fluxes, energy, model, free_params, frozen_params
     end
 end
 
-function generated_get_param_types(model::Type{<:AbstractSpectralModel})
-    types = Type[]
-    add_param_types!(types, model)
-    types
-end
-function generated_get_param_types(model::Type{<:CompositeModel})
-    types = Type[]
-    recursive_model_parse(model) do (left, right, _)
-        add_param_types!(types, right)
-        add_param_types!(types, left)
-        Nothing
-    end
-    types
-end
-
 function assemble_aggregate_info(model::Type{<:CompositeModel})
     ga = FunctionGeneration.GenerationAggregate()
     FunctionGeneration.recursive_model_parse(model) do (left, right, op_type)
@@ -222,5 +221,9 @@ function assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
     ga
 end
 
-end # module
+function model_T(model::Type{<:AbstractSpectralModel})
+    ga = assemble_aggregate_info(model)
+    first(ga.models[1].parameters)
+end
 
+end # module

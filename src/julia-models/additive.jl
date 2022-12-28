@@ -38,8 +38,8 @@ struct PowerLaw{T,F} <: AbstractSpectralModel{Additive}
     K::FitParam{T}
     "Photon index."
     a::FitParam{T}
-    function PowerLaw(;K = FitParam(1.0), a=FitParam(1.0))
-        new{parameter_type(K),FreeParameters{(:K,:a)}}(K, a)
+    function PowerLaw(; K = FitParam(1.0), a = FitParam(2.0))
+        new{parameter_type(K),FreeParameters{(:K, :a)}}(K, a)
     end
 end
 @fastmath function invoke!(flux, energy, ::Type{<:PowerLaw}, a)

@@ -26,7 +26,7 @@ export AbstractSpectralModel,
     update_params!,
     freeze_parameter,
     free_parameter
-    
+
 
 
 # models
@@ -93,7 +93,7 @@ struct Convolutional <: AbstractSpectralModelKind end
 Return the kind of model given by `M`: either `Additive`, `Multiplicative`, or `Convolutional`.
 """
 modelkind(::Type{<:AbstractSpectralModel{K}}) where {K} = K()
-modelkind(::M) where {M <: AbstractSpectralModel} = modelkind(M)
+modelkind(::M) where {M<:AbstractSpectralModel} = modelkind(M)
 
 abstract type AbstractSpectralModelImplementation end
 struct XSPECImplementation <: AbstractSpectralModelImplementation end

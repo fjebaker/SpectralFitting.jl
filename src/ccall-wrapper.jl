@@ -72,7 +72,7 @@ macro xspecmodel(model_kind, func_info, model)
 
     if func_info isa QuoteNode
         func_name = func_info
-        callsite = libXSFunctions 
+        callsite = libXSFunctions
     else
         func_name = func_info.args[1]
         callsite = func_info.args[2]

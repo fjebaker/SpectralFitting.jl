@@ -15,27 +15,27 @@ end
 end
 
 @generated function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
-    FunctionGeneration.generated_model_call!(fluxes, energy, model, free_params, frozen_params)
+    FunctionGeneration.generated_model_call!(
+        fluxes,
+        energy,
+        model,
+        free_params,
+        frozen_params,
+    )
 end
 
 @generated function generated_maximum_flux_count(model)
     FunctionGeneration.generated_maximum_flux_count(model)
 end
 
-@generated function generated_get_param_types(model)
-    types = FunctionGeneration.generated_get_param_types(model)
-    :($types)
-end
-
-@generated function generated_get_model_number_type(model)
-    types = first(FunctionGeneration.generated_get_param_types(model)).types
-    T = isempty(types) ? types : first(types)
-    :($T)
-end
-
 @generated function generated_model_types(model)
     ga = assemble_aggregate_info(model)
     :(($(ga.models...),))
+end
+
+@generated function generated_model_parameter_type(model)
+    T = FunctionGeneration.model_T(model)
+    :($(T))
 end
 
 """
@@ -65,5 +65,5 @@ Returns a compile-time known tuple of symbols corresponding to those parameters 
 """
 @generated function frozen_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.frozen_parameter_symbols(model)
-    :($params) 
+    :($params)
 end

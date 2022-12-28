@@ -2,13 +2,14 @@ struct ModelInfo
     symbols::Vector{Symbol}
     free::Vector{Symbol}
     frozen::Vector{Symbol}
+    generated_symbols::Vector{Symbol}
 end
 
 function getinfo(model::Type{<:AbstractSpectralModel})
     symbs = [all_parameter_symbols(model)...]
     free = [free_parameter_symbols(model)...]
     frozen = [frozen_parameter_symbols(model)...]
-    ModelInfo(symbs, free, frozen)
+    ModelInfo(symbs, free, frozen, [Base.gensym(s) for s in symbs])
 end
 
 function getinfo(model::Type{<:CompositeModel})
@@ -29,7 +30,7 @@ function addinfo!(infos, model::Type{<:CompositeModel})
             addinfo!(infos, left)
         end
         Nothing
-    end 
+    end
 end
 
 unpack_model(::Type{<:CompositeModel{M1,M2,O}}) where {M1,M2,O} = (M1, M2, O)
@@ -106,7 +107,7 @@ function frozen_parameter_symbols(M::Type{<:AbstractSpectralModel})
     tuple(setdiff(all_symbols, free)...)
 end
 
-    
+
 # only needed for WithClosures()
 closure_parameter_symbols(::Type{<:AbstractSpectralModel}) = ()
 model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
