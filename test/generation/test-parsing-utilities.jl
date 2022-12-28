@@ -2,6 +2,8 @@ using Test
 using SpectralFitting
 
 include("../dummies.jl")
+include("../fuzz.jl")
+
 model = DummyAdditive()
 
 params = SpectralFitting.all_parameter_symbols(model)
@@ -19,7 +21,19 @@ info = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
 
 # model introspetion
 T = SpectralFitting.FunctionGeneration.model_T(typeof(model))
-@test T === Float64
+@test T === typeof(1.0)
 
 T = SpectralFitting.generated_model_parameter_type(model)
-@test T === Float64
+@test T === typeof(1.0)
+
+# fuzz with all models we have
+for model in FUZZ_ALL_MODELS
+    _ = SpectralFitting.all_parameter_symbols(model)
+    _ = SpectralFitting.free_parameter_symbols(model)
+    _ = SpectralFitting.frozen_parameter_symbols(model)
+    _ = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
+    TT = SpectralFitting.FunctionGeneration.model_T(typeof(model))
+    @test TT === typeof(1.0)
+    TT = SpectralFitting.generated_model_parameter_type(model)
+    @test TT === typeof(1.0)
+end 

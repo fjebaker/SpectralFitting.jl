@@ -2,6 +2,7 @@ using Test
 using SpectralFitting
 
 include("../dummies.jl")
+include("../fuzz.jl")
 
 model = DummyAdditive()
 
@@ -23,6 +24,11 @@ _ = checker_free_frozen(model)
 _ = checker_free_frozen(model + model)
 _ = checker_all(model)
 _ = checker_all(model + model)
+
+for model in FUZZ_ALL_MODELS
+    _ = checker_all(model)
+    _ = checker_free_frozen(model)
+end
 
 # check that the generated functions work too
 
