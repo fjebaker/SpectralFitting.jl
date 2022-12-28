@@ -13,8 +13,6 @@ export AbstractSpectralModel,
     WithoutClosures,
     closurekind,
     has_closure_params,
-    get_param_types,
-    get_param_symbols,
     get_param,
     get_param_count,
     get_params,
@@ -27,9 +25,6 @@ export AbstractSpectralModel,
     freeze_parameter,
     free_parameter
 
-
-
-# models
 """
     abstract type AbstractSpectralModel{K}
 
@@ -146,38 +141,6 @@ The only exception to this are [`Additive`](@ref) models, where the normalisatio
 invoke!(flux, energy, M::AbstractSpectralModel, params...) = error("Not defined for $(M).")
 
 """
-    get_param_types(model::AbstractSpectralModel)
-    get_param_types(M::Type{<:AbstractSpectralModel})
-
-Get a `Vector{Type}` with the type of each parameters in a given [`AbstractSpectralModel`](@ref).
-
-# Example
-
-```julia
-model = XS_BlackBody() + XS_PhotoelectricAbsorption() * XS_PowerLaw()
-get_param_types(model)
-```
-"""
-get_param_types(::M) where {M<:AbstractSpectralModel} = get_param_types(M)
-get_param_types(M::Type{<:AbstractSpectralModel}) = M.types
-
-"""
-    get_param_symbols(model::AbstractSpectralModel)
-    get_param_symbols(M::Type{<:AbstractSpectralModel})
-
-Get a `Vector{Symbol}` with the symbol of each parameters in a given [`AbstractSpectralModel`](@ref).
-
-# Example
-
-```julia
-model = XS_PhotoelectricAbsorption() * XS_Laor()
-get_param_symbols(model)
-```
-"""
-get_param_symbols(::M) where {M<:AbstractSpectralModel} = get_param_symbols(M)
-get_param_symbols(M::Type{<:AbstractSpectralModel}) = fieldnames(M)
-
-"""
     get_param(model::AbstractSpectralModel, s::Symbol)
 
 Get a parameter from an [`AbstractSpectralModel`](@ref) by symbol.
@@ -219,7 +182,7 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params(model)
 ```
 """
-get_params(m::AbstractSpectralModel) = (get_param(m, p) for p in get_param_symbols(m))
+get_params(m::M) where {M<:AbstractSpectralModel} = (get_param(m, p) for p in FunctionGeneration.all_parameter_symbols(M))
 
 """
     get_params_value(m::AbstractSpectralModel)
@@ -250,7 +213,7 @@ get_param_symbol_pairs(model)
 ```
 """
 get_param_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
-    (p => get_param(m, p) for p in get_param_symbols(m))
+    (p => get_param(m, p) for p in FunctionGeneration.all_parameter_symbols(M))
 
 """
     invokemodel(energy, model)

@@ -107,7 +107,8 @@ function frozen_parameter_symbols(M::Type{<:AbstractSpectralModel})
     tuple(setdiff(all_symbols, free)...)
 end
 
+function closure_parameter_symbols(::Type{<:AbstractSpectralModel})
+    error("This specialisation should never need to be invoked.")
+end
 
-# only needed for WithClosures()
-closure_parameter_symbols(::Type{<:AbstractSpectralModel}) = ()
 model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name

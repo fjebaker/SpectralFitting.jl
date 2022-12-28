@@ -12,6 +12,7 @@ import SpectralFitting:
     operation_symbol,
     modelkind,
     has_closure_params
+
 include("parsing-utilities.jl")
 
 mutable struct GenerationAggregate
@@ -77,15 +78,20 @@ function add_invoke_statment!(
 )
     info = getinfo(M)
     push_info!(ga, info)
-    closure_params = map(closure_parameter_symbols(M)) do p
-        new_closure_param!(ga, p)
+    # aggregate closure parameters
+    closure_params = if has_closure_params(M)
+        map(closure_parameter_symbols(M)) do p
+            new_closure_param!(ga, p)
+        end
+    else
+        ()
     end
     s = :(invokemodel!(
         $flux,
         energy,
         $(M),
-        $(closure_params...),
         $(info.generated_symbols...),
+        $(closure_params...),
     ))
     push_model!(ga, M)
     push_statement!(ga, s)
@@ -122,9 +128,9 @@ function assemble_closures(ga::GenerationAggregate, model)
     i = 0
 
     for (p, M) in zip(paths_to_models, models_with_closure)
-        for f in get_closure_param_fields(M)
+        for s in closure_parameter_symbols(M)
             param = ga.closure_params[(i+=1)]
-            path = :(getproperty($p, $(Meta.quot(f))))
+            path = :(getproperty($p, $(Meta.quot(s))))
             a = :($param = $path)
             push!(assignments, a)
         end
