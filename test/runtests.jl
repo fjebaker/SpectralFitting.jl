@@ -26,8 +26,13 @@ end
     @testset "julia-models" begin
         include("models/test-julia-models.jl")
     end
-    @testset "xspec-models" begin
-        include("models/test-xspec-models.jl")
+
+    # only test XSPEC models when not using CI
+    # since model data access is annoying
+    if ENV.get("CI", false) == false
+        @testset "xspec-models" begin
+            include("models/test-xspec-models.jl")
+        end
     end
     @testset "general-models" begin
         include("models/test-models.jl")
