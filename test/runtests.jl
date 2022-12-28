@@ -8,6 +8,9 @@ using SpectralFitting
     @testset "utilities" begin
         include("generation/test-parsing-utilities.jl")
     end
+    @testset "introspection" begin
+        include("generation/test-introspection.jl")
+    end
 end
 
 @testset "macros" verbose = true begin 
@@ -51,6 +54,11 @@ end
     end
 end
 
+@testset "io" verbose = true begin
+    @testset "printing" begin
+        include("io/test-printing.jl")
+    end
+end
 
 using Aqua
 
