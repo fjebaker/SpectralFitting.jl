@@ -112,8 +112,5 @@ export AbstractFitParameter,
     get_upperlimit,
     get_lowerlimit,
     is_frozen,
-    set_freeze!,
-    freeze!,
-    unfreeze!,
     as_distribution,
     print_info

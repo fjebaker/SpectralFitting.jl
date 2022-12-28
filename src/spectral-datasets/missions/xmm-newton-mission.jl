@@ -1,4 +1,4 @@
-export AbstractXmmNewtonDevice, EPIC, XmmNewton, XmmNewtonEPIC, XmmNewtonMeta
+export AbstractXmmNewtonDevice, XmmNewton, XmmNewtonEPIC, XmmNewtonMeta
 
 abstract type AbstractXmmNewtonDevice end
 struct XmmEPIC <: AbstractXmmNewtonDevice end
