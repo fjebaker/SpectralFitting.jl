@@ -1,15 +1,3 @@
-@generated function generated_model_parameter_count(model)
-    :($(FunctionGeneration.model_parameter_count(model)))
-end
-
-@generated function generated_frozen_model_parameter_count(model)
-    :($(FunctionGeneration.model_frozen_parameter_count(model)))
-end
-
-@generated function generated_free_model_parameter_count(model)
-    :($(FunctionGeneration.model_free_parameter_count(model)))
-end
-
 @generated function generated_model_call!(fluxes, energy, model, params)
     FunctionGeneration.generated_model_call!(fluxes, energy, model, params)
 end
