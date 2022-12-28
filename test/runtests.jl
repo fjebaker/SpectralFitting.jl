@@ -33,3 +33,10 @@ end
         include("models/test-models.jl")
     end
 end
+
+
+using Aqua
+
+# little bit of aqua
+Aqua.test_undefined_exports(SpectralFitting)
+Aqua.test_unbound_args(SpectralFitting)
