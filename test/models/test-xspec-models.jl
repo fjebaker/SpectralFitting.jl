@@ -17,12 +17,26 @@ ALL_XSPEC_MODELS = [
     XS_WarmAbsorption,
 ]
 
+ALL_XSPEC_CONVOLUTIONAL = [
+    XS_CalculateFlux
+]
+
 energy = collect(range(0.1, 100.0, 100))
 
 for M in ALL_XSPEC_MODELS
     m = M()
     # can we invoke okay
     f = invokemodel(energy, m)
+    @test all(.!isnan.(f))
+    @test all(.!isinf.(f))
+end
+
+
+# have to check convolutional models on a non-zero input flux
+for M in ALL_XSPEC_CONVOLUTIONAL
+    m = M()
+    f = ones(Float64, length(energy) - 1)
+    invokemodel!(f, energy, m)
     @test all(.!isnan.(f))
     @test all(.!isinf.(f))
 end

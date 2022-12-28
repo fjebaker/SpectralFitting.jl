@@ -55,7 +55,7 @@ include("plotting-recipes.jl")
 # include xspec models
 include("xspec-models/additive.jl")
 include("xspec-models/multiplicative.jl")
-# include("xspec-models/convolutional.jl")
+include("xspec-models/convolutional.jl")
 
 # include julia models
 include("julia-models/model-utilities.jl")
