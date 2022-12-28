@@ -190,11 +190,8 @@ __add_frozen!(ps, p, ::FrozenParameter) = push!(ps, p)
 __add_frozen!(_, _, ::FreeParameter) = nothing
 __add_frozen!(ps, p::F) where {F} = __add_frozen!(ps, p, fit_parameter_state(F))
 
-function get_free_model_params(model::AbstractSpectralModel)
-    T = generated_model_parameter_type(model)
-    params = FitParam{T}[]
-    __get_model_parameters!(params, __add_free!, model)
-    params
+function get_free_model_params(model::M) where {M <: AbstractSpectralModel}
+    symbs = free_parameter_symbols(model) 
 end
 
 function get_frozen_model_params(model::AbstractSpectralModel)
@@ -370,3 +367,29 @@ end
 function Base.show(io::IO, ::MIME"text/plain", cm::CompositeModel{M1,M2}) where {M1,M2}
     _printinfo(io, cm)
 end
+
+function _composite_parameters!(params, model::AbstractSpectralModel, parameters)
+    for p in parameters(model)
+        push!(params, p)
+    end
+end
+function _composite_parameters!(params, model::CompositeModel, parameters)
+    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
+        if !isnothing(right) 
+            _composite_parameters!(params, right, parameters)
+        end
+        if !isnothing(left)
+            _composite_parameters!(params, left, parameters)
+        end
+        nothing
+    end 
+end
+function _composite_parameters!(model::CompositeModel, parameters)
+    params = FitParam{generated_model_parameter_type(model)}[]
+    _composite_parameters!(params, model, parameters)
+    params    
+end
+
+modelparameters(model::CompositeModel) = _composite_parameters!(model, modelparameters)
+freeparameters(model::CompositeModel) = _composite_parameters!(model, freeparameters)
+frozenparameters(model::CompositeModel) = _composite_parameters!(model, frozenparameters)

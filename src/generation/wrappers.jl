@@ -30,28 +30,35 @@ end
     all_parameter_symbols(model::AbstractSpectralModel)
 
 Returns a compile-time known tuple of all models symbols.
+This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameters`](@ref).
 """
 @generated function all_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.all_parameter_symbols(model)
-    :($params)
+    :($(params))
 end
+all_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")
+
 
 """
     free_parameter_symbols(model::AbstractSpectralModel)
 
 Returns a compile-time known tuple of symbols corresponding to those parameters which are free in the model.
+This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameters`](@ref).
 """
 @generated function free_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.free_parameter_symbols(model)
-    :($params)
+    :($(params))
 end
+free_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")
 
 """
     frozen_parameter_symbols(model::AbstractSpectralModel)
 
 Returns a compile-time known tuple of symbols corresponding to those parameters which are frozen in the model.
+This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameters`](@ref).
 """
 @generated function frozen_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.frozen_parameter_symbols(model)
-    :($params)
+    :($(params))
 end
+frozen_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")

@@ -23,7 +23,10 @@ export AbstractSpectralModel,
     flux_count,
     update_params!,
     freeze_parameter,
-    free_parameter
+    free_parameter,
+    modelparameters,
+    freeparameters,
+    frozenparameters
 
 """
     abstract type AbstractSpectralModel{K}
@@ -401,4 +404,16 @@ function freeze_parameter(model, symbols...)
 end
 function free_parameter(model, symbols...)
     error("Not implemented yet.")
+end
+
+
+function modelparameters(model::AbstractSpectralModel) 
+    [getproperty(model, s) for s in all_parameter_symbols(model)]
+end
+
+function freeparameters(model::AbstractSpectralModel)
+    [getproperty(model, s) for s in free_parameter_symbols(model)]
+end
+function frozenparameters(model::AbstractSpectralModel)
+    [getproperty(model, s) for s in frozen_parameter_symbols(model)]
 end

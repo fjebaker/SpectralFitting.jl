@@ -54,6 +54,8 @@ mutable struct FitParam{T} <: AbstractFitParameter
     ) where {T} = new{T}(val, error, lower_limit, upper_limit)
 end
 
+Base.isapprox(f1::FitParam, f2::FitParam; kwargs...) = isapprox(f1.value, f2.value; kwargs...)
+
 parameter_type(::Type{FitParam{T}}) where {T} = T
 parameter_type(::T) where {T<:FitParam} = parameter_type(T)
 
@@ -84,27 +86,8 @@ function Base.show(io::IO, ::MIME"text/plain", f::AbstractFitParameter)
     print_info(io, f)
 end
 
-mutable struct FrozenFitParam{T} <: AbstractFitParameter
-    value::T
-end
-
-function get_info_tuple(f::FrozenFitParam)
-    s = Printf.@sprintf "%.3g" get_value(f)
-    (s, "", "", "")
-end
-
-fit_parameter_state(::Type{<:FrozenFitParam}) = FrozenParameter()
-
-set_value!(::FrozenFitParam, val) = f.value = val
-set_error!(::FrozenFitParam, _) = error("Cannot set error on frozen fit parameter.")
-get_value(f::FrozenFitParam) = f.value
-get_error(::FrozenFitParam{T}) where {T} = zero(T)
-get_upperlimit(::FrozenFitParam{T}) where {T} = zero(T)
-get_lowerlimit(::FrozenFitParam{T}) where {T} = zero(T)
-
 export AbstractFitParameter,
     FitParam,
-    FrozenFitParam,
     set_value!,
     set_error!,
     get_value,
