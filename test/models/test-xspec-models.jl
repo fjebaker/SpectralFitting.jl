@@ -2,7 +2,7 @@ using Test
 using SpectralFitting
 
 
-SpectralFitting.download_all_model_data(verbose=false)
+SpectralFitting.download_all_model_data(verbose = false)
 
 ALL_XSPEC_MODELS = [
     XS_PowerLaw,
@@ -12,7 +12,9 @@ ALL_XSPEC_MODELS = [
     XS_DiskLine,
     XS_KerrDisk,
     XS_KyrLine,
-    XS_Gaussian
+    XS_Gaussian,
+    XS_PhotoelectricAbsorption,
+    XS_WarmAbsorption,
 ]
 
 energy = collect(range(0.1, 100.0, 100))
