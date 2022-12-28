@@ -5,7 +5,7 @@ using SpectralFitting
 ALL_JULIA_MODELS = [PowerLaw, BlackBody]
 
 # has data requirements, so skip on the CI
-if ENV.get("CI", false) == false
+if get(ENV, "CI", false) == false
     push!(ALL_JULIA_MODELS, PhotoelectricAbsorption())
 end 
 

@@ -29,7 +29,7 @@ end
 
     # only test XSPEC models when not using CI
     # since model data access is annoying
-    if ENV.get("CI", false) == false
+    if get(ENV, "CI", false) == false
         @testset "xspec-models" begin
             include("models/test-xspec-models.jl")
         end
