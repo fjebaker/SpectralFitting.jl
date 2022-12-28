@@ -53,23 +53,6 @@ end
 inc_flux!(g::GenerationAggregate) = set_flux!(g, g.flux_count + 1)
 dec_flux!(g::GenerationAggregate) = set_flux!(g, g.flux_count - 1)
 
-
-# model parameter introspection
-function model_parameter_count(M::Type{<:AbstractSpectralModel})::Int
-    types = get_param_types(M)
-    length(types)
-end
-
-function model_frozen_parameter_count(M::Type{<:AbstractSpectralModel})::Int
-    types = get_param_types(M)
-    count(is_frozen, types)
-end
-
-function model_free_parameter_count(M::Type{<:AbstractSpectralModel})::Int
-    types = get_param_types(M)
-    count(!is_frozen, types)
-end
-
 # model invokation generation
 function add_invoke_statment!(
     ga::GenerationAggregate,

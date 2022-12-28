@@ -37,3 +37,19 @@ for model in FUZZ_ALL_MODELS
     TT = SpectralFitting.generated_model_parameter_type(model)
     @test TT === typeof(1.0)
 end
+
+
+# introspection for composite models
+cm = DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
+
+@test_throws "" SpectralFitting.all_parameter_symbols(cm)
+@test_throws "" SpectralFitting.free_parameter_symbols(cm)
+@test_throws "" SpectralFitting.frozen_parameter_symbols(cm)
+
+T = SpectralFitting.FunctionGeneration.model_T(typeof(cm))
+@test T == typeof(1.0)
+T = SpectralFitting.generated_model_parameter_type(cm)
+@test T == typeof(1.0)
+
+info = SpectralFitting.FunctionGeneration.getinfo(typeof(cm))
+@test length(info) == 3

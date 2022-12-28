@@ -1,15 +1,3 @@
-@generated function generated_model_parameter_count(model)
-    :($(FunctionGeneration.model_parameter_count(model)))
-end
-
-@generated function generated_frozen_model_parameter_count(model)
-    :($(FunctionGeneration.model_frozen_parameter_count(model)))
-end
-
-@generated function generated_free_model_parameter_count(model)
-    :($(FunctionGeneration.model_free_parameter_count(model)))
-end
-
 @generated function generated_model_call!(fluxes, energy, model, params)
     FunctionGeneration.generated_model_call!(fluxes, energy, model, params)
 end
@@ -42,28 +30,35 @@ end
     all_parameter_symbols(model::AbstractSpectralModel)
 
 Returns a compile-time known tuple of all models symbols.
+This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameters`](@ref).
 """
 @generated function all_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.all_parameter_symbols(model)
-    :($params)
+    :($(params))
 end
+all_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")
+
 
 """
     free_parameter_symbols(model::AbstractSpectralModel)
 
 Returns a compile-time known tuple of symbols corresponding to those parameters which are free in the model.
+This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameters`](@ref).
 """
 @generated function free_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.free_parameter_symbols(model)
-    :($params)
+    :($(params))
 end
+free_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")
 
 """
     frozen_parameter_symbols(model::AbstractSpectralModel)
 
 Returns a compile-time known tuple of symbols corresponding to those parameters which are frozen in the model.
+This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameters`](@ref).
 """
 @generated function frozen_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.frozen_parameter_symbols(model)
-    :($params)
+    :($(params))
 end
+frozen_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")

@@ -3,9 +3,7 @@ export AbstractCompositeOperator,
     MultiplicationOperator,
     ConvolutionOperator,
     operation_symbol,
-    CompositeModel,
-    get_free_model_params,
-    get_frozen_model_params
+    CompositeModel
 
 """
     abstract type AbstractCompositeOperator
@@ -131,7 +129,7 @@ function invokemodel(e, m::CompositeModel, free_params)
     first(fluxes)
 end
 function invokemodel!(f, e, m::CompositeModel, free_params)
-    frozen_params = get_value.(get_frozen_model_params(m))
+    frozen_params = get_value.(frozenparameters(m))
     invokemodel!(f, e, m, free_params, frozen_params)
 end
 function invokemodel!(f, e, model::CompositeModel, free_params, frozen_params)
@@ -162,61 +160,6 @@ conv_models(m1::M1, m2::M2) where {M1,M2} =
     conv_models(m1, m2, modelkind(M1), modelkind(M2))
 (m1::AbstractSpectralModel)(m2::M2) where {M2<:AbstractSpectralModel} = conv_models(m1, m2)
 
-# runtime param access
-function _add_params_to_index!(params, adder!, m)
-    if !isnothing(m)
-        foreach(get_params(m)) do p
-            adder!(params, p)
-        end
-    end
-end
-
-__get_model_parameters!(params, adder!, model::AbstractSpectralModel) =
-    _add_params_to_index!(params, adder!, model)
-
-function __get_model_parameters!(params, adder!, model::CompositeModel)
-    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
-        _add_params_to_index!(params, adder!, right)
-        _add_params_to_index!(params, adder!, left)
-        nothing
-    end
-end
-
-__add_free!(ps, p, ::FreeParameter) = push!(ps, p)
-__add_free!(_, _, ::FrozenParameter) = nothing
-__add_free!(ps, p::F) where {F} = __add_free!(ps, p, fit_parameter_state(F))
-
-__add_frozen!(ps, p, ::FrozenParameter) = push!(ps, p)
-__add_frozen!(_, _, ::FreeParameter) = nothing
-__add_frozen!(ps, p::F) where {F} = __add_frozen!(ps, p, fit_parameter_state(F))
-
-function get_free_model_params(model::AbstractSpectralModel)
-    T = generated_model_parameter_type(model)
-    params = FitParam{T}[]
-    __get_model_parameters!(params, __add_free!, model)
-    params
-end
-
-function get_frozen_model_params(model::AbstractSpectralModel)
-    T = generated_model_parameter_type(model)
-    params = FrozenFitParam{T}[]
-    __get_model_parameters!(params, __add_frozen!, model)
-    params
-end
-
-function get_params_value(model::CompositeModel)
-    T = generated_model_parameter_type(model)
-    params = T[]
-    __get_model_parameters!(params, (ps, p) -> push!(ps, get_value(p)), model)
-    params
-end
-
-function get_params(model::CompositeModel)
-    params = AbstractFitParameter[]
-    __get_model_parameters!(params, push!, model)
-    params
-end
-
 function _add_symbols_and_params_to_index!(params, m)
     if !isnothing(m)
         foreach(get_param_symbol_pairs(m)) do (s, p)
@@ -227,7 +170,7 @@ function _add_symbols_and_params_to_index!(params, m)
 end
 
 function get_param_symbol_pairs(model::CompositeModel)
-    params = Pair{Symbol,AbstractFitParameter}[]
+    params = Pair{Symbol,FitParam}[]
     recursive_model_parse(model) do (left, right, _)
         _add_symbols_and_params_to_index!(params, right)
         _add_symbols_and_params_to_index!(params, left)
@@ -283,18 +226,18 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
         Crayons.Crayon(reset = true),
     )
 
-    params = Pair{Symbol,AbstractFitParameter}[]
+    param_symbols = Symbol[]
     model_list = map(infos.models) do (symbol, m)
         _ps = map(get_param_symbol_pairs(m)) do (ps, p)
-            ups = FunctionGeneration._make_unique_readable_symbol(ps, first.(params))
-            push!(params, ups => p)
+            ups = FunctionGeneration._make_unique_readable_symbol(ps, param_symbols)
+            push!(param_symbols, ups)
             String(ups)
         end
         p_string = join(_ps, ", ")
         symbol => ("$(FunctionGeneration.model_base_name(typeof(m)))", p_string)
     end
 
-    pad1 = maximum(i -> length(String(i[1])), params) + l_buffer
+    pad1 = maximum(i -> length(String(i)), param_symbols) + l_buffer
     pad2 = maximum(i -> length(i[2][1]), model_list) + 1
 
     println(io, lpad("Symbols:", pad1), "    ", rpad("Models:", pad2), " Params:")
@@ -304,16 +247,18 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
 
     println(io, lpad("Symbols:", pad1), "     Values:")
 
-    info_tuple = get_info_tuple.(last.(params))
+    param_infos = model_parameter_info(model)
+    info_tuples = [get_info_tuple(i[2]) for i in param_infos]
+    # calculate paddings for alignment
     q1, q2, q3, q4 = map(1:4) do i
-        maximum(j -> length("$(j[i])"), info_tuple) + 1
+        maximum(j -> length("$(j[i])"), info_tuples) + 1
     end
-    for ((s, p), info) in zip(params, info_tuple)
-        print(io, "$(lpad(s, pad1)) => ")
-        print(io, lpad(info[1], q1))
-        if !is_frozen(p)
-            print(io, " ± ", rpad(info[2], q2))
-            print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
+    for (symbol, (_, _, free), pinfo) in zip(param_symbols, param_infos, info_tuples)
+        print(io, "$(lpad(symbol, pad1)) => ")
+        print(io, lpad(pinfo[1], q1))
+        if free
+            print(io, " ± ", rpad(pinfo[2], q2))
+            print(io, " ∈ [", lpad(pinfo[3], q3), ", ", rpad(pinfo[4], q4), "]")
             print(
                 io,
                 Crayons.Crayon(foreground = :green),
@@ -367,6 +312,33 @@ function _readable_expression_info(model::CompositeModel)
     expr, infos
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cm::CompositeModel{M1,M2}) where {M1,M2}
-    _printinfo(io, cm)
+function _composite_parameters!(params, model::AbstractSpectralModel, parameters)
+    for p in parameters(model)
+        push!(params, p)
+    end
+end
+function _composite_parameters!(params, model::CompositeModel, parameters)
+    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
+        if !isnothing(right) 
+            _composite_parameters!(params, right, parameters)
+        end
+        if !isnothing(left)
+            _composite_parameters!(params, left, parameters)
+        end
+        nothing
+    end 
+end
+function _composite_parameters!(model::CompositeModel, parameters)
+    params = FitParam{generated_model_parameter_type(model)}[]
+    _composite_parameters!(params, model, parameters)
+    params    
+end
+
+modelparameters(model::CompositeModel) = _composite_parameters!(model, modelparameters)
+freeparameters(model::CompositeModel) = _composite_parameters!(model, freeparameters)
+frozenparameters(model::CompositeModel) = _composite_parameters!(model, frozenparameters)
+function model_parameter_info(model::CompositeModel)
+    infos = Tuple{Symbol,FitParam{generated_model_parameter_type(model)},Bool}[]
+    _composite_parameters!(infos, model, model_parameter_info)
+    infos
 end

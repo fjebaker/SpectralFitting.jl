@@ -21,9 +21,12 @@ export AbstractSpectralModel,
     invokemodel,
     invokemodel!,
     flux_count,
-    update_params!,
     freeze_parameter,
-    free_parameter
+    free_parameter,
+    modelparameters,
+    freeparameters,
+    frozenparameters,
+    model_parameter_info
 
 """
     abstract type AbstractSpectralModel{K}
@@ -197,7 +200,7 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params_value(model)
 ```
 """
-get_params_value(m::AbstractSpectralModel) = (get_value(i) for i in get_params(m))
+get_params_value(m::AbstractSpectralModel) = collect(get_value(i) for i in modelparameters(m))
 # todo: make this a proper iterator? also better name
 
 """
@@ -222,7 +225,7 @@ get_param_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
 
 Invoke the [`AbstractSpectralModel`](@ref) given by `model`, optionally overriding the free
 parameters with values given in `free_params`. `free_params` may be a vector or tuple with element
-type [`AbstractFitParameter`](@ref) or `Number`.
+type [`FitParam`](@ref) or `Number`.
 
 This function, unlike [`SpectralFitting.invoke!`](@ref) used to define models, is sensitive to performing
 any normalisation or post-processing tasks that a specific model kind may require.
@@ -272,7 +275,7 @@ end
 
 In-place variant of [`invokemodel`](@ref), calculating the flux of an [`AbstractSpectralModel`](@ref)
 given by `model`, optionally overriding the free and/or frozen parameter values. These arguments
-may be a vector or tuple with element type [`AbstractFitParameter`](@ref) or `Number`.
+may be a vector or tuple with element type [`FitParam`](@ref) or `Number`.
 
 The number of fluxes to allocate for a model may change if using any [`CompositeModel`](@ref)
 as the `model`. It is generally recommended to use [`flux_count`](@ref) to ensure the correct number
@@ -351,25 +354,25 @@ flux_count(model)
 flux_count(model::AbstractSpectralModel) = generated_maximum_flux_count(model)
 
 
-"""
-    update_params!(model::AbstractSpectralModel, values)
-    update_params!(model::AbstractSpectralModel, values, errors)
+# """
+#     update_params!(model::AbstractSpectralModel, values)
+#     update_params!(model::AbstractSpectralModel, values, errors)
 
-Update the free model parameters with `values`, optionally also updating the `errors`.
-"""
-function update_params!(model::AbstractSpectralModel, values)
-    for (p, v, e) in zip(get_free_model_params(model), values)
-        set_value!(p, v)
-    end
-    model
-end
-function update_params!(model::AbstractSpectralModel, values, errors)
-    for (p, v, e) in zip(get_free_model_params(model), values, errors)
-        set_value!(p, v)
-        set_error!(p, e)
-    end
-    model
-end
+# Update the free model parameters with `values`, optionally also updating the `errors`.
+# """
+# function update_params!(model::AbstractSpectralModel, values)
+#     for (p, v, e) in zip(get_free_model_params(model), values)
+#         set_value!(p, v)
+#     end
+#     model
+# end
+# function update_params!(model::AbstractSpectralModel, values, errors)
+#     for (p, v, e) in zip(get_free_model_params(model), values, errors)
+#         set_value!(p, v)
+#         set_error!(p, e)
+#     end
+#     model
+# end
 
 
 # printing
@@ -379,7 +382,7 @@ function modelinfo(m::M) where {M<:AbstractSpectralModel}
     "$(FunctionGeneration.model_base_name(M))[$(params)]"
 end
 
-function Base.show(io::IO, ::MIME"text/plain", m::M) where {M<:AbstractSpectralModel}
+function _printinfo(io::IO, m::M) where {M <: AbstractSpectralModel}
     params = [String(s) => p for (s, p) in get_param_symbol_pairs(m)]
     print(io, "$(FunctionGeneration.model_base_name(M))\n")
 
@@ -389,6 +392,10 @@ function Base.show(io::IO, ::MIME"text/plain", m::M) where {M<:AbstractSpectralM
         print(io, "   $(rpad(s, pad)) => ")
         println(io, val)
     end
+end
+
+function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
+    _printinfo(io, model)
 end
 
 # parameter utilities
@@ -401,4 +408,34 @@ function freeze_parameter(model, symbols...)
 end
 function free_parameter(model, symbols...)
     error("Not implemented yet.")
+end
+
+
+function modelparameters(model::AbstractSpectralModel) 
+    [getproperty(model, s) for s in all_parameter_symbols(model)]
+end
+
+function freeparameters(model::AbstractSpectralModel)
+    [getproperty(model, s) for s in free_parameter_symbols(model)]
+end
+function frozenparameters(model::AbstractSpectralModel)
+    [getproperty(model, s) for s in frozen_parameter_symbols(model)]
+end
+
+
+"""
+    model_parameter_info(model::AbstractSpectralModel)
+
+Returns an array of tuples containing information about the model parameters.
+The tuples contain
+```
+(Symbol,             FitParam{T},      bool)
+parameter symbol,   copy of value,   is free 
+```
+"""
+function model_parameter_info(model::AbstractSpectralModel)
+    free = free_parameter_symbols(model)
+    map(all_parameter_symbols(model)) do s
+        (s, getproperty(model, s), s in free)
+    end
 end

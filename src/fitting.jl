@@ -6,7 +6,7 @@ function wrap_model(
     energy = energy_vector(data),
 ) where {T}
     fluxes = make_fluxes(energy, flux_count(model), T)
-    frozen_params = get_value.(get_frozen_model_params(model))
+    frozen_params = get_value.(frozenparameters(model))
     ΔE = data.energy_bin_widths
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
     R = fold_ancillary(data)[data.mask, :]
