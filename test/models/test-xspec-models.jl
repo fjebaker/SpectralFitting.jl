@@ -2,7 +2,7 @@ using Test
 using SpectralFitting
 
 
-SpectralFitting.download_all_model_data()
+SpectralFitting.download_all_model_data(verbose=false)
 
 ALL_XSPEC_MODELS = [
     XS_PowerLaw,
