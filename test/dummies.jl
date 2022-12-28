@@ -36,18 +36,29 @@ struct DummyAdditiveTableModel{T,D,F} <: AbstractTableModel{D,Additive}
     K::FitParam{T}
     a::FitParam{T}
     b::FitParam{T}
-    function DummyAdditiveTableModel(K::FitParam{T}, a::FitParam{T}, b::FitParam{T}) where {T}
+    function DummyAdditiveTableModel(
+        K::FitParam{T},
+        a::FitParam{T},
+        b::FitParam{T},
+    ) where {T}
         # table is just an interpolation anywhere so lambda for tests
         table = (x) -> x^2
-        new{T,typeof(table),SpectralFitting.FreeParameters{(:K,:a)}}(table, K, a, b)
-    end 
+        new{T,typeof(table),SpectralFitting.FreeParameters{(:K, :a)}}(table, K, a, b)
+    end
 end
-function SpectralFitting.invoke!(flux, energy, ::Type{<:DummyAdditiveTableModel}, a, b, table)
+function SpectralFitting.invoke!(
+    flux,
+    energy,
+    ::Type{<:DummyAdditiveTableModel},
+    a,
+    b,
+    table,
+)
     flux[:] .= table(a) + b
 end
-function DummyAdditiveTableModel(;K = FitParam(1.0), a=FitParam(1.0), b=FitParam(2.0))
+function DummyAdditiveTableModel(; K = FitParam(1.0), a = FitParam(1.0), b = FitParam(2.0))
     DummyAdditiveTableModel(K, a, b)
-end 
+end
 
 struct DummyMultiplicativeTableModel{T,D,F} <: AbstractTableModel{D,Multiplicative}
     table::D
@@ -57,11 +68,18 @@ struct DummyMultiplicativeTableModel{T,D,F} <: AbstractTableModel{D,Multiplicati
         # table is just an interpolation anywhere so lambda for tests
         table = (x, k) -> k * x
         new{T,typeof(table),SpectralFitting.FreeParameters{(:a,)}}(table, a, b)
-    end 
+    end
 end
-function SpectralFitting.invoke!(flux, energy, ::Type{<:DummyMultiplicativeTableModel}, a, b, table)
+function SpectralFitting.invoke!(
+    flux,
+    energy,
+    ::Type{<:DummyMultiplicativeTableModel},
+    a,
+    b,
+    table,
+)
     @. flux = table(flux, a) + b
 end
-function DummyMultiplicativeTableModel(;a=FitParam(1.0), b=FitParam(2.0))
+function DummyMultiplicativeTableModel(; a = FitParam(1.0), b = FitParam(2.0))
     DummyMultiplicativeTableModel(a, b)
-end 
+end

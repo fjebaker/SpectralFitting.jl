@@ -36,4 +36,4 @@ for model in FUZZ_ALL_MODELS
     @test TT === typeof(1.0)
     TT = SpectralFitting.generated_model_parameter_type(model)
     @test TT === typeof(1.0)
-end 
+end

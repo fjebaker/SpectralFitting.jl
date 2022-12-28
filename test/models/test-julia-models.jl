@@ -13,4 +13,3 @@ for M in ALL_JULIA_MODELS
     @test all(.!isnan.(outflux))
     @test all(.!isinf.(outflux))
 end
-

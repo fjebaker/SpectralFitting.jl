@@ -182,7 +182,8 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params(model)
 ```
 """
-get_params(m::M) where {M<:AbstractSpectralModel} = (get_param(m, p) for p in FunctionGeneration.all_parameter_symbols(M))
+get_params(m::M) where {M<:AbstractSpectralModel} =
+    (get_param(m, p) for p in FunctionGeneration.all_parameter_symbols(M))
 
 """
     get_params_value(m::AbstractSpectralModel)

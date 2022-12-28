@@ -7,7 +7,7 @@ using SpectralFitting
     end
     @testset "utilities" begin
         include("generation/test-parsing-utilities.jl")
-    end 
+    end
 end
 
 @testset "composite-algebra" begin
