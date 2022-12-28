@@ -3,6 +3,7 @@ using SpectralFitting
 
 @testset "composite-algebra" begin
     include("composite/test-algebra.jl")
+    include("composite/test-invocation.jl")
 end
 
 @testset "generation" begin

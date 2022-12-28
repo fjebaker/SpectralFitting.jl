@@ -16,3 +16,10 @@ info = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
 @test info.symbols == [:K, :a, :b]
 @test info.free == [:K, :a]
 @test info.frozen == [:b]
+
+# model introspetion
+T = SpectralFitting.FunctionGeneration.model_T(typeof(model))
+@test T === Float64
+
+T = SpectralFitting.generated_model_parameter_type(model)
+@test T === Float64
