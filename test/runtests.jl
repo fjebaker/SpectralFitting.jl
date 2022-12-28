@@ -25,6 +25,12 @@ end
     end
 end
 
+@testset "parameters" verbose = true begin
+    @testset "model-parameters" begin
+        include("parameters/test-model-parameters.jl")
+    end
+end
+
 @testset "model-library" verbose = true begin
     @testset "table-models" begin
         include("models/test-table-models.jl")
