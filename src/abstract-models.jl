@@ -278,14 +278,6 @@ function invokemodel(e, m::AbstractSpectralModel, free_params)
     flux
 end
 
-function remake_with_free(model::AbstractSpectralModel, free_params)
-    patch = free_parameters_to_named_tuple(free_params, model)
-    ConstructionBase.setproperties(
-        remake_with_number_type(model),
-        patch
-    )
-end
-
 """
     invokemodel!(flux, energy, model)
     invokemodel!(flux, energy, model, free_params)
@@ -387,10 +379,6 @@ function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
 end
 
 # parameter utilities
-function remake_model(T::Type, model::AbstractSpectralModel)
-    T(get_param_symbol_pairs(model)...)
-end
-
 function freeze_parameter(model, symbols...)
     error("Not implemented yet.")
 end
@@ -433,5 +421,33 @@ function remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) wher
     M = typeof(model).name.wrapper
     params = modelparameters(model)
     new_params = convert.(T, params)
-    M{T,modelkind(typeof(model))}(new_params...)
+    M{T,FreeParameters{free_parameter_symbols(model)}}(new_params...)
 end
+
+function remake_with_free(model::AbstractSpectralModel{<:FitParam}, free_params)
+    updatefree(remake_with_number_type(model), free_params)
+end
+remake_with_free(model::AbstractSpectralModel{<:Number}, free_params) = 
+    updatefree(model, free_params)
+
+
+"""
+    updatemodel(model::AbstractSpectralModel; kwargs...)
+    updatemodel(model::AbstractSpectralModel, patch::NamedTuple)
+
+Modify parameters in a given model by keyvalue, or with a named tuple.
+"""
+updatemodel(model::AbstractSpectralModel, patch::NamedTuple) = ConstructionBase.setproperties(model, patch)
+updatemodel(model::AbstractSpectralModel; kwargs...) = ConstructionBase.setproperties(model; kwargs...)
+
+@inline function updatefree(model::AbstractSpectralModel, free_params)
+    patch = free_parameters_to_named_tuple(free_params, model)
+    updatemodel(model, patch)
+end
+
+@inline function updateparameters(model::AbstractSpectralModel, params)
+    patch = all_parameters_to_named_tuple(params, model)
+    updatemodel(model, patch)
+end
+
+

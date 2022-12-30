@@ -81,3 +81,7 @@ end
 @inline @generated function all_parameters_to_named_tuple(model::AbstractSpectralModel)
     FunctionGeneration.all_parameters_to_named_tuple(model)
 end
+
+@inline @generated function all_parameters_to_named_tuple(params::Vector, model::AbstractSpectralModel)
+    FunctionGeneration.all_parameters_to_named_tuple(params, model)
+end

@@ -325,8 +325,8 @@ function _composite_parameters!(params, model::CompositeModel, parameters)
         nothing
     end
 end
-function _composite_parameters!(model::CompositeModel, parameters)
-    params = FitParam{numbertype(model)}[]
+function _composite_parameters!(model::CompositeModel{M1,M2,O,T}, parameters) where {M1,M2,O,T}
+    params = T[]
     _composite_parameters!(params, model, parameters)
     params
 end
