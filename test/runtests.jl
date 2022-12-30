@@ -50,7 +50,11 @@ end
         end
     end
     @testset "general-models" begin
-        include("models/test-models.jl")
+        include("models/test-general-models.jl")
+        # include the general xspec models only when not CI
+        if get(ENV, "CI", false) == false
+            include("models/test-general-xspec-models.jl")
+        end
     end
 end
 

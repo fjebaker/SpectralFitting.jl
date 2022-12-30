@@ -119,3 +119,35 @@ invokemodel!(fluxes, energy, cm, free_params)
 invokemodel!(fluxes, energy, cm, free_params)
 invokemodel!(fluxes, energy, cm, free_params)
 @test all(flux .== 140.0)
+
+# ensure we can pass different input parameter types and have the system update accordingly
+model = DummyAdditive()
+free_params = Float32[2.0, 1.0]
+flux = invokemodel(energy, model, free_params)
+@test all(flux .== 12.0)
+@test eltype(flux) == Float32
+
+# composite
+cm = DummyMultiplicative() * DummyAdditive()
+free_params = Float32[2.0, 2.0, 2.0]
+flux = invokemodel(energy, cm, free_params)
+@test all(flux .== 140.0)
+@test eltype(flux) == Float32
+
+# composite with many frozen
+cm = DummyMultiplicative() * (DummyAdditive() + DummyAdditiveWithManyFrozen())
+flux = invokemodel(energy, cm)
+@test all(flux .== 160.0)
+
+# inplace variant
+flux = zeros(Float64, length(energy) - 1)
+fluxes = (flux, deepcopy(flux))
+invokemodel!(fluxes, energy, cm)
+@test all(flux .== 160.0)
+
+# inplace with new free parameters
+flux .= 0
+
+free_params = [1.0, 2.0, 1.0, 1.0, 1.0]
+invokemodel!(fluxes, energy, cm, free_params)
+@test all(flux .== 160.0)

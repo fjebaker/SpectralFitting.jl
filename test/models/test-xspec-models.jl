@@ -50,3 +50,18 @@ flux2 = invokemodel(energy, model2)
 # these should _not_ be the same, despite same normalisation
 # so use the sum of residiuals as a metric for difference
 @test isapprox(sum(flux1 .- flux2), 86.18438944203572, rtol=1e-4)
+
+
+# inplace variants
+model = XS_PowerLaw()
+flux = zeros(Float64, length(energy) - 1)
+invokemodel!(flux, energy, model)
+@test all(.!isnan.(flux))
+@test all(.!isinf.(flux))
+
+# composite
+model = XS_PowerLaw() + XS_PowerLaw()
+fluxes = (flux, deepcopy(flux))
+invokemodel!(fluxes, energy, model)
+@test all(.!isnan.(flux))
+@test all(.!isinf.(flux))
