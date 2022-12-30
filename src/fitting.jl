@@ -1,4 +1,4 @@
-export wrap_model, wrap_model_simple
+export wrap_model, wrap_model_noflux
 
 function wrap_model(
     model::AbstractSpectralModel,
@@ -12,14 +12,15 @@ function wrap_model(
     R = fold_ancillary(data)[data.mask, :]
     # pre-allocate the output 
     outflux = zeros(T, length(ΔE))
-    (energy, params) -> begin
+    wrapped = (energy, params) -> begin
         invokemodel!(fluxes, energy, model, params, frozen_params)
         mul!(outflux, R, fluxes[1])
         @. outflux = outflux / ΔE
     end
+    energy, wrapped
 end
 
-function wrap_model_simple(
+function wrap_model_noflux(
     model::AbstractSpectralModel,
     data::SpectralDataset{T};
 ) where {T}
