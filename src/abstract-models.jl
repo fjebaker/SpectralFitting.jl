@@ -156,7 +156,7 @@ end
 The only exception to this are [`Additive`](@ref) models, where the normalisation parameter
 `K` is not passed to `invoke!`.
 """
-invoke!(flux, energy, M::AbstractSpectralModel, params...) = error("Not defined for $(M).")
+invoke!(flux, energy, M::AbstractSpectralModel) = error("Not defined for $(M).")
 
 """
     get_param(model::AbstractSpectralModel, s::Symbol)
@@ -215,9 +215,7 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params_value(model)
 ```
 """
-get_params_value(m::AbstractSpectralModel) =
-    collect(get_value(i) for i in modelparameters(m))
-# todo: make this a proper iterator? also better name
+get_params_value(m::AbstractSpectralModel) = convert.(Float64, modelparameters(m))
 
 """
     get_param_symbol_pairs(m::AbstractSpectralModel)

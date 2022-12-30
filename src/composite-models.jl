@@ -105,9 +105,15 @@ add_param_types!(_, ::Type{Nothing}) = nothing
 add_param_types!(types, M::Type{<:AbstractSpectralModel}) =
     push!(types, get_param_types(M)...)
 
-# invokation wrappers
+# invocation wrappers
 invokemodel!(f, e, model::CompositeModel) =
     generated_model_call!(f, e, model, get_params_value(model))
+invokemodel!(f, e, model::CompositeModel, free_params, frozen_params) =
+    generated_model_call!(f, e, model, free_params, frozen_params)
+function invokemodel!(f, e, m::CompositeModel, free_params)
+    frozen_params = convert.(eltype(free_params), (frozenparameters(m)))
+    invokemodel!(f, e, m, free_params, frozen_params)
+end
 
 function invokemodel(e, m::CompositeModel)
     fluxes = make_fluxes(e, flux_count(m))
@@ -126,12 +132,6 @@ function invokemodel(e, m::CompositeModel, free_params)
     end
     first(fluxes)
 end
-function invokemodel!(f, e, m::CompositeModel, free_params)
-    frozen_params = get_value.(frozenparameters(m))
-    invokemodel!(f, e, m, free_params, frozen_params)
-end
-invokemodel!(f, e, model::CompositeModel, free_params, frozen_params) =
-    generated_model_call!(f, e, model, free_params, frozen_params)
 
 # algebra grammar
 add_models(_, _, ::M1, ::M2) where {M1,M2} =
@@ -198,8 +198,8 @@ function _expression_string(cm::CompositeModel{M1,M2}) where {M1,M2}
     _expression_string(left, right, modelkind(M1))
 end
 
-function _all_model_types(model::CompositeModel)
-    ga = FunctionGeneration.assemble_aggregate_info(typeof(model))
+function _all_model_types(model::CompositeModel{M1,M2,O,T}) where {M1, M2, O, T}
+    ga = FunctionGeneration.assemble_aggregate_info(typeof(model), T)
     ga.models
 end
 

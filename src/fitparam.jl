@@ -41,7 +41,7 @@ fit_parameter_state(::F) where {F<:FitParam} = fit_parameter_state(F)
 Base.isapprox(f1::FitParam, f2::FitParam; kwargs...) =
     isapprox(f1.value, f2.value; kwargs...)
 Base.:(==)(f1::FitParam, f2::FitParam) = f1.value == f2.value
-Base.convert(::Type{T}, f::FitParam{T}) where {T} = f.value
+Base.convert(T::Type{<:Number}, f::FitParam) = convert(T, f.value)
 
 parameter_type(::Type{FitParam{T}}) where {T} = T
 parameter_type(::T) where {T<:FitParam} = parameter_type(T)

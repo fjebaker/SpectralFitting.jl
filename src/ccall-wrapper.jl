@@ -119,14 +119,15 @@ macro xspecmodel(c_function, model)
         SpectralFitting.implementation(::Type{<:$(model_name)}) = XSPECImplementation()
 
         function SpectralFitting.invoke!(
-            flux::AbstractArray,
-            energy::AbstractArray,
-            model::M,
+            flux,
+            energy,
+            model::$(model_name)
+            ;
             spectral_number = 1,
             init_string = "",
-        ) where {M<:$(model_name)}
+        )
             @assert length(flux) + 1 == length(energy)
-            SpectralFitting.ensure_model_data(M)
+            SpectralFitting.ensure_model_data($(model_name))
 
             if length(SpectralFitting.UNTRACKED_ERROR) < length(flux)
                 SpectralFitting.resize_untracked_error(length(flux))
