@@ -18,7 +18,7 @@ function unsafe_parameter_vector_conditioned(alloc_model::Vector{<:AbstractSpect
     model_ptr = pointer(alloc_model)
     ptr = Base.unsafe_convert(Ptr{T}, model_ptr) 
     # reinterpret as an unowned vector of `T`
-    @show unsafe_wrap(Vector{T}, ptr, N, own=false)
+    unsafe_wrap(Vector{T}, ptr, N, own=false)
 end
 
 macro wrap_xspec_model_ccall(
