@@ -1,4 +1,4 @@
-abstract type AbstractTableModel{T,K} <: AbstractSpectralModel{K} end
+abstract type AbstractTableModel{T,K} <: AbstractSpectralModel{T,K} end
 
 closurekind(::Type{<:AbstractTableModel}) = WithClosures()
 
@@ -10,9 +10,11 @@ function FunctionGeneration.all_parameter_symbols(model::Type{<:AbstractTableMod
     fieldnames(model)[2:end]
 end
 
-function invokemodel!(f, e, m::AbstractTableModel{T,K}) where {T,K}
-    # pass table as the last argument
-    invokemodel!(f, e, typeof(m), get_params_value(m)..., m.table)
+function remake_with_number_type(model::AbstractTableModel{FitParam{T}}) where {T}
+    M = typeof(model).name.wrapper
+    params = modelparameters(model)
+    new_params = convert.(T, params)
+    M{typeof(model.table),T,modelkind(typeof(model))}(model.table, new_params...)
 end
 
 # todo: use subtypes to ensure everything is correct in the model definitions

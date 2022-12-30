@@ -33,20 +33,22 @@ invokemodel(energy, PowerLaw())
                          E (keV)
 ```
 """
-struct PowerLaw{T,F} <: AbstractSpectralModel{Additive}
+struct PowerLaw{T,F} <: AbstractSpectralModel{T,Additive}
     "Normalisation."
-    K::FitParam{T}
+    K::T
     "Photon index."
-    a::FitParam{T}
-    function PowerLaw(; K = FitParam(1.0), a = FitParam(2.0))
-        new{parameter_type(K),FreeParameters{(:K, :a)}}(K, a)
-    end
+    a::T
 end
-@inline function invoke!(flux, energy, ::Type{<:PowerLaw}, a)
-    α = 1 - a
-    α⁻¹ = inv(α)
-    finite_diff_kernel!(flux, energy) do E
-        α⁻¹ * E^α
+function PowerLaw(; K = FitParam(1.0), a = FitParam(2.0))
+    PowerLaw{typeof(K),FreeParameters{(:K, :a)}}(K, a)
+end
+@inline @fastmath function invoke!(flux, energy, model::PowerLaw)
+    let a = model.a
+        α = 1 - a
+        α⁻¹ = inv(α)
+        finite_diff_kernel!(flux, energy) do E
+            α⁻¹ * E^α
+        end
     end
 end
 
@@ -85,18 +87,20 @@ invokemodel(energy, BlackBody())
                          E (keV)
 ```
 """
-struct BlackBody{T,F} <: AbstractSpectralModel{Additive}
+struct BlackBody{T,F} <: AbstractSpectralModel{T,Additive}
     "Normalisation."
-    K::FitParam{T}
+    K::T
     "Temperature (keV)."
-    kT::FitParam{T}
-    function BlackBody(; K = FitParam(1.0), kT = FitParam(3.0))
-        new{parameter_type(K),FreeParameters{(:K, :kT)}}(K, kT)
-    end
+    kT::T
 end
-@inline function invoke!(flux, energy, ::Type{<:BlackBody}, kT)
-    integration_kernel!(flux, energy) do E, δE
-        8.0525 * E^2 * δE / (kT^4 * (exp(E / kT) - 1))
+function BlackBody(; K = FitParam(1.0), kT = FitParam(3.0))
+    BlackBody{typeof(K),FreeParameters{(:K, :kT)}}(K, kT)
+end
+@inline function invoke!(flux, energy, model::BlackBody)
+    let kT = model.kT
+        integration_kernel!(flux, energy) do E, δE
+            8.0525 * E^2 * δE / (kT^4 * (exp(E / kT) - 1))
+        end
     end
 end
 
