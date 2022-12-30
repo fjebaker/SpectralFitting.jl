@@ -24,11 +24,11 @@ outmodel = SpectralFitting.remake_with_free(model, free_params)
 
 # check destructuring
 out = SpectralFitting.all_parameters_to_named_tuple(SpectralFitting.remake_with_number_type(model))
-@test out == (; K = 1.0, a = 1.0, b = 2.0)
+@test out == (; K = 1.0, a = 1.0, b = 5.0)
 
 # check it works with closures okay too
 model = DummyAdditiveTableModel()
-res = SpectralFitting.free_parameters_to_named_tuple(model, free_params)
+res = SpectralFitting.free_parameters_to_named_tuple(free_params, model)
 @test res == (;K = free_params[1], a = free_params[2])
 
 outmodel = SpectralFitting.remake_with_number_type(model)
