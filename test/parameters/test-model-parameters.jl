@@ -48,13 +48,7 @@ expected = [FitParam(5.0), FitParam(5.0), FitParam(5.0)]
 cm = DummyMultiplicative() * (DummyAdditive() + DummyAdditiveWithManyFrozen())
 
 params = freeparameters(cm)
-expected = [
-    FitParam(1.0),
-    FitParam(2.0),
-    FitParam(1.0),
-    FitParam(1.0),
-    FitParam(1.0),
-]
+expected = [FitParam(1.0), FitParam(2.0), FitParam(1.0), FitParam(1.0), FitParam(1.0)]
 @test isapprox.(params, expected) |> all
 
 params = frozenparameters(cm)

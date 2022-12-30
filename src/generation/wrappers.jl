@@ -2,7 +2,13 @@
     FunctionGeneration.generated_model_call!(fluxes, energy, model, params)
 end
 
-@inline @generated function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
+@inline @generated function generated_model_call!(
+    fluxes,
+    energy,
+    model,
+    free_params,
+    frozen_params,
+)
     FunctionGeneration.generated_model_call!(
         fluxes,
         energy,
@@ -70,11 +76,14 @@ model = XS_PhotoelectricAbsorption() * XS_PowerLaw()
 flux_count(model)
 ```
 """
-@inline @generated function flux_count(model::AbstractSpectralModel) 
+@inline @generated function flux_count(model::AbstractSpectralModel)
     FunctionGeneration.generated_maximum_flux_count(model)
 end
 
-@inline @generated function free_parameters_to_named_tuple( params::Vector, model::AbstractSpectralModel)
+@inline @generated function free_parameters_to_named_tuple(
+    params::Vector,
+    model::AbstractSpectralModel,
+)
     FunctionGeneration.free_parameters_to_named_tuple(params, model)
 end
 
@@ -82,6 +91,9 @@ end
     FunctionGeneration.all_parameters_to_named_tuple(model)
 end
 
-@inline @generated function all_parameters_to_named_tuple(params::Vector, model::AbstractSpectralModel)
+@inline @generated function all_parameters_to_named_tuple(
+    params::Vector,
+    model::AbstractSpectralModel,
+)
     FunctionGeneration.all_parameters_to_named_tuple(params, model)
 end

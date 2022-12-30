@@ -117,10 +117,7 @@ function ConstructionBase.setproperties(
     patch::NamedTuple{names},
 ) where {M<:AbstractSpectralModel,names}
     symbols = all_parameter_symbols(model)
-    args = (
-        s in names ? getproperty(patch, s) : getproperty(model, s)
-        for s in symbols
-    )
+    args = (s in names ? getproperty(patch, s) : getproperty(model, s) for s in symbols)
     M(args...)
 end
 ConstructionBase.constructorof(::Type{M}) where {M<:AbstractSpectralModel} = M
@@ -425,7 +422,7 @@ end
 function remake_with_free(model::AbstractSpectralModel{<:FitParam}, free_params)
     updatefree(remake_with_number_type(model), free_params)
 end
-remake_with_free(model::AbstractSpectralModel{<:Number}, free_params) = 
+remake_with_free(model::AbstractSpectralModel{<:Number}, free_params) =
     updatefree(model, free_params)
 
 
@@ -435,8 +432,10 @@ remake_with_free(model::AbstractSpectralModel{<:Number}, free_params) =
 
 Modify parameters in a given model by keyvalue, or with a named tuple.
 """
-updatemodel(model::AbstractSpectralModel, patch::NamedTuple) = ConstructionBase.setproperties(model, patch)
-updatemodel(model::AbstractSpectralModel; kwargs...) = ConstructionBase.setproperties(model; kwargs...)
+updatemodel(model::AbstractSpectralModel, patch::NamedTuple) =
+    ConstructionBase.setproperties(model, patch)
+updatemodel(model::AbstractSpectralModel; kwargs...) =
+    ConstructionBase.setproperties(model; kwargs...)
 
 @inline function updatefree(model::AbstractSpectralModel, free_params)
     patch = free_parameters_to_named_tuple(free_params, model)
@@ -447,5 +446,3 @@ end
     patch = all_parameters_to_named_tuple(params, model)
     updatemodel(model, patch)
 end
-
-

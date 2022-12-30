@@ -114,9 +114,7 @@ end
 model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
 
 function _vector_to_named_tuple(params, names)
-    statements = [
-        :(params[$(i)]) for i in 1:length(names)
-    ]
+    statements = [:(params[$(i)]) for i = 1:length(names)]
     :(NamedTuple{$(names)}(($(statements...),)))
 end
 
@@ -137,8 +135,6 @@ end
 
 function all_parameters_to_named_tuple(model)
     names = all_parameter_symbols(model)
-    statements = [
-        :(getproperty(model, $(Meta.quot(s)))) for s in names
-    ]
+    statements = [:(getproperty(model, $(Meta.quot(s)))) for s in names]
     :(NamedTuple{$(names)}(($(statements...),)))
 end

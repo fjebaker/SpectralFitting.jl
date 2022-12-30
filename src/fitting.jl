@@ -12,11 +12,12 @@ function wrap_model(
     R = fold_ancillary(data)[data.mask, :]
     # pre-allocate the output 
     outflux = zeros(T, length(ΔE))
-    wrapped = (energy, params) -> begin
-        invokemodel!(fluxes, energy, model, params, frozen_params)
-        mul!(outflux, R, fluxes[1])
-        @. outflux = outflux / ΔE
-    end
+    wrapped =
+        (energy, params) -> begin
+            invokemodel!(fluxes, energy, model, params, frozen_params)
+            mul!(outflux, R, fluxes[1])
+            @. outflux = outflux / ΔE
+        end
     energy, wrapped
 end
 

@@ -4,10 +4,10 @@ function resize_untracked_error(n)
     resize!(UNTRACKED_ERROR, n)
 end
 
-_unsafe_unwrap_parameter(ptr, N, ::AbstractSpectralModelKind, T::Type) = 
+_unsafe_unwrap_parameter(ptr, N, ::AbstractSpectralModelKind, T::Type) =
     unsafe_wrap(Vector{T}, ptr, N, own = false)
 # additive models don't include normalisation, so we offset
-_unsafe_unwrap_parameter(ptr, N, ::Additive, T::Type) = 
+_unsafe_unwrap_parameter(ptr, N, ::Additive, T::Type) =
     unsafe_wrap(Vector{T}, ptr + sizeof(T), N - 1, own = false)
 
 @inline function unsafe_parameter_vector(
@@ -121,8 +121,7 @@ macro xspecmodel(c_function, model)
         function SpectralFitting.invoke!(
             flux,
             energy,
-            model::$(model_name)
-            ;
+            model::$(model_name);
             spectral_number = 1,
             init_string = "",
         )

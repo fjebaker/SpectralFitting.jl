@@ -91,7 +91,10 @@ struct DummyAdditiveWithManyFrozen{T,F} <: AbstractSpectralModel{T,Additive}
     i::T
     j::T
 end
-function DummyAdditiveWithManyFrozen(; K = FitParam(1.0), a = FitParam(1.0), b = FitParam(5.0),
+function DummyAdditiveWithManyFrozen(;
+    K = FitParam(1.0),
+    a = FitParam(1.0),
+    b = FitParam(5.0),
     c = FitParam(2.0),
     d = FitParam(2.0),
     e = FitParam(2.0),
@@ -100,11 +103,32 @@ function DummyAdditiveWithManyFrozen(; K = FitParam(1.0), a = FitParam(1.0), b =
     h = FitParam(2.0),
     i = FitParam(2.0),
     j = FitParam(2.0),
+)
+    DummyAdditiveWithManyFrozen{typeof(K),SpectralFitting.FreeParameters{(:K, :h)}}(
+        K,
+        a,
+        b,
+        c,
+        d,
+        e,
+        f,
+        g,
+        h,
+        i,
+        j,
     )
-    DummyAdditiveWithManyFrozen{typeof(K),SpectralFitting.FreeParameters{(:K, :h)}}(K, a, b, c, d, e, f, g, h, i, j)
 end
 function SpectralFitting.invoke!(flux, energy, model::DummyAdditiveWithManyFrozen)
     for i in eachindex(flux)
-        flux[i] = model.a * 2model.b + model.c + model.d + model.e + model.f + model.g + model.h + model.i + model.j
+        flux[i] =
+            model.a * 2model.b +
+            model.c +
+            model.d +
+            model.e +
+            model.f +
+            model.g +
+            model.h +
+            model.i +
+            model.j
     end
 end

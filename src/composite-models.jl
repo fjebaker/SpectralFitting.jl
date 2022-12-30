@@ -198,7 +198,7 @@ function _expression_string(cm::CompositeModel{M1,M2}) where {M1,M2}
     _expression_string(left, right, modelkind(M1))
 end
 
-function _all_model_types(model::CompositeModel{M1,M2,O,T}) where {M1, M2, O, T}
+function _all_model_types(model::CompositeModel{M1,M2,O,T}) where {M1,M2,O,T}
     ga = FunctionGeneration.assemble_aggregate_info(typeof(model), T)
     ga.models
 end
@@ -325,7 +325,10 @@ function _composite_parameters!(params, model::CompositeModel, parameters)
         nothing
     end
 end
-function _composite_parameters!(model::CompositeModel{M1,M2,O,T}, parameters) where {M1,M2,O,T}
+function _composite_parameters!(
+    model::CompositeModel{M1,M2,O,T},
+    parameters,
+) where {M1,M2,O,T}
     params = T[]
     _composite_parameters!(params, model, parameters)
     params
