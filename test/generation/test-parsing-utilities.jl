@@ -53,3 +53,14 @@ T = SpectralFitting.numbertype(cm)
 
 info = SpectralFitting.FunctionGeneration.getinfo(typeof(cm))
 @test length(info) == 3
+
+# order of parameters when we query for them is important
+model = DummyAdditiveWithManyFrozen()
+res = SpectralFitting.FunctionGeneration.all_parameter_symbols(typeof(model))
+@test res == (:K, :a, :b, :c, :d, :e, :f, :g, :h, :i, :j)
+
+res = SpectralFitting.FunctionGeneration.free_parameter_symbols(typeof(model))
+@test res == (:K, :h)
+
+res = SpectralFitting.FunctionGeneration.frozen_parameter_symbols(typeof(model))
+@test res == (:a, :b, :c, :d, :e, :f, :g, :i, :j)
