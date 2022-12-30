@@ -21,9 +21,9 @@ info = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
 
 # model introspetion
 T = SpectralFitting.FunctionGeneration.model_T(typeof(model))
-@test T === typeof(1.0)
+@test T === typeof(FitParam(1.0))
 
-T = SpectralFitting.generated_model_parameter_type(model)
+T = SpectralFitting.numbertype(model)
 @test T === typeof(1.0)
 
 # fuzz with all models we have
@@ -33,8 +33,8 @@ for model in FUZZ_ALL_MODELS
     _ = SpectralFitting.frozen_parameter_symbols(model)
     _ = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
     TT = SpectralFitting.FunctionGeneration.model_T(typeof(model))
-    @test TT === typeof(1.0)
-    TT = SpectralFitting.generated_model_parameter_type(model)
+    @test TT === typeof(FitParam(1.0))
+    TT = SpectralFitting.numbertype(model)
     @test TT === typeof(1.0)
 end
 
@@ -47,8 +47,8 @@ cm = DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
 @test_throws "" SpectralFitting.frozen_parameter_symbols(cm)
 
 T = SpectralFitting.FunctionGeneration.model_T(typeof(cm))
-@test T == typeof(1.0)
-T = SpectralFitting.generated_model_parameter_type(cm)
+@test T == typeof(FitParam(1.0))
+T = SpectralFitting.numbertype(cm)
 @test T == typeof(1.0)
 
 info = SpectralFitting.FunctionGeneration.getinfo(typeof(cm))

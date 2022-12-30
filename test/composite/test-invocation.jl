@@ -2,9 +2,22 @@ using Test
 using SpectralFitting
 
 include("../dummies.jl")
-include("../fuzz.jl")
+# include("../fuzz.jl")
 
 model = DummyAdditive()
+
+# test single invocation
+energy = collect(range(0.1, 100.0, 100))
+flux = zeros(Float64, length(energy) - 1)
+
+out_flux = invokemodel!(flux, energy, model)
+@test all(out_flux .== 6)
+
+# make sure normalisation is handled correctly
+model2 = DummyAdditive(K=FitParam(2.0))
+
+out_flux = invokemodel!(flux, energy, model2)
+@test all(out_flux .== 12)
 
 # just check that it has no errors
 checker_free_frozen(model) = SpectralFitting.FunctionGeneration.generated_model_call!(
@@ -31,11 +44,6 @@ for model in FUZZ_ALL_MODELS
 end
 
 # check that the generated functions work too
-
-energy = collect(range(0.1, 100.0, 100))
-# single model
-out_flux = invokemodel(energy, model)
-@test all(out_flux .== 6)
 
 # added models
 out_flux = invokemodel(energy, model + model)
