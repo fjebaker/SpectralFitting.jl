@@ -24,7 +24,16 @@ model = DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
 
 # test but now composite model
 params = modelparameters(model)
-expected = [FitParam(1.0), FitParam(1.0), FitParam(5.0), FitParam(1.0), FitParam(1.0), FitParam(5.0), FitParam(1.0), FitParam(5.0)]
+expected = [
+    FitParam(1.0),
+    FitParam(1.0),
+    FitParam(5.0),
+    FitParam(1.0),
+    FitParam(1.0),
+    FitParam(5.0),
+    FitParam(1.0),
+    FitParam(5.0),
+]
 @test isapprox.(params, expected) |> all
 
 params = freeparameters(model)

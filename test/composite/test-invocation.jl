@@ -14,7 +14,7 @@ out_flux = invokemodel!(flux, energy, model)
 @test all(out_flux .== 6)
 
 # make sure normalisation is handled correctly
-model2 = DummyAdditive(K=FitParam(2.0))
+model2 = DummyAdditive(K = FitParam(2.0))
 
 out_flux = invokemodel!(flux, energy, model2)
 @test all(out_flux .== 12)

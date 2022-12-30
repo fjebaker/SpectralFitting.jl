@@ -7,7 +7,7 @@ ALL_JULIA_MODELS = [PowerLaw, BlackBody]
 # has data requirements, so skip on the CI
 if get(ENV, "CI", false) == false
     push!(ALL_JULIA_MODELS, PhotoelectricAbsorption)
-end 
+end
 
 energy = collect(range(0.1, 100.0, 100))
 

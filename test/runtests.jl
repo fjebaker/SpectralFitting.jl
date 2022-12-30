@@ -13,7 +13,7 @@ using SpectralFitting
     end
 end
 
-@testset "macros" verbose = true begin 
+@testset "macros" verbose = true begin
     @testset "xspecmodel" begin
         include("macros/test-xspec.jl")
     end

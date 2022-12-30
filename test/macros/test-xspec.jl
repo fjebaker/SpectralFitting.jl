@@ -9,10 +9,7 @@ using SpectralFitting
     a::T
 end
 function Test_XS_PowerLaw(; K = FitParam(2.0), a = FitParam(1.0))
-    Test_XS_PowerLaw{typeof(K),SpectralFitting.FreeParameters{(:K, :a)}}(
-        K,
-        a,
-    )
+    Test_XS_PowerLaw{typeof(K),SpectralFitting.FreeParameters{(:K, :a)}}(K, a)
 end
 
 model = Test_XS_PowerLaw()

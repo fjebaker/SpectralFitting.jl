@@ -11,10 +11,12 @@ $(FIELDS)
     "log (base 10) flux in erg / cm^2 / s"
     log10Flux::T
 end
-function XS_CalculateFlux(
-    ; E_min = FitParam(0.2), E_max = FitParam(2.0), log10Flux = FitParam(-10.0, lower_limit = -Inf, upper_limit = 0.0)
+function XS_CalculateFlux(;
+    E_min = FitParam(0.2),
+    E_max = FitParam(2.0),
+    log10Flux = FitParam(-10.0, lower_limit = -Inf, upper_limit = 0.0),
 )
-    XS_CalculateFlux{typeof(E_min), FreeParameters{(:log10Flux,)}}(E_min, E_max, log10Flux)
+    XS_CalculateFlux{typeof(E_min),FreeParameters{(:log10Flux,)}}(E_min, E_max, log10Flux)
 end
 
 export XS_CalculateFlux

@@ -5,7 +5,9 @@ function resize_untracked_error(n)
 end
 
 # pointer hackery
-function unsafe_parameter_vector_conditioned(alloc_model::Vector{<:AbstractSpectralModel{T}}) where {T}
+function unsafe_parameter_vector_conditioned(
+    alloc_model::Vector{<:AbstractSpectralModel{T}},
+) where {T}
     model = first(alloc_model)
     if implementation(typeof(model)) == JuliaImplementation()
         throw("This method is only for `XSPECImplementation` models.")
@@ -16,9 +18,9 @@ function unsafe_parameter_vector_conditioned(alloc_model::Vector{<:AbstractSpect
     N = length(fieldnames(typeof(model)))
 
     model_ptr = pointer(alloc_model)
-    ptr = Base.unsafe_convert(Ptr{T}, model_ptr) 
+    ptr = Base.unsafe_convert(Ptr{T}, model_ptr)
     # reinterpret as an unowned vector of `T`
-    unsafe_wrap(Vector{T}, ptr, N, own=false)
+    unsafe_wrap(Vector{T}, ptr, N, own = false)
 end
 
 macro wrap_xspec_model_ccall(
@@ -109,7 +111,7 @@ macro xspecmodel(c_function, model)
             model::M,
             spectral_number = 1,
             init_string = "",
-        ) where {M <: $(model_name)}
+        ) where {M<:$(model_name)}
             @assert length(flux) + 1 == length(energy)
             SpectralFitting.ensure_model_data(M)
 

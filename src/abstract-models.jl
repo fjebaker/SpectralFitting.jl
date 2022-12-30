@@ -112,9 +112,12 @@ has_closure_params(M::Type{<:AbstractSpectralModel}) = has_closure_params(closur
 has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 
 # interface for ConstructionBase.jl
-function ConstructionBase.setproperties(model::M, patch::NamedTuple) where {M<:AbstractSpectralModel}
+function ConstructionBase.setproperties(
+    model::M,
+    patch::NamedTuple,
+) where {M<:AbstractSpectralModel}
     kwargs = get_param_symbol_pairs(model)
-    M(;kwargs..., patch...)
+    M(; kwargs..., patch...)
 end
 ConstructionBase.constructorof(::Type{M}) where {M<:AbstractSpectralModel} = M
 
@@ -208,7 +211,8 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params_value(model)
 ```
 """
-get_params_value(m::AbstractSpectralModel) = collect(get_value(i) for i in modelparameters(m))
+get_params_value(m::AbstractSpectralModel) =
+    collect(get_value(i) for i in modelparameters(m))
 # todo: make this a proper iterator? also better name
 
 """
@@ -307,14 +311,10 @@ end
     model = remake_with_number_type(m)
     invokemodel!(f, e, model)
 end
-invokemodel!(f, e, m::AbstractSpectralModel{<:Number,K}) where {K} = invokemodel!(f, e, K(), m)
+invokemodel!(f, e, m::AbstractSpectralModel{<:Number,K}) where {K} =
+    invokemodel!(f, e, K(), m)
 
-@inline function invokemodel!(
-    flux,
-    energy,
-    ::Additive,
-    model::AbstractSpectralModel
-)
+@inline function invokemodel!(flux, energy, ::Additive, model::AbstractSpectralModel)
     invoke!(flux, energy, model)
     # perform additive normalisation
     flux .*= model.K
@@ -324,7 +324,7 @@ end
     flux,
     energy,
     ::AbstractSpectralModelKind,
-    model::AbstractSpectralModel
+    model::AbstractSpectralModel,
 )
     invoke!(flux, energy, model)
     flux
@@ -375,7 +375,7 @@ function modelinfo(m::M) where {M<:AbstractSpectralModel}
     "$(FunctionGeneration.model_base_name(M))[$(params)]"
 end
 
-function _printinfo(io::IO, m::M) where {M <: AbstractSpectralModel}
+function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
     params = [String(s) => p for (s, p) in get_param_symbol_pairs(m)]
     print(io, "$(FunctionGeneration.model_base_name(M))\n")
 
@@ -404,7 +404,7 @@ function free_parameter(model, symbols...)
 end
 
 
-function modelparameters(model::AbstractSpectralModel) 
+function modelparameters(model::AbstractSpectralModel)
     [getproperty(model, s) for s in all_parameter_symbols(model)]
 end
 

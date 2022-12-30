@@ -73,7 +73,8 @@ function add_invoke_statment!(
     # get the parameter type
     param_type = M.parameters[end-1]
     T = param_type <: SpectralFitting.FitParam ? param_type.parameters[1] : param_type
-    model_constructor = :($(M.name.wrapper){$(M.parameters[1:end-2]...),$(T),$(M.parameters[end])})
+    model_constructor =
+        :($(M.name.wrapper){$(M.parameters[1:end-2]...),$(T),$(M.parameters[end])})
 
     # assemble the invocation statement
     s = :(invokemodel!(

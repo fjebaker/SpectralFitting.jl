@@ -40,10 +40,7 @@ invokemodel(energy, XS_PowerLaw())
     a::T
 end
 function XS_PowerLaw(; K = FitParam(1.0), a = FitParam(1.0))
-    XS_PowerLaw{typeof(K),SpectralFitting.FreeParameters{(:K, :a)}}(
-        K,
-        a,
-    )
+    XS_PowerLaw{typeof(K),SpectralFitting.FreeParameters{(:K, :a)}}(K, a)
 end
 
 """
@@ -370,14 +367,7 @@ function XS_Laor(;
     outer_r = FitParam(400.0),
     θ = FitParam(30.0, upper_limit = 180),
 )
-    XS_Laor{typeof(K),FreeParameters{(:K, :lineE)}}(
-        K,
-        lineE,
-        a,
-        inner_r,
-        outer_r,
-        θ,
-    )
+    XS_Laor{typeof(K),FreeParameters{(:K, :lineE)}}(K, lineE, a, inner_r, outer_r, θ)
 end
 register_model_data(XS_Laor, "ari.mod")
 
@@ -438,14 +428,7 @@ function XS_DiskLine(;
     outer_r = FitParam(1000.0),
     θ = FitParam(30.0, upper_limit = 180),
 )
-    XS_DiskLine{typeof(K),FreeParameters{(:K, :lineE)}}(
-        K,
-        lineE,
-        β,
-        inner_r,
-        outer_r,
-        θ,
-    )
+    XS_DiskLine{typeof(K),FreeParameters{(:K, :lineE)}}(K, lineE, β, inner_r, outer_r, θ)
 end
 
 """

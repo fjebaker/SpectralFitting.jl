@@ -106,7 +106,7 @@ add_param_types!(types, M::Type{<:AbstractSpectralModel}) =
     push!(types, get_param_types(M)...)
 
 # invokation wrappers
-invokemodel!(f, e, model::CompositeModel) = 
+invokemodel!(f, e, model::CompositeModel) =
     generated_model_call!(f, e, model, get_params_value(model))
 
 function invokemodel(e, m::CompositeModel)
@@ -316,19 +316,19 @@ function _composite_parameters!(params, model::AbstractSpectralModel, parameters
 end
 function _composite_parameters!(params, model::CompositeModel, parameters)
     FunctionGeneration.recursive_model_parse(model) do (left, right, _)
-        if !isnothing(right) 
+        if !isnothing(right)
             _composite_parameters!(params, right, parameters)
         end
         if !isnothing(left)
             _composite_parameters!(params, left, parameters)
         end
         nothing
-    end 
+    end
 end
 function _composite_parameters!(model::CompositeModel, parameters)
     params = FitParam{numbertype(model)}[]
     _composite_parameters!(params, model, parameters)
-    params    
+    params
 end
 
 modelparameters(model::CompositeModel) = _composite_parameters!(model, modelparameters)
@@ -347,4 +347,5 @@ end
 # explicitly disable interface for ConstructionBase.jl
 ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
     throw("Cannot be used with `CompositeModel`.")
-ConstructionBase.constructorof(::Type{<:CompositeModel}) = throw("Cannot be used with `CompositeModel`.")
+ConstructionBase.constructorof(::Type{<:CompositeModel}) =
+    throw("Cannot be used with `CompositeModel`.")

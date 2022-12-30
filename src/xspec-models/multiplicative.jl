@@ -77,16 +77,14 @@ invokemodel(energy, XS_WarmAbsorption())
                          E (keV)
 ```
 """
-@xspecmodel :C_wndabs struct XS_WarmAbsorption{T,F} <: AbstractSpectralModel{T,Multiplicative}
+@xspecmodel :C_wndabs struct XS_WarmAbsorption{T,F} <:
+                             AbstractSpectralModel{T,Multiplicative}
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."
     ηH::T
     "Window energy (keV)."
     Ew::T
 end
-function XS_WarmAbsorption(;
-    ηH = FitParam(1.0),
-    Ew = FitParam(1.0),
-)
+function XS_WarmAbsorption(; ηH = FitParam(1.0), Ew = FitParam(1.0))
     XS_WarmAbsorption{typeof(ηH),FreeParameters{(:ηH, :Ew)}}(ηH, Ew)
 end
 

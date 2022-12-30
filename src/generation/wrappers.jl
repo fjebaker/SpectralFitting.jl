@@ -32,7 +32,8 @@ This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameter
     params = FunctionGeneration.all_parameter_symbols(model)
     :($(params))
 end
-all_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")
+all_parameter_symbols(::CompositeModel) =
+    throw("This inspection method is for base models only.")
 
 
 """
@@ -45,7 +46,8 @@ This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameter
     params = FunctionGeneration.free_parameter_symbols(model)
     :($(params))
 end
-free_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")
+free_parameter_symbols(::CompositeModel) =
+    throw("This inspection method is for base models only.")
 
 """
     frozen_parameter_symbols(model::AbstractSpectralModel)
@@ -57,4 +59,5 @@ This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameter
     params = FunctionGeneration.frozen_parameter_symbols(model)
     :($(params))
 end
-frozen_parameter_symbols(::CompositeModel) = throw("This inspection method is for base models only.")
+frozen_parameter_symbols(::CompositeModel) =
+    throw("This inspection method is for base models only.")
