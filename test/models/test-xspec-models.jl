@@ -17,9 +17,7 @@ ALL_XSPEC_MODELS = [
     XS_WarmAbsorption,
 ]
 
-ALL_XSPEC_CONVOLUTIONAL = [
-    XS_CalculateFlux
-]
+ALL_XSPEC_CONVOLUTIONAL = [XS_CalculateFlux]
 
 energy = collect(range(0.1, 100.0, 100))
 

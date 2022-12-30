@@ -29,16 +29,17 @@ export AbstractSpectralModel,
     model_parameter_info
 
 """
-    abstract type AbstractSpectralModel{K}
+    abstract type AbstractSpectralModel{T,K}
 
 Supertype of all spectral models. Sub-types must implement the following interface
 - [`modelkind`](@ref)
 - [`SpectralFitting.invoke!`](@ref)
 
-The parametric type parameter `K` defines the [`AbstractSpectralModelKind`](@ref).
+The parametric type parameter `T` is the number type of the model and `K` defines the [`AbstractSpectralModelKind`](@ref).
 """
-abstract type AbstractSpectralModel{K} end
-numbertype(::AbstractSpectralModel) = Sys.WORD_SIZE == 64 ? Float64 : Float32
+abstract type AbstractSpectralModel{T,K} end
+numbertype(::AbstractSpectralModel{T}) where {T<:Number} = T
+numbertype(::AbstractSpectralModel{FitParam{T}}) where {T<:Number} = T
 
 """
     abstract type AbstractSpectralModelKind
@@ -90,7 +91,7 @@ struct Convolutional <: AbstractSpectralModelKind end
 
 Return the kind of model given by `M`: either `Additive`, `Multiplicative`, or `Convolutional`.
 """
-modelkind(::Type{<:AbstractSpectralModel{K}}) where {K} = K()
+modelkind(::Type{<:AbstractSpectralModel{T,K}}) where {T,K} = K()
 modelkind(::M) where {M<:AbstractSpectralModel} = modelkind(M)
 
 abstract type AbstractSpectralModelImplementation end
@@ -109,6 +110,16 @@ has_closure_params(::WithClosures) = true
 has_closure_params(::WithoutClosures) = false
 has_closure_params(M::Type{<:AbstractSpectralModel}) = has_closure_params(closurekind(M))
 has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
+
+# interface for ConstructionBase.jl
+function ConstructionBase.setproperties(
+    model::M,
+    patch::NamedTuple,
+) where {M<:AbstractSpectralModel}
+    kwargs = get_param_symbol_pairs(model)
+    M(; kwargs..., patch...)
+end
+ConstructionBase.constructorof(::Type{M}) where {M<:AbstractSpectralModel} = M
 
 # implementation interface
 # never to be called directly
@@ -200,7 +211,8 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params_value(model)
 ```
 """
-get_params_value(m::AbstractSpectralModel) = collect(get_value(i) for i in modelparameters(m))
+get_params_value(m::AbstractSpectralModel) =
+    collect(get_value(i) for i in modelparameters(m))
 # todo: make this a proper iterator? also better name
 
 """
@@ -256,15 +268,9 @@ function invokemodel(e, m::AbstractSpectralModel)
     flux
 end
 function invokemodel(e, m::AbstractSpectralModel, free_params)
-    if eltype(free_params) <: Number
-        # for compatability with AD
-        flux = make_flux(eltype(free_params), length(e) - 1)
-        invokemodel!(flux, e, m, free_params)
-    else
-        p0 = get_value.(free_params)
-        flux = make_flux(eltype(p0), length(e) - 1)
-        invokemodel!(flux, e, m, p0)
-    end
+    model = remake_with_free(m, free_params)
+    flux = make_flux(eltype(free_params), length(e) - 1)
+    invokemodel!(flux, e, model)
     flux
 end
 
@@ -295,45 +301,32 @@ p0 = [0.1, 2.0] # change K and a
 invokemodel!(flux, energy, model, p0)
 ```
 """
-function invokemodel!(f, e, m::M) where {M<:AbstractSpectralModel}
-    invokemodel!(f, e, M, get_params_value(m)...)
+@inline function invokemodel!(f, e, m::AbstractSpectralModel, free_params)
+    # update only the free parameters
+    model = remake_with_free(m, free_params)
+    invokemodel!(f, e, model)
 end
-function invokemodel!(f, e, ::M, free_params) where {M<:AbstractSpectralModel}
-    invokemodel!(f, e, M, free_params...)
+@inline function invokemodel!(f, e, m::AbstractSpectralModel)
+    # need to extract the parameter values
+    model = remake_with_number_type(m)
+    invokemodel!(f, e, model)
 end
-# todo: do we want to support this function ?
-# function invokemodel!(f, e, model::AbstractSpectralModel, free_params, frozen_params)
-#     generated_model_call!(f, e, model, free_params, frozen_params)
-# end
-"""
-    invokemodel!(flux, energy, ::Type{<:AbstractSpectralModel}, params...)
+invokemodel!(f, e, m::AbstractSpectralModel{<:Number,K}) where {K} =
+    invokemodel!(f, e, K(), m)
 
-Specialisation of [`invokemodel!`](@ref) which dispatches on types. This is primarily used in
-the generated functions, to assemble efficient model calls at compile time. In general, users
-should prefer one of the other dispatches.
-"""
-invokemodel!(f, e, ::Type{M}, p...) where {M<:AbstractSpectralModel} =
-    invokemodel!(f, e, modelkind(M), M, p...)
-# implementations
-@fastmath function invokemodel!(
-    flux,
-    energy,
-    ::Additive,
-    M::Type{<:AbstractSpectralModel},
-    K,
-    p...,
-)
-    invoke!(flux, energy, M, p...)
-    flux .*= K
+@inline function invokemodel!(flux, energy, ::Additive, model::AbstractSpectralModel)
+    invoke!(flux, energy, model)
+    # perform additive normalisation
+    flux .*= model.K
+    flux
 end
-@fastmath function invokemodel!(
+@inline function invokemodel!(
     flux,
     energy,
     ::AbstractSpectralModelKind,
-    M::Type{<:AbstractSpectralModel},
-    p...,
+    model::AbstractSpectralModel,
 )
-    invoke!(flux, energy, M, p...)
+    invoke!(flux, energy, model)
     flux
 end
 
@@ -382,7 +375,7 @@ function modelinfo(m::M) where {M<:AbstractSpectralModel}
     "$(FunctionGeneration.model_base_name(M))[$(params)]"
 end
 
-function _printinfo(io::IO, m::M) where {M <: AbstractSpectralModel}
+function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
     params = [String(s) => p for (s, p) in get_param_symbol_pairs(m)]
     print(io, "$(FunctionGeneration.model_base_name(M))\n")
 
@@ -411,7 +404,7 @@ function free_parameter(model, symbols...)
 end
 
 
-function modelparameters(model::AbstractSpectralModel) 
+function modelparameters(model::AbstractSpectralModel)
     [getproperty(model, s) for s in all_parameter_symbols(model)]
 end
 
@@ -438,4 +431,12 @@ function model_parameter_info(model::AbstractSpectralModel)
     map(all_parameter_symbols(model)) do s
         (s, getproperty(model, s), s in free)
     end
+end
+
+# todo: this function could be cleaned up with some generated hackery 
+function remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T}
+    M = typeof(model).name.wrapper
+    params = modelparameters(model)
+    new_params = convert.(T, params)
+    M{T,modelkind(typeof(model))}(new_params...)
 end

@@ -34,12 +34,12 @@ invokemodel(energy, XS_PhotoelectricAbsorption())
 ```
 """
 @xspecmodel :C_phabs struct XS_PhotoelectricAbsorption{T,F} <:
-                            AbstractSpectralModel{Multiplicative}
+                            AbstractSpectralModel{T,Multiplicative}
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."
-    ηH::FitParam{T}
-    function XS_PhotoelectricAbsorption(; ηH = FitParam(1.0))
-        new{parameter_type(ηH),FreeParameters{(:ηH,)}}(ηH)
-    end
+    ηH::T
+end
+function XS_PhotoelectricAbsorption(; ηH = FitParam(1.0))
+    XS_PhotoelectricAbsorption{typeof(ηH),FreeParameters{(:ηH,)}}(ηH)
 end
 
 """
@@ -77,17 +77,15 @@ invokemodel(energy, XS_WarmAbsorption())
                          E (keV)
 ```
 """
-@xspecmodel :C_wndabs struct XS_WarmAbsorption{T,F} <: AbstractSpectralModel{Multiplicative}
+@xspecmodel :C_wndabs struct XS_WarmAbsorption{T,F} <:
+                             AbstractSpectralModel{T,Multiplicative}
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."
-    ηH::FitParam{T}
+    ηH::T
     "Window energy (keV)."
-    Ew::FitParam{T}
-    function XS_WarmAbsorption(;
-        ηH = FitParam(1.0),
-        Ew = FitParam(1.0),
-    )
-        new{parameter_type(ηH),FreeParameters{(:ηH, :Ew)}}(ηH, Ew)
-    end
+    Ew::T
+end
+function XS_WarmAbsorption(; ηH = FitParam(1.0), Ew = FitParam(1.0))
+    XS_WarmAbsorption{typeof(ηH),FreeParameters{(:ηH, :Ew)}}(ηH, Ew)
 end
 
 export XS_PhotoelectricAbsorption, XS_WarmAbsorption

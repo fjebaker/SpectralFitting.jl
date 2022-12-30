@@ -72,7 +72,7 @@ model = XS_PhotoelectricAbsorption() * (XS_PowerLaw() + XS_BlackBody())
 typeof(model) <: CompositeModel # true
 ```
 """
-struct CompositeModel{M1,M2,O,K} <: AbstractSpectralModel{K}
+struct CompositeModel{M1,M2,O,T,K} <: AbstractSpectralModel{T,K}
     left::M1
     right::M2
     op::O
@@ -80,10 +80,10 @@ struct CompositeModel{M1,M2,O,K} <: AbstractSpectralModel{K}
         m1::M1,
         m2::M2,
         op::O,
-    ) where {M1,M2<:AbstractSpectralModel{K},O} where {K} = new{M1,M2,O,K}(m1, m2, op)
+    ) where {M1,M2<:AbstractSpectralModel{T,K},O} where {T,K} = new{M1,M2,O,T,K}(m1, m2, op)
 end
 
-modelkind(::Type{<:CompositeModel{M1,M2,O,K}}) where {M1,M2,O,K} = K()
+modelkind(::Type{<:CompositeModel{M1,M2,O,T,K}}) where {M1,M2,O,T,K} = K()
 function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     if (implementation(M1) isa XSPECImplementation) ||
        (implementation(M2) isa XSPECImplementation)
@@ -106,10 +106,8 @@ add_param_types!(types, M::Type{<:AbstractSpectralModel}) =
     push!(types, get_param_types(M)...)
 
 # invokation wrappers
-function invokemodel!(f, e, model::CompositeModel)
-    params = get_params_value(model)
-    generated_model_call!(f, e, model, params)
-end
+invokemodel!(f, e, model::CompositeModel) =
+    generated_model_call!(f, e, model, get_params_value(model))
 
 function invokemodel(e, m::CompositeModel)
     fluxes = make_fluxes(e, flux_count(m))
@@ -132,9 +130,8 @@ function invokemodel!(f, e, m::CompositeModel, free_params)
     frozen_params = get_value.(frozenparameters(m))
     invokemodel!(f, e, m, free_params, frozen_params)
 end
-function invokemodel!(f, e, model::CompositeModel, free_params, frozen_params)
+invokemodel!(f, e, model::CompositeModel, free_params, frozen_params) =
     generated_model_call!(f, e, model, free_params, frozen_params)
-end
 
 # algebra grammar
 add_models(_, _, ::M1, ::M2) where {M1,M2} =
@@ -319,26 +316,36 @@ function _composite_parameters!(params, model::AbstractSpectralModel, parameters
 end
 function _composite_parameters!(params, model::CompositeModel, parameters)
     FunctionGeneration.recursive_model_parse(model) do (left, right, _)
-        if !isnothing(right) 
+        if !isnothing(right)
             _composite_parameters!(params, right, parameters)
         end
         if !isnothing(left)
             _composite_parameters!(params, left, parameters)
         end
         nothing
-    end 
+    end
 end
 function _composite_parameters!(model::CompositeModel, parameters)
-    params = FitParam{generated_model_parameter_type(model)}[]
+    params = FitParam{numbertype(model)}[]
     _composite_parameters!(params, model, parameters)
-    params    
+    params
 end
 
 modelparameters(model::CompositeModel) = _composite_parameters!(model, modelparameters)
 freeparameters(model::CompositeModel) = _composite_parameters!(model, freeparameters)
 frozenparameters(model::CompositeModel) = _composite_parameters!(model, frozenparameters)
 function model_parameter_info(model::CompositeModel)
-    infos = Tuple{Symbol,FitParam{generated_model_parameter_type(model)},Bool}[]
+    infos = Tuple{Symbol,FitParam{numbertype(model)},Bool}[]
     _composite_parameters!(infos, model, model_parameter_info)
     infos
 end
+
+
+function remake_with_number_type(model::CompositeModel)
+
+end
+# explicitly disable interface for ConstructionBase.jl
+ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
+    throw("Cannot be used with `CompositeModel`.")
+ConstructionBase.constructorof(::Type{<:CompositeModel}) =
+    throw("Cannot be used with `CompositeModel`.")

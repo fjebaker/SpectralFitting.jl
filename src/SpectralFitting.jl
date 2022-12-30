@@ -8,6 +8,7 @@ import Downloads
 import Statistics
 import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show_progress
 import Distributions
+import ConstructionBase
 
 using FITSIO
 using SparseArrays
@@ -25,9 +26,9 @@ using DocStringExtensions
 # unitful units
 include("units.jl")
 
+include("fitparam.jl")
 include("abstract-models.jl")
 
-include("fitparam.jl")
 include("ccall-wrapper.jl")
 
 include("composite-models.jl")

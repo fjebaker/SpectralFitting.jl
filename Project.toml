@@ -1,9 +1,10 @@
 name = "SpectralFitting"
 uuid = "f2c56810-742e-4b72-8bf4-27af3bb81a12"
 authors = ["Fergus Baker <fergusbkr@gmail.com>"]
-version = "0.2.1"
+version = "0.3.0"
 
 [deps]
+ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"

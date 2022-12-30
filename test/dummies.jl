@@ -1,84 +1,77 @@
 
 # standard julia models for testing
-
-struct DummyAdditive{T,F} <: AbstractSpectralModel{Additive}
-    K::FitParam{T}
-    a::FitParam{T}
-    b::FitParam{T}
-    function DummyAdditive(; K = FitParam(1.0), a = FitParam(1.0), b = FitParam(5.0))
-        new{SpectralFitting.parameter_type(K),SpectralFitting.FreeParameters{(:K, :a)}}(
-            K,
-            a,
-            b,
-        )
+struct DummyAdditive{T,F} <: AbstractSpectralModel{T,Additive}
+    K::T
+    a::T
+    b::T
+end
+function DummyAdditive(; K = FitParam(1.0), a = FitParam(1.0), b = FitParam(5.0))
+    DummyAdditive{typeof(K),SpectralFitting.FreeParameters{(:K, :a)}}(K, a, b)
+end
+function SpectralFitting.invoke!(flux, energy, model::DummyAdditive)
+    let a = model.a, b = model.b
+        flux[:] .= a + b
     end
 end
-function SpectralFitting.invoke!(flux, energy, ::Type{<:DummyAdditive}, a, b)
-    flux[:] .= a + b
+
+struct DummyMultiplicative{T,F} <: AbstractSpectralModel{T,Multiplicative}
+    a::T
+    b::T
 end
-
-
-struct DummyMultiplicative{T,F} <: AbstractSpectralModel{Multiplicative}
-    a::FitParam{T}
-    b::FitParam{T}
-    function DummyMultiplicative(; a = FitParam(1.0), b = FitParam(5.0))
-        new{SpectralFitting.parameter_type(a),SpectralFitting.FreeParameters{(:a,)}}(a, b)
+function DummyMultiplicative(; a = FitParam(1.0), b = FitParam(5.0))
+    DummyMultiplicative{typeof(a),SpectralFitting.FreeParameters{(:a,)}}(a, b)
+end
+function SpectralFitting.invoke!(flux, energy, model::DummyMultiplicative)
+    let a = model.a, b = model.b
+        @. flux = flux * a + b
     end
-end
-function SpectralFitting.invoke!(flux, energy, ::Type{<:DummyMultiplicative}, a, b)
-    @. flux = flux * a + b
 end
 
 # table models for testing
 
-struct DummyAdditiveTableModel{T,D,F} <: AbstractTableModel{D,Additive}
+struct DummyAdditiveTableModel{D,T,F} <: AbstractTableModel{T,Additive}
     table::D
-    K::FitParam{T}
-    a::FitParam{T}
-    b::FitParam{T}
-    function DummyAdditiveTableModel(
-        K::FitParam{T},
-        a::FitParam{T},
-        b::FitParam{T},
-    ) where {T}
-        # table is just an interpolation anywhere so lambda for tests
-        table = (x) -> x^2
-        new{T,typeof(table),SpectralFitting.FreeParameters{(:K, :a)}}(table, K, a, b)
-    end
+    K::T
+    a::T
+    b::T
 end
-function SpectralFitting.invoke!(
-    flux,
-    energy,
-    ::Type{<:DummyAdditiveTableModel},
-    a,
-    b,
-    table,
-)
-    flux[:] .= table(a) + b
+function DummyAdditiveTableModel(K::T, a::T, b::T) where {T}
+    # table is just an interpolation anywhere so lambda for tests
+    table = (x) -> x^2
+    DummyAdditiveTableModel{typeof(table),T,SpectralFitting.FreeParameters{(:K, :a)}}(
+        table,
+        K,
+        a,
+        b,
+    )
+end
+function SpectralFitting.invoke!(flux, energy, model::DummyAdditiveTableModel)
+    let a = model.a, b = model.b, table = model.table
+        flux[:] .= table(a) + b
+    end
 end
 function DummyAdditiveTableModel(; K = FitParam(1.0), a = FitParam(1.0), b = FitParam(2.0))
     DummyAdditiveTableModel(K, a, b)
 end
 
-struct DummyMultiplicativeTableModel{T,D,F} <: AbstractTableModel{D,Multiplicative}
+struct DummyMultiplicativeTableModel{D,T,F} <: AbstractTableModel{T,Multiplicative}
     table::D
-    a::FitParam{T}
-    b::FitParam{T}
-    function DummyMultiplicativeTableModel(a::FitParam{T}, b::FitParam{T}) where {T}
-        # table is just an interpolation anywhere so lambda for tests
-        table = (x, k) -> k * x
-        new{T,typeof(table),SpectralFitting.FreeParameters{(:a,)}}(table, a, b)
-    end
+    a::T
+    b::T
 end
-function SpectralFitting.invoke!(
-    flux,
-    energy,
-    ::Type{<:DummyMultiplicativeTableModel},
-    a,
-    b,
-    table,
-)
-    @. flux = table(flux, a) + b
+function DummyMultiplicativeTableModel(a::T, b::T) where {T}
+    # table is just an interpolation anywhere so lambda for tests
+    table = (x, k) -> k * x
+    DummyMultiplicativeTableModel{typeof(table),T,SpectralFitting.FreeParameters{(:a,)}}(
+        table,
+        a,
+        b,
+    )
+end
+function SpectralFitting.invoke!(flux, energy, model::DummyMultiplicativeTableModel)
+    let a = model.a, b = model.b, table = model.table
+        @. flux = table(flux, a) + b
+    end
 end
 function DummyMultiplicativeTableModel(; a = FitParam(1.0), b = FitParam(2.0))
     DummyMultiplicativeTableModel(a, b)
