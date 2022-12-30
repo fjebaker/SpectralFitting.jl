@@ -21,10 +21,6 @@ end
     :(($(ga.models...),))
 end
 
-@generated function generated_model_parameter_type(model)
-    T = FunctionGeneration.model_T(model)
-    :($(T))
-end
 
 """
     all_parameter_symbols(model::AbstractSpectralModel)

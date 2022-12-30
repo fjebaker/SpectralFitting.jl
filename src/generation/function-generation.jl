@@ -69,12 +69,17 @@ function add_invoke_statment!(
     else
         ()
     end
+
+    # get the parameter type
+    param_type = M.parameters[end-1]
+    T = param_type <: SpectralFitting.FitParam ? param_type.parameters[1] : param_type
+    model_constructor = :($(M.name.wrapper){$(M.parameters[1:end-2]...),$(T),$(M.parameters[end])})
+
+    # assemble the invocation statement
     s = :(invokemodel!(
         $flux,
         energy,
-        $(M),
-        $(info.generated_symbols...),
-        $(closure_params...),
+        $(model_constructor)($(closure_params...), $(info.generated_symbols...)),
     ))
     push_model!(ga, M)
     push_statement!(ga, s)
@@ -210,9 +215,8 @@ function assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
     ga
 end
 
-function model_T(model::Type{<:AbstractSpectralModel})
-    ga = assemble_aggregate_info(model)
-    first(ga.models[1].parameters)
+function model_T(model::Type{<:AbstractSpectralModel{T}}) where {T}
+    T
 end
 
 end # module
