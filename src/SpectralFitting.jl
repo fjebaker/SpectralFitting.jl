@@ -8,6 +8,8 @@ import Downloads
 import Statistics
 import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show_progress
 import Distributions
+import ConstructionBase
+import Flatten
 
 using FITSIO
 using SparseArrays
@@ -25,9 +27,9 @@ using DocStringExtensions
 # unitful units
 include("units.jl")
 
+include("fitparam.jl")
 include("abstract-models.jl")
 
-include("fitparam.jl")
 include("ccall-wrapper.jl")
 
 include("composite-models.jl")
@@ -53,9 +55,9 @@ include("fitting.jl")
 include("plotting-recipes.jl")
 
 # include xspec models
-include("xspec-models/additive.jl")
-include("xspec-models/multiplicative.jl")
-include("xspec-models/convolutional.jl")
+# include("xspec-models/additive.jl")
+# include("xspec-models/multiplicative.jl")
+# include("xspec-models/convolutional.jl")
 
 # include julia models
 include("julia-models/model-utilities.jl")
