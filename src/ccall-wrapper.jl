@@ -4,6 +4,23 @@ function resize_untracked_error(n)
     resize!(UNTRACKED_ERROR, n)
 end
 
+# pointer hackery
+function unsafe_parameter_vector_conditioned(alloc_model::Vector{<:AbstractSpectralModel{T}}) where {T}
+    model = first(alloc_model)
+    if implementation(typeof(model)) == JuliaImplementation()
+        throw("This method is only for `XSPECImplementation` models.")
+    end
+    if !isbitstype(T)
+        throw("Can only reinterpret to bits type (convert `$T`).")
+    end
+    N = length(fieldnames(typeof(model)))
+
+    model_ptr = pointer(alloc_model)
+    ptr = Base.unsafe_convert(Ptr{T}, model_ptr) 
+    # reinterpret as an unowned vector of `T`
+    @show unsafe_wrap(Vector{T}, ptr, N, own=false)
+end
+
 macro wrap_xspec_model_ccall(
     func_name,
     callsite,
@@ -84,22 +101,25 @@ macro xspecmodel(c_function, model)
             $(model_args.args...)
         end
 
-        implementation(::Type{<:$(model_name)}) = XSPECImplementation()
+        SpectralFitting.implementation(::Type{<:$(model_name)}) = XSPECImplementation()
 
         function SpectralFitting.invoke!(
             flux::AbstractArray,
             energy::AbstractArray,
-            m::Type{<:$(model_name)},
-            $(symbols...);
+            model::M,
             spectral_number = 1,
             init_string = "",
-        )
+        ) where {M <: $(model_name)}
             @assert length(flux) + 1 == length(energy)
-            SpectralFitting.ensure_model_data(m)
+            SpectralFitting.ensure_model_data(M)
 
             if length(SpectralFitting.UNTRACKED_ERROR) < length(flux)
                 SpectralFitting.resize_untracked_error(length(flux))
             end
+
+            # allocate the model
+            alloc_model = [model]
+            params = SpectralFitting.unsafe_parameter_vector_conditioned(alloc_model)
 
             @wrap_xspec_model_ccall(
                 $(func_name),
@@ -107,7 +127,7 @@ macro xspecmodel(c_function, model)
                 energy,
                 flux,
                 SpectralFitting.UNTRACKED_ERROR,
-                [$(symbols...)],
+                params,
                 spectral_number,
                 init_string
             )
@@ -115,6 +135,5 @@ macro xspecmodel(c_function, model)
         $(model_name)
     end |> esc
 end
-
 
 export @xspecmodel, @wrap_xspec_model_ccall
