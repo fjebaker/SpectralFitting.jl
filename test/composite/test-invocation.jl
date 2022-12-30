@@ -2,7 +2,7 @@ using Test
 using SpectralFitting
 
 include("../dummies.jl")
-# include("../fuzz.jl")
+include("../fuzz.jl")
 
 model = DummyAdditive()
 
@@ -37,6 +37,10 @@ _ = checker_free_frozen(model)
 _ = checker_free_frozen(model + model)
 _ = checker_all(model)
 _ = checker_all(model + model)
+
+# some other special cases
+_ = checker_all(DummyMultiplicative() * DummyAdditive())
+_ = checker_free_frozen(DummyMultiplicative() * DummyAdditive())
 
 for model in FUZZ_ALL_MODELS
     _ = checker_all(model)
@@ -77,5 +81,41 @@ out_flux = invokemodel(energy, cm)
 @test all(out_flux .== 30)
 
 # test inplace version
-invokemodel!(out_flux, energy, DummyAdditive())
+model = DummyAdditive()
+invokemodel!(out_flux, energy, model)
 @test all(out_flux .== 6)
+
+# should be unchanged if called multiple times
+invokemodel!(out_flux, energy, model)
+invokemodel!(out_flux, energy, model)
+@test all(out_flux .== 6)
+
+# invocation with different parameters for single model
+model = DummyAdditive()
+free_params = [2.0, 2.0]
+out_flux = invokemodel(energy, model, free_params)
+@test all(out_flux .== 14.0)
+
+flux = zeros(Float64, length(energy) - 1)
+invokemodel!(flux, energy, model, free_params)
+@test all(flux .== 14.0)
+
+# multiple calls should give the same result
+invokemodel!(flux, energy, model, free_params)
+invokemodel!(flux, energy, model, free_params)
+@test all(flux .== 14.0)
+
+# invocation with different parameters for composite model
+cm = DummyMultiplicative() * DummyAdditive()
+free_params = [2.0, 2.0, 2.0]
+out_flux = invokemodel(energy, cm, free_params)
+@test all(out_flux .== 140.0)
+
+flux = zeros(Float64, length(energy) - 1)
+fluxes = (flux, deepcopy(flux))
+invokemodel!(fluxes, energy, cm, free_params)
+@test all(flux .== 140.0)
+
+invokemodel!(fluxes, energy, cm, free_params)
+invokemodel!(fluxes, energy, cm, free_params)
+@test all(flux .== 140.0)

@@ -10,7 +10,7 @@ function DummyAdditive(; K = FitParam(1.0), a = FitParam(1.0), b = FitParam(5.0)
 end
 function SpectralFitting.invoke!(flux, energy, model::DummyAdditive)
     let a = model.a, b = model.b
-        flux[:] .= a + b
+        @. flux = a + b
     end
 end
 
@@ -23,7 +23,7 @@ function DummyMultiplicative(; a = FitParam(1.0), b = FitParam(5.0))
 end
 function SpectralFitting.invoke!(flux, energy, model::DummyMultiplicative)
     let a = model.a, b = model.b
-        @. flux = flux * a + b
+        @. flux = a * b
     end
 end
 
