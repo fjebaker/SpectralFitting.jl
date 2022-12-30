@@ -114,10 +114,14 @@ has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 # interface for ConstructionBase.jl
 function ConstructionBase.setproperties(
     model::M,
-    patch::NamedTuple,
-) where {M<:AbstractSpectralModel}
-    kwargs = get_param_symbol_pairs(model)
-    M(; kwargs..., patch...)
+    patch::NamedTuple{names},
+) where {M<:AbstractSpectralModel,names}
+    symbols = all_parameter_symbols(model)
+    args = (
+        s in names ? getproperty(patch, s) : getproperty(model, s)
+        for s in symbols
+    )
+    M(args...)
 end
 ConstructionBase.constructorof(::Type{M}) where {M<:AbstractSpectralModel} = M
 
@@ -274,6 +278,14 @@ function invokemodel(e, m::AbstractSpectralModel, free_params)
     flux
 end
 
+function remake_with_free(model::AbstractSpectralModel, free_params)
+    patch = free_parameters_to_named_tuple(free_params, model)
+    ConstructionBase.setproperties(
+        remake_with_number_type(model),
+        patch
+    )
+end
+
 """
     invokemodel!(flux, energy, model)
     invokemodel!(flux, energy, model, free_params)
@@ -329,23 +341,6 @@ end
     invoke!(flux, energy, model)
     flux
 end
-
-# bindings to generated functions
-
-"""
-    flux_count(model::AbstractSpectralModel)
-
-Returns the number of flux arrays the model needs when using [`invokemodel!`](@ref).
-
-# Example
-
-```julia
-model = XS_PhotoelectricAbsorption() * XS_PowerLaw()
-flux_count(model)
-```
-"""
-flux_count(model::AbstractSpectralModel) = generated_maximum_flux_count(model)
-
 
 # """
 #     update_params!(model::AbstractSpectralModel, values)

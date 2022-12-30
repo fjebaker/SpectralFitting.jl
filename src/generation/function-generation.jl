@@ -132,6 +132,43 @@ function generated_maximum_flux_count(model)
     :($(ga.maximum_flux_count))
 end
 
+function assemble_parameter_assignment(ga::GenerationAggregate, model)
+    # unpack free and frozen seperately
+    i_frozen = 0
+    i_free = 0
+    all = map(ga.infos) do info
+        assignments = map(zip(info.symbols, info.generated_symbols)) do ((p, s))
+            if (p in info.frozen)
+                :($(s) = frozen_params[$(i_frozen += 1)])
+            else
+                :($(s) = free_params[$(i_free += 1)])
+            end
+        end
+        assignments
+    end
+    reduce(vcat, all)
+end
+
+function generate_call(flux_unpack, closures, p_assignments, statements)
+    quote
+        @fastmath begin
+            @inbounds let ($(flux_unpack...),) = fluxes
+                $(closures...)
+                $(p_assignments...)
+                $(statements...)
+                return flux1
+            end
+        end
+    end
+end
+
+function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
+    ga = assemble_aggregate_info(model)
+    flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
+    p_assign = assemble_parameter_assignment(ga, model)
+    closures = assemble_closures(ga, model)
+    generate_call(flux_unpack, closures, p_assign, ga.statements)
+end
 function generated_model_call!(fluxes, energy, model, params)
     ga = assemble_aggregate_info(model)
     flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
@@ -144,52 +181,9 @@ function generated_model_call!(fluxes, energy, model, params)
         ],
     )
     closures = assemble_closures(ga, model)
-    quote
-        @fastmath begin
-            @inbounds let ($(flux_unpack...),) = fluxes
-                $(closures...)
-                $(p_assign...)
-                $(ga.statements...)
-                return flux1
-            end
-        end
-    end
+    generate_call(flux_unpack, closures, p_assign, ga.statements)
 end
 
-function assemble_parameter_assignment(ga::GenerationAggregate, model)
-    # unpack free and frozen seperately
-    i_frozen = 0
-    i_free = 0
-    all = map(ga.infos) do info
-        assignments = map(info.symbols) do p
-            param = Base.gensym(p)
-            if (p in info.frozen)
-                :($(param) = frozen_params[$(i_frozen += 1)])
-            else
-                :($(param) = free_params[$(i_free += 1)])
-            end
-        end
-        assignments
-    end
-    reduce(hcat, all)
-end
-
-function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
-    ga = assemble_aggregate_info(model)
-    flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
-    p_assign = assemble_parameter_assignment(ga, model)
-    closures = assemble_closures(ga, model)
-    quote
-        @fastmath begin
-            @inbounds let ($(flux_unpack...),) = fluxes
-                $(closures...)
-                $(p_assign...)
-                $(ga.statements...)
-                return flux1
-            end
-        end
-    end
-end
 
 function assemble_aggregate_info(model::Type{<:CompositeModel})
     ga = FunctionGeneration.GenerationAggregate()
@@ -216,8 +210,6 @@ function assemble_aggregate_info(model::Type{<:AbstractSpectralModel})
     ga
 end
 
-function model_T(model::Type{<:AbstractSpectralModel{T}}) where {T}
-    T
-end
+model_T(model::Type{<:AbstractSpectralModel{T}}) where {T} = T
 
 end # module

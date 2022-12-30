@@ -112,3 +112,33 @@ function closure_parameter_symbols(::Type{<:AbstractSpectralModel})
 end
 
 model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
+
+function _vector_to_named_tuple(params, names)
+    statements = [
+        :(params[$(i)]) for i in 1:length(names)
+    ]
+    :(NamedTuple{$(names)}(($(statements...),)))
+end
+
+function free_parameters_to_named_tuple(params, model)
+    names = free_parameter_symbols(model)
+    _vector_to_named_tuple(params, names)
+end
+
+function frozen_parameters_to_named_tuple(params, model)
+    names = frozen_parameter_symbols(model)
+    _vector_to_named_tuple(params, names)
+end
+
+function all_parameters_to_named_tuple(params, model)
+    names = all_parameter_symbols(model)
+    _vector_to_named_tuple(params, names)
+end
+
+function all_parameters_to_named_tuple(model)
+    names = all_parameter_symbols(model)
+    statements = [
+        :(getproperty(model, $(Meta.quot(s)))) for s in names
+    ]
+    :(NamedTuple{$(names)}(($(statements...),)))
+end
