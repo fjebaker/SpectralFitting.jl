@@ -9,7 +9,6 @@ import Statistics
 import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show_progress
 import Distributions
 import ConstructionBase
-import Flatten
 
 using FITSIO
 using SparseArrays
