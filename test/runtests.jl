@@ -1,6 +1,8 @@
 using Test
 using SpectralFitting
 
+include("utils.jl")
+
 @testset "function-generation" verbose = true begin
     @testset "aggregation" begin
         include("generation/test-aggregate.jl")
@@ -44,17 +46,13 @@ end
 
     # only test XSPEC models when not using CI
     # since model data access is annoying
-    if get(ENV, "CI", false) == false
-        @testset "xspec-models" begin
-            include("models/test-xspec-models.jl")
-        end
+    @ciskip @testset "xspec-models" begin
+        include("models/test-xspec-models.jl")
     end
     @testset "general-models" begin
         include("models/test-general-models.jl")
         # include the general xspec models only when not CI
-        if get(ENV, "CI", false) == false
-            include("models/test-general-xspec-models.jl")
-        end
+        @ciskip include("models/test-general-xspec-models.jl")
     end
 end
 

@@ -5,20 +5,24 @@ using SpectralFitting
 # and anything that produces errors should be added to this
 # test set
 
-model = PhotoelectricAbsorption() * (PowerLaw() + BlackBody())
+include("../utils.jl")
 
-energy = collect(range(0.2, 8.0, 1000))
-flux = zeros(Float64, length(energy) - 1)
-fluxes = (flux, deepcopy(flux))
+@ciskip begin
+    model = PhotoelectricAbsorption() * (PowerLaw() + BlackBody())
 
-# check model invokes okay
-invokemodel!(fluxes, energy, model)
-@test all(.!isnan.(flux))
-@test all(.!isinf.(flux))
+    energy = collect(range(0.2, 8.0, 1000))
+    flux = zeros(Float64, length(energy) - 1)
+    fluxes = (flux, deepcopy(flux))
 
-# check free parameters can be modified externally
-check_flux = deepcopy(flux)
-params = convert.(Float64, freeparameters(model))
-invokemodel!(fluxes, energy, model, params)
-# there should be no difference
-@test isapprox.(check_flux, flux) |> all
+    # check model invokes okay
+    invokemodel!(fluxes, energy, model)
+    @test all(.!isnan.(flux))
+    @test all(.!isinf.(flux))
+
+    # check free parameters can be modified externally
+    check_flux = deepcopy(flux)
+    params = convert.(Float64, freeparameters(model))
+    invokemodel!(fluxes, energy, model, params)
+    # there should be no difference
+    @test isapprox.(check_flux, flux) |> all
+end
