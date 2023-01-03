@@ -4,7 +4,7 @@ using SpectralFitting
 include("../dummies.jl")
 model = DummyAdditive()
 
-info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model))
+info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model), Float64)
 @test length(info.infos) == 1
 @test length(info.closure_params) == 0
 @test info.models == Type[typeof(model)]
@@ -14,7 +14,8 @@ info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model))
 # composite additive models
 new_model = model + model
 
-info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(new_model))
+info =
+    SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(new_model), Float64)
 @test length(info.infos) == 2
 @test length(info.closure_params) == 0
 @test info.models == Type[typeof(model), typeof(model)]

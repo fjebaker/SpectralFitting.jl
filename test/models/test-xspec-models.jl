@@ -38,3 +38,30 @@ for M in ALL_XSPEC_CONVOLUTIONAL
     @test all(.!isnan.(f))
     @test all(.!isinf.(f))
 end
+
+# related to additive models should not pass the normalisation constant
+# for XS_PowerLaw, a is second argument and the pointer conversion should be offset
+# so the shortest test we can make is to set `K` equal and modify `a` to make sure the
+# right parameter is passed to the implementation
+model1 = XS_PowerLaw(K = FitParam(2.0), a = FitParam(3.0))
+model2 = XS_PowerLaw(K = FitParam(2.0), a = FitParam(1.0))
+flux1 = invokemodel(energy, model1)
+flux2 = invokemodel(energy, model2)
+# these should _not_ be the same, despite same normalisation
+# so use the sum of residiuals as a metric for difference
+@test isapprox(sum(flux1 .- flux2), 86.18438944203572, rtol = 1e-4)
+
+
+# inplace variants
+model = XS_PowerLaw()
+flux = zeros(Float64, length(energy) - 1)
+invokemodel!(flux, energy, model)
+@test all(.!isnan.(flux))
+@test all(.!isinf.(flux))
+
+# composite
+model = XS_PowerLaw() + XS_PowerLaw()
+fluxes = (flux, deepcopy(flux))
+invokemodel!(fluxes, energy, model)
+@test all(.!isnan.(flux))
+@test all(.!isinf.(flux))

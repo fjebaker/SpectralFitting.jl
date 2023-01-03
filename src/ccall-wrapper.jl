@@ -4,6 +4,24 @@ function resize_untracked_error(n)
     resize!(UNTRACKED_ERROR, n)
 end
 
+_unsafe_unwrap_parameter(ptr, N, ::AbstractSpectralModelKind, T::Type) =
+    unsafe_wrap(Vector{T}, ptr, N, own = false)
+# additive models don't include normalisation, so we offset
+_unsafe_unwrap_parameter(ptr, N, ::Additive, T::Type) =
+    unsafe_wrap(Vector{T}, ptr + sizeof(T), N - 1, own = false)
+
+@inline function unsafe_parameter_vector(
+    alloc_model::Vector{<:AbstractSpectralModel{T}},
+) where {T}
+    model = first(alloc_model)
+    N = length(fieldnames(typeof(model)))
+
+    model_ptr = pointer(alloc_model)
+    ptr = Base.unsafe_convert(Ptr{T}, model_ptr)
+    # reinterpret as an unowned vector of `T`
+    _unsafe_unwrap_parameter(ptr, N, modelkind(model), T)
+end
+
 # pointer hackery
 function unsafe_parameter_vector_conditioned(
     alloc_model::Vector{<:AbstractSpectralModel{T}},
@@ -15,12 +33,7 @@ function unsafe_parameter_vector_conditioned(
     if !isbitstype(T)
         throw("Can only reinterpret to bits type (convert `$T`).")
     end
-    N = length(fieldnames(typeof(model)))
-
-    model_ptr = pointer(alloc_model)
-    ptr = Base.unsafe_convert(Ptr{T}, model_ptr)
-    # reinterpret as an unowned vector of `T`
-    unsafe_wrap(Vector{T}, ptr, N, own = false)
+    unsafe_parameter_vector(alloc_model)
 end
 
 macro wrap_xspec_model_ccall(
@@ -37,7 +50,7 @@ macro wrap_xspec_model_ccall(
         ccall(
             ($(func_name), $(callsite)),
             Cvoid,
-            (Ref{Float64}, Cint, Ref{Float64}, Cint, Ref{Float64}, Ref{Float64}, Cstring),
+            (Ptr{Float64}, Cint, Ptr{Float64}, Cint, Ptr{Float64}, Ptr{Float64}, Cstring),
             $(input),
             length($(input)) - 1,
             $(parameters),
@@ -106,14 +119,14 @@ macro xspecmodel(c_function, model)
         SpectralFitting.implementation(::Type{<:$(model_name)}) = XSPECImplementation()
 
         function SpectralFitting.invoke!(
-            flux::AbstractArray,
-            energy::AbstractArray,
-            model::M,
+            flux,
+            energy,
+            model::$(model_name);
             spectral_number = 1,
             init_string = "",
-        ) where {M<:$(model_name)}
+        )
             @assert length(flux) + 1 == length(energy)
-            SpectralFitting.ensure_model_data(M)
+            SpectralFitting.ensure_model_data($(model_name))
 
             if length(SpectralFitting.UNTRACKED_ERROR) < length(flux)
                 SpectralFitting.resize_untracked_error(length(flux))

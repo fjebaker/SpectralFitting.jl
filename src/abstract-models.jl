@@ -114,10 +114,11 @@ has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 # interface for ConstructionBase.jl
 function ConstructionBase.setproperties(
     model::M,
-    patch::NamedTuple,
-) where {M<:AbstractSpectralModel}
-    kwargs = get_param_symbol_pairs(model)
-    M(; kwargs..., patch...)
+    patch::NamedTuple{names},
+) where {M<:AbstractSpectralModel,names}
+    symbols = all_parameter_symbols(model)
+    args = (s in names ? getproperty(patch, s) : getproperty(model, s) for s in symbols)
+    M(args...)
 end
 ConstructionBase.constructorof(::Type{M}) where {M<:AbstractSpectralModel} = M
 
@@ -152,7 +153,7 @@ end
 The only exception to this are [`Additive`](@ref) models, where the normalisation parameter
 `K` is not passed to `invoke!`.
 """
-invoke!(flux, energy, M::AbstractSpectralModel, params...) = error("Not defined for $(M).")
+invoke!(flux, energy, M::AbstractSpectralModel) = error("Not defined for $(M).")
 
 """
     get_param(model::AbstractSpectralModel, s::Symbol)
@@ -211,9 +212,7 @@ model = XS_BlackBody() + XS_PowerLaw()
 get_params_value(model)
 ```
 """
-get_params_value(m::AbstractSpectralModel) =
-    collect(get_value(i) for i in modelparameters(m))
-# todo: make this a proper iterator? also better name
+get_params_value(m::AbstractSpectralModel) = convert.(Float64, modelparameters(m))
 
 """
     get_param_symbol_pairs(m::AbstractSpectralModel)
@@ -330,23 +329,6 @@ end
     flux
 end
 
-# bindings to generated functions
-
-"""
-    flux_count(model::AbstractSpectralModel)
-
-Returns the number of flux arrays the model needs when using [`invokemodel!`](@ref).
-
-# Example
-
-```julia
-model = XS_PhotoelectricAbsorption() * XS_PowerLaw()
-flux_count(model)
-```
-"""
-flux_count(model::AbstractSpectralModel) = generated_maximum_flux_count(model)
-
-
 # """
 #     update_params!(model::AbstractSpectralModel, values)
 #     update_params!(model::AbstractSpectralModel, values, errors)
@@ -392,10 +374,6 @@ function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
 end
 
 # parameter utilities
-function remake_model(T::Type, model::AbstractSpectralModel)
-    T(get_param_symbol_pairs(model)...)
-end
-
 function freeze_parameter(model, symbols...)
     error("Not implemented yet.")
 end
@@ -438,5 +416,33 @@ function remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) wher
     M = typeof(model).name.wrapper
     params = modelparameters(model)
     new_params = convert.(T, params)
-    M{T,modelkind(typeof(model))}(new_params...)
+    M{T,FreeParameters{free_parameter_symbols(model)}}(new_params...)
+end
+
+function remake_with_free(model::AbstractSpectralModel{<:FitParam}, free_params)
+    updatefree(remake_with_number_type(model), free_params)
+end
+remake_with_free(model::AbstractSpectralModel{<:Number}, free_params) =
+    updatefree(model, free_params)
+
+
+"""
+    updatemodel(model::AbstractSpectralModel; kwargs...)
+    updatemodel(model::AbstractSpectralModel, patch::NamedTuple)
+
+Modify parameters in a given model by keyvalue, or with a named tuple.
+"""
+updatemodel(model::AbstractSpectralModel, patch::NamedTuple) =
+    ConstructionBase.setproperties(model, patch)
+updatemodel(model::AbstractSpectralModel; kwargs...) =
+    ConstructionBase.setproperties(model; kwargs...)
+
+@inline function updatefree(model::AbstractSpectralModel, free_params)
+    patch = free_parameters_to_named_tuple(free_params, model)
+    updatemodel(model, patch)
+end
+
+@inline function updateparameters(model::AbstractSpectralModel, params)
+    patch = all_parameters_to_named_tuple(params, model)
+    updatemodel(model, patch)
 end

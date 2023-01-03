@@ -43,3 +43,25 @@ expected = [FitParam(1.0), FitParam(1.0), FitParam(1.0), FitParam(1.0), FitParam
 params = frozenparameters(model)
 expected = [FitParam(5.0), FitParam(5.0), FitParam(5.0)]
 @test isapprox.(params, expected) |> all
+
+# test a slightly more complex composite model
+cm = DummyMultiplicative() * (DummyAdditive() + DummyAdditiveWithManyFrozen())
+
+params = freeparameters(cm)
+expected = [FitParam(1.0), FitParam(2.0), FitParam(1.0), FitParam(1.0), FitParam(1.0)]
+@test isapprox.(params, expected) |> all
+
+params = frozenparameters(cm)
+expected = [
+    FitParam(1.0),
+    FitParam(5.0),
+    FitParam(2.0),
+    FitParam(2.0),
+    FitParam(2.0),
+    FitParam(2.0),
+    FitParam(2.0),
+    FitParam(2.0),
+    FitParam(2.0),
+    FitParam(5.0),
+    FitParam(5.0),
+]

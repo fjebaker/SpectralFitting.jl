@@ -1,13 +1,12 @@
 using Test
 using SpectralFitting
 
+include("../utils.jl")
 
 ALL_JULIA_MODELS = [PowerLaw, BlackBody]
 
 # has data requirements, so skip on the CI
-if get(ENV, "CI", false) == false
-    push!(ALL_JULIA_MODELS, PhotoelectricAbsorption)
-end
+@ciskip push!(ALL_JULIA_MODELS, PhotoelectricAbsorption)
 
 energy = collect(range(0.1, 100.0, 100))
 
