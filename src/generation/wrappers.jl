@@ -18,12 +18,6 @@ end
     )
 end
 
-@inline @generated function generated_model_types(model)
-    ga = assemble_aggregate_info(model)
-    :(($(ga.models...),))
-end
-
-
 """
     all_parameter_symbols(model::AbstractSpectralModel)
 
@@ -97,3 +91,42 @@ end
 )
     FunctionGeneration.all_parameters_to_named_tuple(params, model)
 end
+
+@inline @generated function parameter_count(model::AbstractSpectralModel)
+    params = FunctionGeneration.all_parameter_symbols(model)
+    N = length(params)
+    :($(N))
+end
+
+@inline @generated function parameter_count(model::CompositeModel)
+    info = SpectralFitting.FunctionGeneration.getinfo(model)
+    N = reduce((total, i) -> (total + length(i.symbols)), info; init = 0)
+    :($(N))
+end
+
+@inline @generated function free_parameter_count(model::AbstractSpectralModel)
+    params = FunctionGeneration.free_parameter_symbols(model)
+    N = length(params)
+    :($(N))
+end
+
+@inline @generated function free_parameter_count(model::CompositeModel)
+    info = SpectralFitting.FunctionGeneration.getinfo(model)
+    N = reduce((total, i) -> (total + length(i.free)), info; init = 0)
+    :($(N))
+end
+
+@inline @generated function frozen_parameter_count(model::AbstractSpectralModel)
+    params = FunctionGeneration.frozen_parameter_symbols(model)
+    N = length(params)
+    :($(N))
+end
+
+@inline @generated function frozen_parameter_count(model::CompositeModel)
+    info = SpectralFitting.FunctionGeneration.getinfo(model)
+    N = reduce((total, i) -> (total + length(i.frozen)), info; init = 0)
+    :($(N))
+end
+
+
+export parameter_count, free_parameter_count, frozen_parameter_count
