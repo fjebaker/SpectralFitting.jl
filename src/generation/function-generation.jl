@@ -23,7 +23,8 @@ mutable struct GenerationAggregate{NumType}
     flux_count::Int
     maximum_flux_count::Int
 end
-GenerationAggregate(T) = GenerationAggregate{T}(Expr[], Symbol[], Symbol[], Type[], 0, 0)
+GenerationAggregate(T, infos) = GenerationAggregate{T}(Expr[], [infos], Symbol[], Type[], 0, 0)
+GenerationAggregate(T, infos::AbstractVector) = GenerationAggregate{T}(Expr[], infos, Symbol[], Type[], 0, 0)
 
 push_closure_param!(g::GenerationAggregate, s::Symbol) = push!(g.closure_params, s)
 push_info!(g::GenerationAggregate, s::ModelInfo) = push!(g.infos, s)
@@ -59,8 +60,10 @@ function add_invoke_statment!(
     flux,
     M::Type{<:AbstractSpectralModel},
 ) where {NumType}
-    info = getinfo(M)
-    push_info!(ga, info)
+    index = length(ga.models) + 1
+    # infos are in the correct order if indexes this way
+    info = ga.infos[index]
+
     # aggregate closure parameters
     closure_params = if has_closure_params(M)
         map(closure_parameter_symbols(M)) do p
@@ -105,25 +108,24 @@ function add_flux_resolution!(ga::GenerationAggregate, op::Symbol)
     push_statement!(ga, :(@.($fl = $expr)))
 end
 
-
 function assemble_closures(ga::GenerationAggregate, model)
-    assignments = Expr[]
-    model_index = index_models(model)
-    inds = findall(has_closure_params, ga.models)
-
-    models_with_closure = @view(ga.models[inds])
-    paths_to_models = @view(model_index[inds])
-    i = 0
-
-    for (p, M) in zip(paths_to_models, models_with_closure)
-        for s in closure_parameter_symbols(M)
-            param = ga.closure_params[(i+=1)]
-            path = :(getproperty($p, $(Meta.quot(s))))
-            a = :($param = $path)
-            push!(assignments, a)
-        end
+    info_with_closures = filter(ga.infos) do info
+        has_closure_params(info.type)
     end
-    assignments
+    i = 0
+    closures = map(info_with_closures) do info
+        cl = map(closure_parameter_symbols(info.type)) do s
+            param = ga.closure_params[i+=1]
+            path = :(getproperty($(info.lens), $(Meta.quot(s))))
+            :($param = $(path))
+        end
+        [cl...]
+    end
+    if isempty(closures)
+        ()
+    else
+        reduce(vcat, closures)
+    end
 end
 
 function generated_maximum_flux_count(model::Type{<:AbstractSpectralModel{T}}) where {T}
@@ -187,7 +189,7 @@ end
 
 
 function assemble_aggregate_info(model::Type{<:CompositeModel}, NumType)
-    ga = FunctionGeneration.GenerationAggregate(NumType)
+    ga = FunctionGeneration.GenerationAggregate(NumType, getinfo(model))
     FunctionGeneration.recursive_model_parse(model) do (left, right, op_type)
         # get operation symbol
         op = operation_symbol(op_type)
@@ -205,12 +207,22 @@ function assemble_aggregate_info(model::Type{<:CompositeModel}, NumType)
     ga
 end
 function assemble_aggregate_info(model::Type{<:AbstractSpectralModel}, NumType)
-    ga = FunctionGeneration.GenerationAggregate(NumType)
+    ga = FunctionGeneration.GenerationAggregate(NumType, getinfo(model))
     flux = FunctionGeneration.get_flux_symbol(FunctionGeneration.inc_flux!(ga))
     FunctionGeneration.add_invoke_statment!(ga, flux, model)
     ga
 end
 
-model_T(model::Type{<:AbstractSpectralModel{T}}) where {T} = T
+model_T(::Type{<:AbstractSpectralModel{T}}) where {T} = T
+
+function rebuild_composite_model(model)
+    expr = recursive_model_parse(model) do (left, right, op)
+        op_symbol  = operation_symbol(op) 
+        Expr(:call, op_symbol, :($(left)()), :($(right)()))
+    end
+    quote
+        $(expr)
+    end
+end
 
 end # module

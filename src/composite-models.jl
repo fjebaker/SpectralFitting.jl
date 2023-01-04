@@ -352,3 +352,8 @@ ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
     throw("Cannot be used with `CompositeModel`.")
 ConstructionBase.constructorof(::Type{<:CompositeModel}) =
     throw("Cannot be used with `CompositeModel`.")
+
+
+# function ConstructionBase.setproperties(m::CompositeModel, patch::NamedTuple)
+
+# end
