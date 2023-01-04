@@ -106,13 +106,18 @@ add_param_types!(types, M::Type{<:AbstractSpectralModel}) =
     push!(types, get_param_types(M)...)
 
 # invocation wrappers
-invokemodel!(f, e, model::CompositeModel) =
-    generated_model_call!(f, e, model, get_params_value(model))
-invokemodel!(f, e, model::CompositeModel, free_params, frozen_params) =
+function invokemodel!(f, e, model::CompositeModel)
+    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
+    generated_model_call!(f, e, model, modelparameters(model))
+end
+function invokemodel!(f, e, model::CompositeModel, free_params, frozen_params)
+    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
     generated_model_call!(f, e, model, free_params, frozen_params)
-function invokemodel!(f, e, m::CompositeModel, free_params)
-    frozen_params = convert.(eltype(free_params), (frozenparameters(m)))
-    invokemodel!(f, e, m, free_params, frozen_params)
+end
+function invokemodel!(f, e, model::CompositeModel, free_params)
+    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
+    frozen_params = convert.(eltype(free_params), (frozenparameters(model)))
+    invokemodel!(f, e, model, free_params, frozen_params)
 end
 
 function invokemodel(e, m::CompositeModel)
@@ -334,9 +339,6 @@ function _composite_parameters!(
     params
 end
 
-modelparameters(model::CompositeModel) = _composite_parameters!(model, modelparameters)
-freeparameters(model::CompositeModel) = _composite_parameters!(model, freeparameters)
-frozenparameters(model::CompositeModel) = _composite_parameters!(model, frozenparameters)
 function model_parameter_info(model::CompositeModel)
     infos = Tuple{Symbol,FitParam{numbertype(model)},Bool}[]
     _composite_parameters!(infos, model, model_parameter_info)

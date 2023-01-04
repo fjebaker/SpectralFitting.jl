@@ -327,27 +327,6 @@ end
     flux
 end
 
-# """
-#     update_params!(model::AbstractSpectralModel, values)
-#     update_params!(model::AbstractSpectralModel, values, errors)
-
-# Update the free model parameters with `values`, optionally also updating the `errors`.
-# """
-# function update_params!(model::AbstractSpectralModel, values)
-#     for (p, v, e) in zip(get_free_model_params(model), values)
-#         set_value!(p, v)
-#     end
-#     model
-# end
-# function update_params!(model::AbstractSpectralModel, values, errors)
-#     for (p, v, e) in zip(get_free_model_params(model), values, errors)
-#         set_value!(p, v)
-#         set_error!(p, e)
-#     end
-#     model
-# end
-
-
 # printing
 
 function modelinfo(m::M) where {M<:AbstractSpectralModel}
@@ -371,17 +350,9 @@ function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
     _printinfo(io, model)
 end
 
-function modelparameters(model::AbstractSpectralModel)
-    [getproperty(model, s) for s in all_parameter_symbols(model)]
-end
-
-function freeparameters(model::AbstractSpectralModel)
-    [getproperty(model, s) for s in free_parameter_symbols(model)]
-end
-function frozenparameters(model::AbstractSpectralModel)
-    [getproperty(model, s) for s in frozen_parameter_symbols(model)]
-end
-
+modelparameters(model::AbstractSpectralModel) = [modelparameterstuple(model)...]
+freeparameters(model::AbstractSpectralModel) = [freeparameterstuple(model)...]
+frozenparameters(model::AbstractSpectralModel) = [frozenparameterstuple(model)...]
 
 """
     model_parameter_info(model::AbstractSpectralModel)

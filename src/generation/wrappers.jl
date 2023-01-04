@@ -128,5 +128,19 @@ end
     :($(N))
 end
 
+@inline @generated function modelparameterstuple(model::AbstractSpectralModel)
+    params = FunctionGeneration.modelparameterstuple(model)
+    :(($(params...),))
+end
+
+@inline @generated function frozenparameterstuple(model::AbstractSpectralModel)
+    params = FunctionGeneration.frozenparameterstuple(model)
+    :(($(params...),))
+end
+
+@inline @generated function freeparameterstuple(model::AbstractSpectralModel)
+    params = FunctionGeneration.freeparameterstuple(model)
+    :(($(params...),))
+end
 
 export parameter_count, free_parameter_count, frozen_parameter_count
