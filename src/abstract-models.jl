@@ -23,8 +23,7 @@ export AbstractSpectralModel,
     flux_count,
     modelparameters,
     freeparameters,
-    frozenparameters,
-    model_parameter_info
+    frozenparameters
 
 """
     abstract type AbstractSpectralModel{T,K}
@@ -350,26 +349,9 @@ function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
     _printinfo(io, model)
 end
 
-modelparameters(model::AbstractSpectralModel) = [modelparameterstuple(model)...]
-freeparameters(model::AbstractSpectralModel) = [freeparameterstuple(model)...]
-frozenparameters(model::AbstractSpectralModel) = [frozenparameterstuple(model)...]
-
-"""
-    model_parameter_info(model::AbstractSpectralModel)
-
-Returns an array of tuples containing information about the model parameters.
-The tuples contain
-```
-(Symbol,             FitParam{T},      bool)
-parameter symbol,   copy of value,   is free 
-```
-"""
-function model_parameter_info(model::AbstractSpectralModel)
-    free = free_parameter_symbols(model)
-    map(all_parameter_symbols(model)) do s
-        (s, getproperty(model, s), s in free)
-    end
-end
+modelparameters(model::AbstractSpectralModel) = [model_parameters_tuple(model)...]
+freeparameters(model::AbstractSpectralModel) = [free_parameters_tuple(model)...]
+frozenparameters(model::AbstractSpectralModel) = [frozen_parameters_tuple(model)...]
 
 # todo: this function could be cleaned up with some generated hackery 
 function remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T}
