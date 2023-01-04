@@ -98,13 +98,30 @@ function frozen_parameters_to_named_tuple(params, model)
     _vector_to_named_tuple(params, names)
 end
 
-function all_parameters_to_named_tuple(params, model)
+function all_parameters_to_named_tuple(params, model::Type{<:AbstractSpectralModel})
     names = all_parameter_symbols(model)
     _vector_to_named_tuple(params, names)
 end
 
-function all_parameters_to_named_tuple(model)
+function all_parameters_to_named_tuple(model::Type{<:AbstractSpectralModel})
     names = all_parameter_symbols(model)
     statements = [:(getproperty(model, $(Meta.quot(s)))) for s in names]
     :(NamedTuple{$(names)}(($(statements...),)))
+end
+
+function _unique_parameter_symbols(infos::Vector{ModelInfo})
+    all_parameters = reduce(vcat, map(i -> i.symbols, infos))
+    param_names = Symbol[]
+    for param in all_parameters
+        s = _make_unique_readable_symbol(param, param_names)
+        push!(param_names, s)
+    end
+    (param_names...,)
+end
+
+function all_parameters_to_named_tuple(model::Type{<:CompositeModel})
+    infos = getinfo(model)
+    lenses = reduce(vcat, map(i -> _parameter_lenses(i, i.symbols), infos))
+    names = _unique_parameter_symbols(infos)
+    :(NamedTuple{$(names)}(($(lenses...),)))
 end

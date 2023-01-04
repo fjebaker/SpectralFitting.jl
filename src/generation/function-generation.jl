@@ -227,29 +227,29 @@ function rebuild_composite_model(model)
     end
 end
 
-function modelparameterstuple(model::Type{<:AbstractSpectralModel})
+function model_parameters_tuple(model::Type{<:AbstractSpectralModel})
     info = getinfo(model)
     _parameter_lenses(info, info.symbols)
 end
-function modelparameterstuple(model::Type{<:CompositeModel})
+function model_parameters_tuple(model::Type{<:CompositeModel})
     infos = getinfo(model)
     reduce(vcat, map(i -> _parameter_lenses(i, i.symbols), infos))
 end
 
-function freeparameterstuple(model::Type{<:AbstractSpectralModel})
+function free_parameters_tuple(model::Type{<:AbstractSpectralModel})
     info = getinfo(model)
     _parameter_lenses(info, info.free)
 end
-function freeparameterstuple(model::Type{<:CompositeModel})
+function free_parameters_tuple(model::Type{<:CompositeModel})
     infos = getinfo(model)
     reduce(vcat, map(i -> _parameter_lenses(i, i.free), infos))
 end
 
-function frozenparameterstuple(model::Type{<:AbstractSpectralModel})
+function frozen_parameters_tuple(model::Type{<:AbstractSpectralModel})
     info = getinfo(model)
     _parameter_lenses(info, info.frozen)
 end
-function frozenparameterstuple(model::Type{<:CompositeModel})
+function frozen_parameters_tuple(model::Type{<:CompositeModel})
     infos = getinfo(model)
     reduce(vcat, map(i -> _parameter_lenses(i, i.frozen), infos))
 end
