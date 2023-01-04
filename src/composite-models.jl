@@ -209,7 +209,7 @@ end
 
 
 function _print_param(io, free, name, val, info, q0, q1, q2, q3, q4)
-    print(io, " "^(q0), "$name  ->")
+    print(io, lpad("$name", q0),  " ->")
     if val isa FitParam
         print(io, lpad(info[1], q1 + 1))
         if free
@@ -260,6 +260,7 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     println(io, "Model key and parameters:")
     sym_buffer = 5
     offset = 1
+    param_name_offset = maximum(length("$n") for n in names) + sym_buffer
     for (symbol, m) in infos.models
         basename = FunctionGeneration.model_base_name(typeof(m))
         n_params::Int = parameter_count(m) - 1
@@ -273,7 +274,7 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
         for (name::Symbol, val::Union{Number,FitParam}, info::NTuple{4, String}) in zip(p_names, p_vals, info_tuples)
             # this is so hacky
             free::Bool = Symbol("$name"[1:end-2]) in free_symbs
-            _print_param(io, free, name, val, info, sym_buffer, q1, q2, q3, q4)
+            _print_param(io, free, name, val, info, param_name_offset, q1, q2, q3, q4)
         end
     end
 end
