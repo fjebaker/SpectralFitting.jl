@@ -83,3 +83,10 @@ new_model = SpectralFitting.updateparameters(model, K = FitParam(2.0), b = FitPa
 @test modelparameters(new_model) == [FitParam(2.0), FitParam(1.0), FitParam(1.0)]
 
 # test updating parameters on composite model
+model = DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
+# new_model = SpectralFitting.updateparameters(model, K_1 = FitParam(2.0))
+# modelparameters(new_model)
+
+SpectralFitting.FunctionGeneration.rebuild_composite_model(typeof(model))
+
+SpectralFitting.FunctionGeneration.getinfo(typeof(model))
