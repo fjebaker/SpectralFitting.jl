@@ -54,6 +54,38 @@ T = SpectralFitting.numbertype(cm)
 info = SpectralFitting.FunctionGeneration.getinfo(typeof(cm))
 @test length(info) == 3
 
+# test the lenses we've assembled
+model = cm
+@test eval(info[1].lens) == model.right.right
+@test eval(info[2].lens) == model.right.left
+@test eval(info[3].lens) == model.left
+
+# test lenses work on very deeply nested models 
+model =
+    DummyMultiplicative(a = FitParam(1.0)) *
+    DummyMultiplicative(a = FitParam(2.0)) *
+    (
+        DummyAdditive() +
+        DummyMultiplicative(a = FitParam(3.0)) * (
+            DummyAdditive() +
+            DummyMultiplicative(a = FitParam(4.0)) * (
+                DummyAdditive() +
+                DummyMultiplicative(a = FitParam(5.0)) * (
+                    DummyAdditive() +
+                    DummyMultiplicative(a = FitParam(6.0)) * (
+                        DummyAdditive() +
+                        DummyMultiplicative(a = FitParam(7.0)) * (DummyAdditive())
+                    )
+                )
+            )
+        )
+    )
+info = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
+@test eval(info[1].lens) ==
+      model.right.right.right.right.right.right.right.right.right.right.right
+@test eval(info[8].lens) == model.right.right.right.right.left
+@test length(info) == 13
+
 # order of parameters when we query for them is important
 model = DummyAdditiveWithManyFrozen()
 res = SpectralFitting.FunctionGeneration.all_parameter_symbols(typeof(model))
@@ -64,3 +96,18 @@ res = SpectralFitting.FunctionGeneration.free_parameter_symbols(typeof(model))
 
 res = SpectralFitting.FunctionGeneration.frozen_parameter_symbols(typeof(model))
 @test res == (:a, :b, :c, :d, :e, :f, :g, :i, :j)
+
+
+# test closure capture is working well
+model = DummyMultiplicative() * DummyAdditiveTableModel()
+ga = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model), Float64)
+lens = SpectralFitting.FunctionGeneration.assemble_closures(ga, typeof(model))
+@test eval(lens[1]) == model.right.table
+
+# test works well with multiple closure models
+model =
+    DummyMultiplicative() * (DummyMultiplicativeTableModel() * DummyAdditiveTableModel())
+ga = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model), Float64)
+lens = SpectralFitting.FunctionGeneration.assemble_closures(ga, typeof(model))
+@test eval(lens[1]) == model.right.right.table
+@test eval(lens[2]) == model.right.left.table

@@ -194,7 +194,7 @@ end
 function XS_KerrDisk(;
     K = FitParam(1.0),
     lineE = FitParam(6.4),
-    index1 = FitParam(3.0),
+    index1 = FitParam(3.0, lower_limit = 0.0, upper_limit = 0.998),
     index2 = FitParam(3.0),
     break_r = FitParam(6.0),
     a = FitParam(0.998, lower_limit = 0, upper_limit = 1.0),

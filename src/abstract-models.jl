@@ -21,8 +21,6 @@ export AbstractSpectralModel,
     invokemodel,
     invokemodel!,
     flux_count,
-    freeze_parameter,
-    free_parameter,
     modelparameters,
     freeparameters,
     frozenparameters,
@@ -373,15 +371,6 @@ function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
     _printinfo(io, model)
 end
 
-# parameter utilities
-function freeze_parameter(model, symbols...)
-    error("Not implemented yet.")
-end
-function free_parameter(model, symbols...)
-    error("Not implemented yet.")
-end
-
-
 function modelparameters(model::AbstractSpectralModel)
     [getproperty(model, s) for s in all_parameter_symbols(model)]
 end
@@ -438,6 +427,7 @@ updatemodel(model::AbstractSpectralModel; kwargs...) =
     ConstructionBase.setproperties(model; kwargs...)
 
 @inline function updatefree(model::AbstractSpectralModel, free_params)
+
     patch = free_parameters_to_named_tuple(free_params, model)
     updatemodel(model, patch)
 end
@@ -445,4 +435,8 @@ end
 @inline function updateparameters(model::AbstractSpectralModel, params)
     patch = all_parameters_to_named_tuple(params, model)
     updatemodel(model, patch)
+end
+
+@inline function updateparameters(model::AbstractSpectralModel; params...)
+    updatemodel(model; params...)
 end
