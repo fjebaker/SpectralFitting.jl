@@ -61,21 +61,28 @@ model = cm
 @test eval(info[3].lens) == model.left
 
 # test lenses work on very deeply nested models 
-model = DummyMultiplicative(a=FitParam(1.0)) * DummyMultiplicative(a=FitParam(2.0)) * (
-    DummyAdditive() + DummyMultiplicative(a=FitParam(3.0)) * (
-        DummyAdditive() + DummyMultiplicative(a=FitParam(4.0)) * (
-            DummyAdditive() + DummyMultiplicative(a=FitParam(5.0)) * (
-                DummyAdditive() + DummyMultiplicative(a=FitParam(6.0)) * (
-                    DummyAdditive() + DummyMultiplicative(a=FitParam(7.0)) * (
-                        DummyAdditive()
+model =
+    DummyMultiplicative(a = FitParam(1.0)) *
+    DummyMultiplicative(a = FitParam(2.0)) *
+    (
+        DummyAdditive() +
+        DummyMultiplicative(a = FitParam(3.0)) * (
+            DummyAdditive() +
+            DummyMultiplicative(a = FitParam(4.0)) * (
+                DummyAdditive() +
+                DummyMultiplicative(a = FitParam(5.0)) * (
+                    DummyAdditive() +
+                    DummyMultiplicative(a = FitParam(6.0)) * (
+                        DummyAdditive() +
+                        DummyMultiplicative(a = FitParam(7.0)) * (DummyAdditive())
                     )
                 )
             )
         )
     )
-)
 info = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
-@test eval(info[1].lens) == model.right.right.right.right.right.right.right.right.right.right.right
+@test eval(info[1].lens) ==
+      model.right.right.right.right.right.right.right.right.right.right.right
 @test eval(info[8].lens) == model.right.right.right.right.left
 @test length(info) == 13
 
@@ -98,7 +105,8 @@ lens = SpectralFitting.FunctionGeneration.assemble_closures(ga, typeof(model))
 @test eval(lens[1]) == model.right.table
 
 # test works well with multiple closure models
-model = DummyMultiplicative() * (DummyMultiplicativeTableModel() * DummyAdditiveTableModel())
+model =
+    DummyMultiplicative() * (DummyMultiplicativeTableModel() * DummyAdditiveTableModel())
 ga = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model), Float64)
 lens = SpectralFitting.FunctionGeneration.assemble_closures(ga, typeof(model))
 @test eval(lens[1]) == model.right.right.table

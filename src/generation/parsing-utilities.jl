@@ -7,7 +7,7 @@ struct ModelInfo
     type::Type
 end
 
-function getinfo(model::Type{<:AbstractSpectralModel}; lens::Union{Symbol,Expr}=:(model))
+function getinfo(model::Type{<:AbstractSpectralModel}; lens::Union{Symbol,Expr} = :(model))
     symbs = [all_parameter_symbols(model)...]
     free = [free_parameter_symbols(model)...]
     frozen = [frozen_parameter_symbols(model)...]

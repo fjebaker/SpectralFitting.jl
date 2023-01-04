@@ -23,8 +23,10 @@ mutable struct GenerationAggregate{NumType}
     flux_count::Int
     maximum_flux_count::Int
 end
-GenerationAggregate(T, infos) = GenerationAggregate{T}(Expr[], [infos], Symbol[], Type[], 0, 0)
-GenerationAggregate(T, infos::AbstractVector) = GenerationAggregate{T}(Expr[], infos, Symbol[], Type[], 0, 0)
+GenerationAggregate(T, infos) =
+    GenerationAggregate{T}(Expr[], [infos], Symbol[], Type[], 0, 0)
+GenerationAggregate(T, infos::AbstractVector) =
+    GenerationAggregate{T}(Expr[], infos, Symbol[], Type[], 0, 0)
 
 push_closure_param!(g::GenerationAggregate, s::Symbol) = push!(g.closure_params, s)
 push_info!(g::GenerationAggregate, s::ModelInfo) = push!(g.infos, s)
@@ -217,7 +219,7 @@ model_T(::Type{<:AbstractSpectralModel{T}}) where {T} = T
 
 function rebuild_composite_model(model)
     expr = recursive_model_parse(model) do (left, right, op)
-        op_symbol  = operation_symbol(op) 
+        op_symbol = operation_symbol(op)
         Expr(:call, op_symbol, :($(left)()), :($(right)()))
     end
     quote
