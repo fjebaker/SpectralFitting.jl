@@ -100,15 +100,10 @@ function closurekind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     end
 end
 
-# utilities
-add_param_types!(_, ::Type{Nothing}) = nothing
-add_param_types!(types, M::Type{<:AbstractSpectralModel}) =
-    push!(types, get_param_types(M)...)
-
 # invocation wrappers
 function invokemodel!(f, e, model::CompositeModel)
     @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
-    generated_model_call!(f, e, model, modelparameters(model))
+    generated_model_call!(f, e, model, model_parameters_tuple(model))
 end
 function invokemodel!(f, e, model::CompositeModel, free_params, frozen_params)
     @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
@@ -212,55 +207,14 @@ function Base.show(io::IO, ::CompositeModel)
     print(io, "CompositeModel")
 end
 
-# such an ugly function
-function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
-    l_buffer = 5
-    model_types = _all_model_types(model)
-    n_components = length(model_types)
-    expr, infos = _readable_expression_info(model)
 
-    print(io, "CompositeModel with $n_components component models:\n")
-    println(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        " "^l_buffer,
-        "$expr",
-        Crayons.Crayon(reset = true),
-    )
-
-    param_symbols = Symbol[]
-    model_list = map(infos.models) do (symbol, m)
-        _ps = map(get_param_symbol_pairs(m)) do (ps, p)
-            ups = FunctionGeneration._make_unique_readable_symbol(ps, param_symbols)
-            push!(param_symbols, ups)
-            String(ups)
-        end
-        p_string = join(_ps, ", ")
-        symbol => ("$(FunctionGeneration.model_base_name(typeof(m)))", p_string)
-    end
-
-    pad1 = maximum(i -> length(String(i)), param_symbols) + l_buffer
-    pad2 = maximum(i -> length(i[2][1]), model_list) + 1
-
-    println(io, lpad("Symbols:", pad1), "    ", rpad("Models:", pad2), " Params:")
-    for (s, (m, mp)) in model_list
-        println(io, "$(lpad(s, pad1)) => $(rpad(m, pad2)) ($mp) ")
-    end
-
-    println(io, lpad("Symbols:", pad1), "     Values:")
-
-    param_infos = model_parameter_info(model)
-    info_tuples = [get_info_tuple(i[2]) for i in param_infos]
-    # calculate paddings for alignment
-    q1, q2, q3, q4 = map(1:4) do i
-        maximum(j -> length("$(j[i])"), info_tuples) + 1
-    end
-    for (symbol, (_, _, free), pinfo) in zip(param_symbols, param_infos, info_tuples)
-        print(io, "$(lpad(symbol, pad1)) => ")
-        print(io, lpad(pinfo[1], q1))
+function _print_param(io, free, name, val, info, q0, q1, q2, q3, q4)
+    print(io, " "^(q0), "$name  ->")
+    if val isa FitParam
+        print(io, lpad(info[1], q1 + 1))
         if free
-            print(io, " ± ", rpad(pinfo[2], q2))
-            print(io, " ∈ [", lpad(pinfo[3], q3), ", ", rpad(pinfo[4], q4), "]")
+            print(io, " ± ", rpad(info[2], q2))
+            print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
             print(
                 io,
                 Crayons.Crayon(foreground = :green),
@@ -275,7 +229,52 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
                 Crayons.Crayon(reset = true),
             )
         end
-        println(io)
+    end
+    println(io)
+end
+
+# such an ugly function
+function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
+    l_buffer = 5
+    n_components = length(_all_model_types(model))
+    expr, infos = _parse_human_friendly_string(model)
+
+    print(io, "CompositeModel with $n_components component models:\n")
+    println(
+        io,
+        Crayons.Crayon(foreground = :cyan),
+        " "^l_buffer,
+        expr,
+        Crayons.Crayon(reset = true),
+    )
+
+    parameters = all_parameters_to_named_tuple(model)
+    names = keys(parameters)
+    values = ((getfield(parameters, s) for s in names)...,)
+
+    info_tuples = get_info_tuple.(values)
+    q1, q2, q3, q4 = map(1:4) do i
+        maximum(j -> length("$(j[i])"), info_tuples) + 1
+    end
+
+    println(io, "Model key and parameters:")
+    sym_buffer = 5
+    offset = 1
+    for (symbol, m) in infos.models
+        basename = FunctionGeneration.model_base_name(typeof(m))
+        n_params::Int = parameter_count(m) - 1
+        p_names = names[offset:offset + n_params]
+        p_vals = ((getfield(parameters, s) for s in p_names)...,)
+        offset += n_params + 1
+        println(io, lpad("$symbol", sym_buffer), " => $basename")
+
+        free_symbs = free_parameter_symbols(m)
+
+        for (name::Symbol, val::Union{Number,FitParam}, info::NTuple{4, String}) in zip(p_names, p_vals, info_tuples)
+            # this is so hacky
+            free::Bool = Symbol("$name"[1:end-2]) in free_symbs
+            _print_param(io, free, name, val, info, sym_buffer, q1, q2, q3, q4)
+        end
     end
 end
 
@@ -285,7 +284,7 @@ _unique_model_symbol(::Additive, infos) = Symbol('a', infos.a[] += 1)
 _unique_model_symbol(::Multiplicative, infos) = Symbol('m', infos.m[] += 1)
 _unique_model_symbol(::Convolutional, infos) = Symbol('c', infos.c[] += 1)
 
-function _readable_expression_info(model::CompositeModel)
+function _parse_human_friendly_string(model::CompositeModel)
     models = Pair{Symbol,AbstractSpectralModel}[]
     infos = (models = models, a = Ref(0), m = Ref(0), c = Ref(0))
     expr = FunctionGeneration.recursive_model_parse(model) do (left, right, op)
@@ -314,40 +313,8 @@ function _readable_expression_info(model::CompositeModel)
     expr, infos
 end
 
-function _composite_parameters!(params, model::AbstractSpectralModel, parameters)
-    for p in parameters(model)
-        push!(params, p)
-    end
-end
-function _composite_parameters!(params, model::CompositeModel, parameters)
-    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
-        if !isnothing(right)
-            _composite_parameters!(params, right, parameters)
-        end
-        if !isnothing(left)
-            _composite_parameters!(params, left, parameters)
-        end
-        nothing
-    end
-end
-function _composite_parameters!(
-    model::CompositeModel{M1,M2,O,T},
-    parameters,
-) where {M1,M2,O,T}
-    params = T[]
-    _composite_parameters!(params, model, parameters)
-    params
-end
-
-function model_parameter_info(model::CompositeModel)
-    infos = Tuple{Symbol,FitParam{numbertype(model)},Bool}[]
-    _composite_parameters!(infos, model, model_parameter_info)
-    infos
-end
-
-
 function remake_with_number_type(model::CompositeModel)
-
+    error("Todo")
 end
 # explicitly disable interface for ConstructionBase.jl
 ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
