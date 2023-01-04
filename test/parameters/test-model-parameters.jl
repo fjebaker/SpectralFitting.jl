@@ -11,13 +11,25 @@ params = modelparameters(model)
 expected = [FitParam(1.0), FitParam(1.0), FitParam(5.0)]
 @test isapprox.(params, expected) |> all
 
+params_tuple = @inferred SpectralFitting.model_parameters_tuple(model)
+expected = (FitParam(1.0), FitParam(1.0), FitParam(5.0))
+@test isapprox.(params_tuple, expected) |> all
+
 params = freeparameters(model)
 expected = [FitParam(1.0), FitParam(1.0)]
 @test isapprox.(params, expected) |> all
 
+params_tuple = @inferred SpectralFitting.free_parameters_tuple(model)
+expected = (FitParam(1.0), FitParam(1.0))
+@test isapprox.(params_tuple, expected) |> all
+
 params = frozenparameters(model)
 expected = [FitParam(5.0)]
 @test isapprox.(params, expected) |> all
+
+params_tuple = @inferred SpectralFitting.frozen_parameters_tuple(model)
+expected = (FitParam(5.0),)
+@test isapprox.(params_tuple, expected) |> all
 
 @test parameter_count(model) == 3
 @test free_parameter_count(model) == 2
@@ -42,6 +54,19 @@ expected = [
     FitParam(5.0),
 ]
 @test isapprox.(params, expected) |> all
+
+params_tuple = SpectralFitting.model_parameters_tuple(model)
+expected = (
+    FitParam(1.0),
+    FitParam(1.0),
+    FitParam(5.0),
+    FitParam(1.0),
+    FitParam(1.0),
+    FitParam(5.0),
+    FitParam(1.0),
+    FitParam(5.0),
+)
+@test isapprox.(params_tuple, expected) |> all
 
 params = freeparameters(model)
 expected = [FitParam(1.0), FitParam(1.0), FitParam(1.0), FitParam(1.0), FitParam(1.0)]
