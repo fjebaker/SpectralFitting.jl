@@ -17,10 +17,8 @@ mutable struct GenerationAggregate{NumType}
     flux_count::Int
     maximum_flux_count::Int
 end
-GenerationAggregate(T) =
-    GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
-GenerationAggregate(T) =
-    GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
+GenerationAggregate(T) = GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
+GenerationAggregate(T) = GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
 
 push_closure_param!(g::GenerationAggregate, s::Symbol) = push!(g.closure_params, s)
 push_info!(g::GenerationAggregate, s::ModelInfo) = push!(g.infos, s)
@@ -81,7 +79,11 @@ function _addinfosymbol!(infos, counters, model::Type{<:CompositeModel}, lens::L
     end
 end
 
-function _addinfoinvoke!(ga::GenerationAggregate{NumType}, model::Type{<:AbstractSpectralModel}, lens::Lens) where {NumType}
+function _addinfoinvoke!(
+    ga::GenerationAggregate{NumType},
+    model::Type{<:AbstractSpectralModel},
+    lens::Lens,
+) where {NumType}
     # don't increment flux for convolutional models
     if !(modelkind(model) === Convolutional)
         inc_flux!(ga)
@@ -102,8 +104,11 @@ function _addinfoinvoke!(ga::GenerationAggregate{NumType}, model::Type{<:Abstrac
 
     # get the parameter type
     T = NumType <: SpectralFitting.FitParam ? NumType.parameters[1] : NumType
-    model_constructor =
-        :($(model.name.wrapper){$(model.parameters[1:end-2]...),$(T),$(model.parameters[end])})
+    model_constructor = :($(model.name.wrapper){
+        $(model.parameters[1:end-2]...),
+        $(T),
+        $(model.parameters[end]),
+    })
 
     # assemble the invocation statement
     s = :(invokemodel!(
