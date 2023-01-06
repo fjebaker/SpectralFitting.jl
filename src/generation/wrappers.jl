@@ -143,4 +143,8 @@ end
     :(($(params...),))
 end
 
+@inline @generated function _destructure_for_printing(model::CompositeModel)
+    FunctionGeneration._destructure_for_printing(model)
+end
+
 export parameter_count, free_parameter_count, frozen_parameter_count
