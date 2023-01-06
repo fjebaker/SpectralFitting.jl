@@ -136,29 +136,6 @@ function add_flux_resolution!(ga::GenerationAggregate, op::Symbol)
     push_statement!(ga, :(@.($fl = $expr)))
 end
 
-unpack_model(::Type{<:CompositeModel{M1,M2,O}}) where {M1,M2,O} = (M1, M2, O)
-unpack_model(m::CompositeModel{M1,M2,O}) where {M1,M2,O} =
-    m.left, m.right, operation_symbol(O)
-
-@inline function _recursive_model_parse(callback, model)
-    left_model, right_model, operator = unpack_model(model)
-    left = recursive_model_parse(callback, left_model)
-    right = recursive_model_parse(callback, right_model)
-    callback((left, right, operator))
-end
-
-recursive_model_parse(_, model::Type{<:AbstractSpectralModel}) = model
-function recursive_model_parse(callback, model::Type{<:CompositeModel})
-    _recursive_model_parse(callback, model)
-    # Nothing
-end
-
-recursive_model_parse(_, model::AbstractSpectralModel) = model
-function recursive_model_parse(callback, model::CompositeModel)
-    _recursive_model_parse(callback, model)
-    # nothing
-end
-
 function _make_unique_readable_symbol(p, symbol_bank; delim = '_')
     i = 1
     symb = Symbol(p, delim, i)

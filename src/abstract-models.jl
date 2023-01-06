@@ -13,11 +13,6 @@ export AbstractSpectralModel,
     WithoutClosures,
     closurekind,
     has_closure_params,
-    get_param,
-    get_param_count,
-    get_params,
-    get_params_value,
-    get_param_symbol_pairs,
     invokemodel,
     invokemodel!,
     flux_count,
@@ -153,81 +148,6 @@ The only exception to this are [`Additive`](@ref) models, where the normalisatio
 invoke!(flux, energy, M::AbstractSpectralModel) = error("Not defined for $(M).")
 
 """
-    get_param(model::AbstractSpectralModel, s::Symbol)
-
-Get a parameter from an [`AbstractSpectralModel`](@ref) by symbol.
-
-# Example
-
-```julia
-model = XS_BlackBody()
-get_param(model, :K)
-```
-"""
-get_param(m::AbstractSpectralModel, s::Symbol) = getproperty(m, s)
-
-"""
-    get_param_count(model::AbstractSpectralModel)
-    get_param_count(M::Type{<:AbstractSpectralModel})
-
-Get the number of parameters a given [`AbstractSpectralModel`](@ref) has.
-
-# Example
-
-```julia
-model = XS_BlackBody() + XS_PowerLaw()
-get_param_count(model)
-```
-"""
-get_param_count(::M) where {M<:AbstractSpectralModel} = get_param_count(M)
-get_param_count(M::Type{<:AbstractSpectralModel}) = length(get_param_types(M))
-
-"""
-    get_params(m::AbstractSpectralModel)
-
-Get a generator of all model parameters of an [`AbstractSpectralModel`](@ref).
-
-# Example
-
-```julia
-model = XS_BlackBody() + XS_PowerLaw()
-get_params(model)
-```
-"""
-get_params(m::M) where {M<:AbstractSpectralModel} =
-    (get_param(m, p) for p in FunctionGeneration.all_parameter_symbols(M))
-
-"""
-    get_params_value(m::AbstractSpectralModel)
-
-Get a generator of all model parameter values of an [`AbstractSpectralModel`](@ref). See [`get_value`](@ref).
-
-# Example
-
-```julia
-model = XS_BlackBody() + XS_PowerLaw()
-get_params_value(model)
-```
-"""
-get_params_value(m::AbstractSpectralModel) = convert.(Float64, modelparameters(m))
-
-"""
-    get_param_symbol_pairs(m::AbstractSpectralModel)
-
-Get a generator yielding `::Pair{Symbol,T}` of all model parameter values and their symbols,
-for an [`AbstractSpectralModel`](@ref).
-
-# Example
-
-```julia
-model = XS_BlackBody() + XS_PowerLaw()
-get_param_symbol_pairs(model)
-```
-"""
-get_param_symbol_pairs(m::M) where {M<:AbstractSpectralModel} =
-    (p => get_param(m, p) for p in FunctionGeneration.all_parameter_symbols(M))
-
-"""
     invokemodel(energy, model)
     invokemodel(energy, model, free_params)
 
@@ -328,13 +248,9 @@ end
 
 # printing
 
-function modelinfo(m::M) where {M<:AbstractSpectralModel}
-    params = join([get_value(p) for p in get_params(m)], ", ")
-    "$(FunctionGeneration.model_base_name(M))[$(params)]"
-end
-
 function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
-    params = [String(s) => p for (s, p) in get_param_symbol_pairs(m)]
+    param_tuple = all_parameters_to_named_tuple(m)
+    params = [String(s) => p for (s, p) in zip(keys(param_tuple), param_tuple)]
     print(io, "$(FunctionGeneration.model_base_name(M))\n")
 
     pad = maximum(i -> length(first(i)), params) + 1
@@ -380,7 +296,6 @@ updatemodel(model::AbstractSpectralModel; kwargs...) =
     ConstructionBase.setproperties(model; kwargs...)
 
 @inline function updatefree(model::AbstractSpectralModel, free_params)
-
     patch = free_parameters_to_named_tuple(free_params, model)
     updatemodel(model, patch)
 end
