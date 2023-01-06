@@ -155,3 +155,16 @@ flux .= 0
 free_params = [1.0, 2.0, 1.0, 1.0, 1.0]
 invokemodel!(fluxes, energy, cm, free_params)
 @test all(flux .== 160.0)
+
+# edge case that previously was failing
+model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
+flux = invokemodel(energy, model)
+@test all(flux .== 300)
+
+flux = zeros(Float64, length(energy) - 1)
+fluxes = (flux, deepcopy(flux), deepcopy(flux))
+invokemodel!(fluxes, energy, model)
+@test all(flux .== 300)
+
+# assert error is raised when too few flux passed
+@test_throws "" invokemodel!(flux, energy, model)

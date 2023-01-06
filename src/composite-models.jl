@@ -157,52 +157,6 @@ conv_models(m1::M1, m2::M2) where {M1,M2} =
     conv_models(m1, m2, modelkind(M1), modelkind(M2))
 (m1::AbstractSpectralModel)(m2::M2) where {M2<:AbstractSpectralModel} = conv_models(m1, m2)
 
-function _add_symbols_and_params_to_index!(params, m)
-    if !isnothing(m)
-        foreach(get_param_symbol_pairs(m)) do (s, p)
-            symb = FunctionGeneration._make_unique_readable_symbol(s, first.(params))
-            push!(params, symb => p)
-        end
-    end
-end
-
-function get_param_symbol_pairs(model::CompositeModel)
-    params = Pair{Symbol,FitParam}[]
-    recursive_model_parse(model) do (left, right, _)
-        _add_symbols_and_params_to_index!(params, right)
-        _add_symbols_and_params_to_index!(params, left)
-        nothing
-    end
-    params
-end
-
-function get_param(model::CompositeModel, s::Symbol)
-    ps = get_param_symbol_pairs(model)
-    i = findfirst(i -> first(i) == s, ps)
-    if !isnothing(i)
-        last(ps[i])
-    else
-        error("Model has no symbol $s.")
-    end
-end
-
-# printing
-_expression_string(::M) where {M<:AbstractSpectralModel} = modelinfo(M)
-_expression_string(left, right, ::Multiplicative) = "$left * $right"
-_expression_string(left, right, ::Convolutional) = "$left($right)"
-_expression_string(left, right, ::Additive) = "($left + $right)"
-
-function _expression_string(cm::CompositeModel{M1,M2}) where {M1,M2}
-    left = _expression_string(cm.left)
-    right = _expression_string(cm.right)
-    _expression_string(left, right, modelkind(M1))
-end
-
-function _all_model_types(model::CompositeModel{M1,M2,O,T}) where {M1,M2,O,T}
-    ga = FunctionGeneration.assemble_aggregate_info(typeof(model), T)
-    ga.models
-end
-
 function Base.show(io::IO, ::CompositeModel)
     print(io, "CompositeModel")
 end
@@ -236,9 +190,8 @@ end
 # such an ugly function
 function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     l_buffer = 5
-    n_components = length(_all_model_types(model))
-
     expr, infos = _destructure_for_printing(model)
+    n_components = length(infos)
 
     print(io, "CompositeModel with $n_components component models:\n")
     println(
@@ -278,7 +231,6 @@ ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
     throw("Cannot be used with `CompositeModel`.")
 ConstructionBase.constructorof(::Type{<:CompositeModel}) =
     throw("Cannot be used with `CompositeModel`.")
-
 
 # function ConstructionBase.setproperties(m::CompositeModel, patch::NamedTuple)
 # end
