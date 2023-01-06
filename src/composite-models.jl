@@ -264,7 +264,7 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
         basename = FunctionGeneration.model_base_name(M)
         println(io, lpad("$symbol", sym_buffer), " => $basename")
 
-        for (val, s, free) in zip(modelparameters(m), param_symbols, states)
+        for (val, s::Symbol, free::Bool) in zip(modelparameters(m), param_symbols, states)
             _print_param(io, free, s, val, param_name_offset, q1, q2, q3, q4)
         end
     end
