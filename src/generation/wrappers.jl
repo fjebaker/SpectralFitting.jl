@@ -92,41 +92,59 @@ end
     FunctionGeneration.all_parameters_to_named_tuple(params, model)
 end
 
-@inline @generated function parameter_count(model::AbstractSpectralModel)
+@inline @generated function parameter_count(model::AbstractSpectralModel)::Int
     params = FunctionGeneration.all_parameter_symbols(model)
     N = length(params)
     :($(N))
 end
 
-@inline @generated function parameter_count(model::CompositeModel)
+@inline @generated function parameter_count(model::CompositeModel)::Int
     info = SpectralFitting.FunctionGeneration.getinfo(model)
     N = reduce((total, i) -> (total + length(i.symbols)), info; init = 0)
     :($(N))
 end
 
-@inline @generated function free_parameter_count(model::AbstractSpectralModel)
+@inline @generated function free_parameter_count(model::AbstractSpectralModel)::Int
     params = FunctionGeneration.free_parameter_symbols(model)
     N = length(params)
     :($(N))
 end
 
-@inline @generated function free_parameter_count(model::CompositeModel)
+@inline @generated function free_parameter_count(model::CompositeModel)::Int
     info = SpectralFitting.FunctionGeneration.getinfo(model)
     N = reduce((total, i) -> (total + length(i.free)), info; init = 0)
     :($(N))
 end
 
-@inline @generated function frozen_parameter_count(model::AbstractSpectralModel)
+@inline @generated function frozen_parameter_count(model::AbstractSpectralModel)::Int
     params = FunctionGeneration.frozen_parameter_symbols(model)
     N = length(params)
     :($(N))
 end
 
-@inline @generated function frozen_parameter_count(model::CompositeModel)
+@inline @generated function frozen_parameter_count(model::CompositeModel)::Int
     info = SpectralFitting.FunctionGeneration.getinfo(model)
     N = reduce((total, i) -> (total + length(i.frozen)), info; init = 0)
     :($(N))
 end
 
+@inline @generated function model_parameters_tuple(model::AbstractSpectralModel)
+    params = FunctionGeneration.model_parameters_tuple(model)
+    :(($(params...),))
+end
+
+@inline @generated function frozen_parameters_tuple(model::AbstractSpectralModel)
+    params = FunctionGeneration.frozen_parameters_tuple(model)
+    :(($(params...),))
+end
+
+@inline @generated function free_parameters_tuple(model::AbstractSpectralModel)
+    params = FunctionGeneration.free_parameters_tuple(model)
+    :(($(params...),))
+end
+
+@inline @generated function _destructure_for_printing(model::CompositeModel)
+    FunctionGeneration._destructure_for_printing(model)
+end
 
 export parameter_count, free_parameter_count, frozen_parameter_count

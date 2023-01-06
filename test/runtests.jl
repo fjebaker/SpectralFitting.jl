@@ -10,9 +10,6 @@ include("utils.jl")
     @testset "utilities" begin
         include("generation/test-parsing-utilities.jl")
     end
-    @testset "introspection" begin
-        include("generation/test-introspection.jl")
-    end
 end
 
 @testset "macros" verbose = true begin

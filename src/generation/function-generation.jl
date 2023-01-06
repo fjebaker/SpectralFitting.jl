@@ -227,4 +227,37 @@ function rebuild_composite_model(model)
     end
 end
 
+function model_parameters_tuple(model::Type{<:AbstractSpectralModel})
+    info = getinfo(model)
+    _parameter_lens(info, info.symbols)
+end
+function model_parameters_tuple(model::Type{<:CompositeModel})
+    infos = getinfo(model)
+    reduce(vcat, map(i -> _parameter_lens(i, i.symbols), infos))
+end
+
+function free_parameters_tuple(model::Type{<:AbstractSpectralModel})
+    info = getinfo(model)
+    _parameter_lens(info, info.free)
+end
+function free_parameters_tuple(model::Type{<:CompositeModel})
+    infos = getinfo(model)
+    reduce(vcat, map(i -> _parameter_lens(i, i.free), infos))
+end
+
+function frozen_parameters_tuple(model::Type{<:AbstractSpectralModel})
+    info = getinfo(model)
+    _parameter_lens(info, info.frozen)
+end
+function frozen_parameters_tuple(model::Type{<:CompositeModel})
+    infos = getinfo(model)
+    reduce(vcat, map(i -> _parameter_lens(i, i.frozen), infos))
+end
+
+function _parameter_lens(info::ModelInfo, symbols)
+    map(symbols) do s
+        :(getproperty($(info.lens), $(Meta.quot(s))))
+    end
+end
+
 end # module

@@ -13,6 +13,9 @@ flux = zeros(Float64, length(energy) - 1)
 out_flux = invokemodel!(flux, energy, model)
 @test all(out_flux .== 6)
 
+# check type stability
+@inferred invokemodel!(flux, energy, model)
+
 # make sure normalisation is handled correctly
 model2 = DummyAdditive(K = FitParam(2.0))
 
@@ -52,9 +55,10 @@ end
 # added models
 out_flux = invokemodel(energy, model + model)
 @test all(out_flux .== 12)
+@inferred invokemodel(energy, model + model)
 
 # big added models
-out_flux = invokemodel(
+out_flux = @inferred invokemodel(
     energy,
     model +
     model +
@@ -86,8 +90,8 @@ invokemodel!(out_flux, energy, model)
 @test all(out_flux .== 6)
 
 # should be unchanged if called multiple times
-invokemodel!(out_flux, energy, model)
-invokemodel!(out_flux, energy, model)
+@inferred invokemodel!(out_flux, energy, model)
+@inferred invokemodel!(out_flux, energy, model)
 @test all(out_flux .== 6)
 
 # invocation with different parameters for single model
@@ -123,19 +127,19 @@ invokemodel!(fluxes, energy, cm, free_params)
 # ensure we can pass different input parameter types and have the system update accordingly
 model = DummyAdditive()
 free_params = Float32[2.0, 1.0]
-flux = invokemodel(energy, model, free_params)
+flux = @inferred invokemodel(energy, model, free_params)
 @test all(flux .== 12.0)
 @test eltype(flux) == Float32
 
 # composite
 cm = DummyMultiplicative() * DummyAdditive()
 free_params = Float32[2.0, 2.0, 2.0]
-flux = invokemodel(energy, cm, free_params)
+flux = @inferred invokemodel(energy, cm, free_params)
 @test all(flux .== 140.0)
 @test eltype(flux) == Float32
 
 # composite with many frozen
-cm = DummyMultiplicative() * (DummyAdditive() + DummyAdditiveWithManyFrozen())
+cm = @inferred DummyMultiplicative() * (DummyAdditive() + DummyAdditiveWithManyFrozen())
 flux = invokemodel(energy, cm)
 @test all(flux .== 160.0)
 

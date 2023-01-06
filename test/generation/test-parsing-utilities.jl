@@ -1,6 +1,7 @@
 using Test
 using SpectralFitting
 
+include("../utils.jl")
 include("../dummies.jl")
 include("../fuzz.jl")
 
@@ -111,3 +112,18 @@ ga = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model), F
 lens = SpectralFitting.FunctionGeneration.assemble_closures(ga, typeof(model))
 @test eval(lens[1]) == model.right.right.table
 @test eval(lens[2]) == model.right.left.table
+
+# test the flattening of composite models works
+model =
+    (DummyMultiplicative() * DummyMultiplicative() * DummyAdditive()) +
+    DummyMultiplicative() * DummyAdditive()
+t = SpectralFitting.FunctionGeneration._destructure_for_printing(typeof(model))
+expr, info = eval(t)
+@test expr == "(m3 * m2) * a2 + m1 * a1"
+@test info == ((
+    a1 = (DummyAdditive(), ("K_1", "a_1", "b_1"), (true, true, false)),
+    m1 = (DummyMultiplicative(), ("a_2", "b_2"), (true, false)),
+    a2 = (DummyAdditive(), ("K_2", "a_3", "b_3"), (true, true, false)),
+    m2 = (DummyMultiplicative(), ("a_4", "b_4"), (true, false)),
+    m3 = (DummyMultiplicative(), ("a_5", "b_5"), (true, false)),
+))

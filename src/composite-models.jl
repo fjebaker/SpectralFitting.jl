@@ -100,19 +100,19 @@ function closurekind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     end
 end
 
-# utilities
-add_param_types!(_, ::Type{Nothing}) = nothing
-add_param_types!(types, M::Type{<:AbstractSpectralModel}) =
-    push!(types, get_param_types(M)...)
-
 # invocation wrappers
-invokemodel!(f, e, model::CompositeModel) =
-    generated_model_call!(f, e, model, get_params_value(model))
-invokemodel!(f, e, model::CompositeModel, free_params, frozen_params) =
+function invokemodel!(f, e, model::CompositeModel)
+    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
+    generated_model_call!(f, e, model, model_parameters_tuple(model))
+end
+function invokemodel!(f, e, model::CompositeModel, free_params, frozen_params)
+    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
     generated_model_call!(f, e, model, free_params, frozen_params)
-function invokemodel!(f, e, m::CompositeModel, free_params)
-    frozen_params = convert.(eltype(free_params), (frozenparameters(m)))
-    invokemodel!(f, e, m, free_params, frozen_params)
+end
+function invokemodel!(f, e, model::CompositeModel, free_params)
+    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
+    frozen_params = convert.(eltype(free_params), (frozenparameters(model)))
+    invokemodel!(f, e, model, free_params, frozen_params)
 end
 
 function invokemodel(e, m::CompositeModel)
@@ -207,55 +207,14 @@ function Base.show(io::IO, ::CompositeModel)
     print(io, "CompositeModel")
 end
 
-# such an ugly function
-function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
-    l_buffer = 5
-    model_types = _all_model_types(model)
-    n_components = length(model_types)
-    expr, infos = _readable_expression_info(model)
-
-    print(io, "CompositeModel with $n_components component models:\n")
-    println(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        " "^l_buffer,
-        "$expr",
-        Crayons.Crayon(reset = true),
-    )
-
-    param_symbols = Symbol[]
-    model_list = map(infos.models) do (symbol, m)
-        _ps = map(get_param_symbol_pairs(m)) do (ps, p)
-            ups = FunctionGeneration._make_unique_readable_symbol(ps, param_symbols)
-            push!(param_symbols, ups)
-            String(ups)
-        end
-        p_string = join(_ps, ", ")
-        symbol => ("$(FunctionGeneration.model_base_name(typeof(m)))", p_string)
-    end
-
-    pad1 = maximum(i -> length(String(i)), param_symbols) + l_buffer
-    pad2 = maximum(i -> length(i[2][1]), model_list) + 1
-
-    println(io, lpad("Symbols:", pad1), "    ", rpad("Models:", pad2), " Params:")
-    for (s, (m, mp)) in model_list
-        println(io, "$(lpad(s, pad1)) => $(rpad(m, pad2)) ($mp) ")
-    end
-
-    println(io, lpad("Symbols:", pad1), "     Values:")
-
-    param_infos = model_parameter_info(model)
-    info_tuples = [get_info_tuple(i[2]) for i in param_infos]
-    # calculate paddings for alignment
-    q1, q2, q3, q4 = map(1:4) do i
-        maximum(j -> length("$(j[i])"), info_tuples) + 1
-    end
-    for (symbol, (_, _, free), pinfo) in zip(param_symbols, param_infos, info_tuples)
-        print(io, "$(lpad(symbol, pad1)) => ")
-        print(io, lpad(pinfo[1], q1))
+function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
+    print(io, lpad("$name", q0), " ->")
+    if val isa FitParam
+        info = get_info_tuple(val)
+        print(io, lpad(info[1], q1 + 1))
         if free
-            print(io, " ± ", rpad(pinfo[2], q2))
-            print(io, " ∈ [", lpad(pinfo[3], q3), ", ", rpad(pinfo[4], q4), "]")
+            print(io, " ± ", rpad(info[2], q2))
+            print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
             print(
                 io,
                 Crayons.Crayon(foreground = :green),
@@ -270,82 +229,49 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
                 Crayons.Crayon(reset = true),
             )
         end
-        println(io)
+    end
+    println(io)
+end
+
+# such an ugly function
+function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
+    l_buffer = 5
+    n_components = length(_all_model_types(model))
+
+    expr, infos = _destructure_for_printing(model)
+
+    print(io, "CompositeModel with $n_components component models:\n")
+    println(
+        io,
+        Crayons.Crayon(foreground = :cyan),
+        " "^l_buffer,
+        expr,
+        Crayons.Crayon(reset = true),
+    )
+
+    info_tuples = reduce(vcat, [get_info_tuple.(modelparameters(i[1])) for i in infos])
+    q1, q2, q3, q4 = map(1:4) do i
+        maximum(j -> length("$(j[i])"), info_tuples) + 1
+    end
+
+    println(io, "Model key and parameters:")
+    sym_buffer = 5
+    param_name_offset = sym_buffer + maximum(infos) do (_, syms, _)
+        maximum(length(s) for s in syms)
+    end
+    for (symbol, (m, param_symbols, states)) in zip(keys(infos), infos)
+        M = typeof(m)
+        basename = FunctionGeneration.model_base_name(M)
+        println(io, lpad("$symbol", sym_buffer), " => $basename")
+
+        for (val, s::String, free::Bool) in zip(modelparameters(m), param_symbols, states)
+            _print_param(io, free, s, val, param_name_offset, q1, q2, q3, q4)
+        end
     end
 end
-
-_unique_model_symbol(::M, infos) where {M<:AbstractSpectralModel} =
-    _unique_model_symbol(modelkind(M), infos)
-_unique_model_symbol(::Additive, infos) = Symbol('a', infos.a[] += 1)
-_unique_model_symbol(::Multiplicative, infos) = Symbol('m', infos.m[] += 1)
-_unique_model_symbol(::Convolutional, infos) = Symbol('c', infos.c[] += 1)
-
-function _readable_expression_info(model::CompositeModel)
-    models = Pair{Symbol,AbstractSpectralModel}[]
-    infos = (models = models, a = Ref(0), m = Ref(0), c = Ref(0))
-    expr = FunctionGeneration.recursive_model_parse(model) do (left, right, op)
-        r_symb = if right isa AbstractSpectralModel
-            rs = _unique_model_symbol(right, infos)
-            push!(models, rs => right)
-            rs
-        else
-            right
-        end
-        l_symb = if left isa AbstractSpectralModel
-            ls = _unique_model_symbol(left, infos)
-            push!(models, ls => left)
-            ls
-        else
-            left
-        end
-        if (op == :*)
-            :($(l_symb) * $(r_symb))
-        elseif (op == :+)
-            :($(l_symb) + $(r_symb))
-        else
-            :($(l_symb)($r_symb))
-        end
-    end
-    expr, infos
-end
-
-function _composite_parameters!(params, model::AbstractSpectralModel, parameters)
-    for p in parameters(model)
-        push!(params, p)
-    end
-end
-function _composite_parameters!(params, model::CompositeModel, parameters)
-    FunctionGeneration.recursive_model_parse(model) do (left, right, _)
-        if !isnothing(right)
-            _composite_parameters!(params, right, parameters)
-        end
-        if !isnothing(left)
-            _composite_parameters!(params, left, parameters)
-        end
-        nothing
-    end
-end
-function _composite_parameters!(
-    model::CompositeModel{M1,M2,O,T},
-    parameters,
-) where {M1,M2,O,T}
-    params = T[]
-    _composite_parameters!(params, model, parameters)
-    params
-end
-
-modelparameters(model::CompositeModel) = _composite_parameters!(model, modelparameters)
-freeparameters(model::CompositeModel) = _composite_parameters!(model, freeparameters)
-frozenparameters(model::CompositeModel) = _composite_parameters!(model, frozenparameters)
-function model_parameter_info(model::CompositeModel)
-    infos = Tuple{Symbol,FitParam{numbertype(model)},Bool}[]
-    _composite_parameters!(infos, model, model_parameter_info)
-    infos
-end
-
 
 function remake_with_number_type(model::CompositeModel)
-
+    error("Todo")
 end
 # explicitly disable interface for ConstructionBase.jl
 ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
@@ -355,5 +281,4 @@ ConstructionBase.constructorof(::Type{<:CompositeModel}) =
 
 
 # function ConstructionBase.setproperties(m::CompositeModel, patch::NamedTuple)
-
 # end

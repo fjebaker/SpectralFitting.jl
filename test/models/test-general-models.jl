@@ -5,6 +5,7 @@ using SpectralFitting
 # and anything that produces errors should be added to this
 # test set
 
+include("../dummies.jl")
 include("../utils.jl")
 
 @ciskip begin
