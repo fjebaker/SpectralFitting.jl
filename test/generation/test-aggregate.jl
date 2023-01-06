@@ -21,3 +21,9 @@ info =
 @test info.models == Type[typeof(model), typeof(model)]
 @test info.maximum_flux_count == 2
 @test length(info.statements) == 3
+
+
+# errors when using two mutliplicatives, would seem to get the parameter parsing wrong
+model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
+
+info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model), Float64)

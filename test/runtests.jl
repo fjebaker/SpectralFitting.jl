@@ -12,7 +12,7 @@ include("utils.jl")
     end
 end
 
-@testset "macros" verbose = true begin
+@testset "macro" verbose = true begin
     @testset "xspecmodel" begin
         include("macros/test-xspec.jl")
     end
