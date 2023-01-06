@@ -207,10 +207,10 @@ function Base.show(io::IO, ::CompositeModel)
     print(io, "CompositeModel")
 end
 
-
-function _print_param(io, free, name, val, info, q0, q1, q2, q3, q4)
-    print(io, lpad("$name", q0),  " ->")
+function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
+    print(io, lpad("$name", q0), " ->")
     if val isa FitParam
+        info = get_info_tuple(val)
         print(io, lpad(info[1], q1 + 1))
         if free
             print(io, " ± ", rpad(info[2], q2))
@@ -237,7 +237,8 @@ end
 function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     l_buffer = 5
     n_components = length(_all_model_types(model))
-    expr, infos = _parse_human_friendly_string(model)
+
+    expr, infos = _destructure_for_printing(model)
 
     print(io, "CompositeModel with $n_components component models:\n")
     println(
@@ -248,70 +249,25 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
         Crayons.Crayon(reset = true),
     )
 
-    parameters = all_parameters_to_named_tuple(model)
-    names = keys(parameters)
-    values = ((getfield(parameters, s) for s in names)...,)
-
-    info_tuples = get_info_tuple.(values)
+    info_tuples = reduce(vcat, [get_info_tuple.(modelparameters(i[1])) for i in infos])
     q1, q2, q3, q4 = map(1:4) do i
         maximum(j -> length("$(j[i])"), info_tuples) + 1
     end
 
     println(io, "Model key and parameters:")
     sym_buffer = 5
-    offset = 1
-    param_name_offset = maximum(length("$n") for n in names) + sym_buffer
-    for (symbol, m) in infos.models
-        basename = FunctionGeneration.model_base_name(typeof(m))
-        n_params::Int = parameter_count(m) - 1
-        p_names = names[offset:offset + n_params]
-        p_vals = ((getfield(parameters, s) for s in p_names)...,)
-        offset += n_params + 1
+    param_name_offset = sym_buffer + maximum(infos) do (_, syms, _)
+        maximum(length(s) for s in syms)
+    end
+    for (symbol, (m, param_symbols, states)) in zip(keys(infos), infos)
+        M = typeof(m)
+        basename = FunctionGeneration.model_base_name(M)
         println(io, lpad("$symbol", sym_buffer), " => $basename")
 
-        free_symbs = free_parameter_symbols(m)
-
-        for (name::Symbol, val::Union{Number,FitParam}, info::NTuple{4, String}) in zip(p_names, p_vals, info_tuples)
-            # this is so hacky
-            free::Bool = Symbol("$name"[1:end-2]) in free_symbs
-            _print_param(io, free, name, val, info, param_name_offset, q1, q2, q3, q4)
+        for (val, s, free) in zip(modelparameters(m), param_symbols, states)
+            _print_param(io, free, s, val, param_name_offset, q1, q2, q3, q4)
         end
     end
-end
-
-_unique_model_symbol(::M, infos) where {M<:AbstractSpectralModel} =
-    _unique_model_symbol(modelkind(M), infos)
-_unique_model_symbol(::Additive, infos) = Symbol('a', infos.a[] += 1)
-_unique_model_symbol(::Multiplicative, infos) = Symbol('m', infos.m[] += 1)
-_unique_model_symbol(::Convolutional, infos) = Symbol('c', infos.c[] += 1)
-
-function _parse_human_friendly_string(model::CompositeModel)
-    models = Pair{Symbol,AbstractSpectralModel}[]
-    infos = (models = models, a = Ref(0), m = Ref(0), c = Ref(0))
-    expr = FunctionGeneration.recursive_model_parse(model) do (left, right, op)
-        r_symb = if right isa AbstractSpectralModel
-            rs = _unique_model_symbol(right, infos)
-            push!(models, rs => right)
-            rs
-        else
-            right
-        end
-        l_symb = if left isa AbstractSpectralModel
-            ls = _unique_model_symbol(left, infos)
-            push!(models, ls => left)
-            ls
-        else
-            left
-        end
-        if (op == :*)
-            :($(l_symb) * $(r_symb))
-        elseif (op == :+)
-            :($(l_symb) + $(r_symb))
-        else
-            :($(l_symb)($r_symb))
-        end
-    end
-    expr, infos
 end
 
 function remake_with_number_type(model::CompositeModel)
@@ -325,5 +281,4 @@ ConstructionBase.constructorof(::Type{<:CompositeModel}) =
 
 
 # function ConstructionBase.setproperties(m::CompositeModel, patch::NamedTuple)
-
 # end
