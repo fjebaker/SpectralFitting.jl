@@ -9,6 +9,37 @@ struct ModelInfo
     type::Type
 end
 
+mutable struct GenerationAggregate{NumType}
+    statements::Vector{Expr}
+    infos::Vector{ModelInfo}
+    closure_params::Vector{Symbol}
+    models::Vector{Type}
+    flux_count::Int
+    maximum_flux_count::Int
+end
+GenerationAggregate(T) =
+    GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
+GenerationAggregate(T) =
+    GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
+
+push_closure_param!(g::GenerationAggregate, s::Symbol) = push!(g.closure_params, s)
+push_info!(g::GenerationAggregate, s::ModelInfo) = push!(g.infos, s)
+push_statement!(g::GenerationAggregate, s::Expr) = push!(g.statements, s)
+push_model!(g::GenerationAggregate, t::Type) = push!(g.models, t)
+
+function set_flux!(g::GenerationAggregate, f)
+    g.flux_count = f
+    if g.flux_count > g.maximum_flux_count
+        g.maximum_flux_count = g.flux_count
+    end
+    g.flux_count
+end
+
+inc_flux!(g::GenerationAggregate) = set_flux!(g, g.flux_count + 1)
+dec_flux!(g::GenerationAggregate) = set_flux!(g, g.flux_count - 1)
+
+get_flux_symbol(i::Int) = Symbol(:flux, i)
+
 function getinfo(model::Type{<:AbstractSpectralModel}; lens::Lens = :(model))
     symbs = [all_parameter_symbols(model)...]
     free = [free_parameter_symbols(model)...]
@@ -48,6 +79,61 @@ function _addinfosymbol!(infos, counters, model::Type{<:CompositeModel}, lens::L
     else
         Expr(:call, op, l_symb, r_symb)
     end
+end
+
+function _addinfoinvoke!(ga::GenerationAggregate{NumType}, model::Type{<:AbstractSpectralModel}, lens::Lens) where {NumType}
+    # don't increment flux for convolutional models
+    if !(modelkind(model) === Convolutional)
+        inc_flux!(ga)
+    end
+    flux = get_flux_symbol(ga.flux_count)
+    # get and append model info
+    info = getinfo(model; lens = lens)
+    push!(ga.infos, info)
+
+    # aggregate closure parameters
+    closure_params = if has_closure_params(model)
+        map(closure_parameter_symbols(model)) do p
+            new_closure_param!(ga, p)
+        end
+    else
+        ()
+    end
+
+    # get the parameter type
+    T = NumType <: SpectralFitting.FitParam ? NumType.parameters[1] : NumType
+    model_constructor =
+        :($(model.name.wrapper){$(model.parameters[1:end-2]...),$(T),$(model.parameters[end])})
+
+    # assemble the invocation statement
+    s = :(invokemodel!(
+        $flux,
+        energy,
+        $(model_constructor)($(closure_params...), $(info.generated_symbols...)),
+    ))
+    push_model!(ga, model)
+    push_statement!(ga, s)
+end
+
+function _addinfoinvoke!(ga::GenerationAggregate, model::Type{<:CompositeModel}, lens::Lens)
+    right_run = :(getproperty($lens, :right))
+    _addinfoinvoke!(ga, model.parameters[2], right_run)
+    left_run = :(getproperty($lens, :left))
+    _addinfoinvoke!(ga, model.parameters[1], left_run)
+
+    # resolve the flux pair using the reduction operation of the models
+    op = operation_symbol(model.parameters[3])
+    if !isnothing(op)
+        add_flux_resolution!(ga, op)
+    end
+end
+
+function add_flux_resolution!(ga::GenerationAggregate, op::Symbol)
+    fr = get_flux_symbol(ga.flux_count)
+    dec_flux!(ga)
+    fl = get_flux_symbol(ga.flux_count)
+    expr = Expr(:call, op, fl, fr)
+    push_statement!(ga, :(@.($fl = $expr)))
 end
 
 unpack_model(::Type{<:CompositeModel{M1,M2,O}}) where {M1,M2,O} = (M1, M2, O)
