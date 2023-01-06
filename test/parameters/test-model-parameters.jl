@@ -112,6 +112,7 @@ model = DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
 # new_model = SpectralFitting.updateparameters(model, K_1 = FitParam(2.0))
 # modelparameters(new_model)
 
-SpectralFitting.FunctionGeneration.rebuild_composite_model(typeof(model))
 
-SpectralFitting.FunctionGeneration.getinfo(typeof(model))
+# TODO: model rebuilding
+# SpectralFitting.FunctionGeneration.rebuild_composite_model(typeof(model))
+# SpectralFitting.FunctionGeneration.getinfo(typeof(model))

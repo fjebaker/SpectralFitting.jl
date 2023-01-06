@@ -25,5 +25,8 @@ info =
 
 # errors when using two mutliplicatives, would seem to get the parameter parsing wrong
 model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
-
 info = SpectralFitting.FunctionGeneration.assemble_aggregate_info(typeof(model), Float64)
+@test length(info.infos) == 4
+@test length(info.closure_params) == 0
+@test info.maximum_flux_count == 3
+@test length(info.statements) == 7
