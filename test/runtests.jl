@@ -31,6 +31,9 @@ end
     @testset "model-parameters" begin
         include("parameters/test-model-parameters.jl")
     end
+    @testset "fit-params" begin
+        include("parameters/test-fit-params.jl")
+    end
 end
 
 @testset "model-library" verbose = true begin
