@@ -17,7 +17,7 @@ mutable struct GenerationAggregate{NumType}
     flux_count::Int
     maximum_flux_count::Int
 end
-GenerationAggregate(T) = GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
+
 GenerationAggregate(T) = GenerationAggregate{T}(Expr[], ModelInfo[], Symbol[], Type[], 0, 0)
 
 push_closure_param!(g::GenerationAggregate, s::Symbol) = push!(g.closure_params, s)
