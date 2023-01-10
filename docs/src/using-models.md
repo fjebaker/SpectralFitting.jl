@@ -73,7 +73,6 @@ SpectralFitting defines a number of utility functions for model introspection an
 
 ```@docs
 flux_count
-update_params!
 get_param
 get_param_count
 get_param_types

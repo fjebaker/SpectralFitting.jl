@@ -18,7 +18,8 @@ export AbstractSpectralModel,
     flux_count,
     modelparameters,
     freeparameters,
-    frozenparameters
+    frozenparameters,
+    updateparameters!
 
 """
     abstract type AbstractSpectralModel{T,K}
@@ -91,6 +92,7 @@ struct XSPECImplementation <: AbstractSpectralModelImplementation end
 struct JuliaImplementation <: AbstractSpectralModelImplementation end
 
 implementation(::Type{<:AbstractSpectralModel}) = JuliaImplementation()
+implementation(model::AbstractSpectralModel) = implementation(typeof(model))
 
 abstract type AbstractSpectralModelClosureType end
 struct WithClosures <: AbstractSpectralModelClosureType end
@@ -307,4 +309,27 @@ end
 
 @inline function updateparameters(model::AbstractSpectralModel; params...)
     updatemodel(model; params...)
+end
+
+# for modifying models with FitParams
+function updateparameters!(model::AbstractSpectralModel{<:FitParam}, params::AbstractVector)
+    for (i, s) in enumerate(all_parameter_symbols(model))
+        v = params[i]
+        if typeof(v) <: FitParam
+            set!(getproperty(model, s), v)
+        else
+            set_value!(getproperty(model, s), get_value(v))
+        end
+    end
+end
+
+function updateparameters!(model::AbstractSpectralModel{<:FitParam}; params...)
+    for (s, v) in params
+        if typeof(v) <: FitParam
+            set!(getproperty(model, s), v)
+        else
+            set_value!(getproperty(model, s), get_value(v))
+        end
+    end
+    model
 end

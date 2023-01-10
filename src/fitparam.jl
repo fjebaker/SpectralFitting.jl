@@ -25,18 +25,22 @@ mutable struct FitParam{T}
 end
 
 # interface
-set_value!(f::FitParam, val) = f.value = val
-set_error!(f::FitParam, val) = f.error = val
-
-get_value(x::Number) = x
+set_value!(f::FitParam{T}, val::T) where {T} = f.value = val
+set_error!(f::FitParam{T}, val::T) where {T} = f.error = val
 get_value(f::FitParam) = f.value
+function set!(f::FitParam, o::FitParam)
+    f.value = o.value
+    f.lower_limit = o.lower_limit
+    f.upper_limit = o.upper_limit
+    f.error = o.error
+    f
+end
+# edge case
+get_value(x::Number) = x
 
 get_error(f::FitParam) = f.error
 get_upperlimit(f::FitParam) = f.upper_limit
 get_lowerlimit(f::FitParam) = f.lower_limit
-
-fit_parameter_state(::Type{<:FitParam}) = FreeParameter()
-fit_parameter_state(::F) where {F<:FitParam} = fit_parameter_state(F)
 
 Base.isapprox(f1::FitParam, f2::FitParam; kwargs...) =
     isapprox(f1.value, f2.value; kwargs...)

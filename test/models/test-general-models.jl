@@ -27,3 +27,7 @@ include("../utils.jl")
     # there should be no difference
     @test isapprox.(check_flux, flux) |> all
 end
+
+model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
+
+checker_all(model)
