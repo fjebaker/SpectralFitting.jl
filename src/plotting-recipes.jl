@@ -20,11 +20,26 @@ using RecipesBase
     (energy, rate)
 end
 
+@recipe function _plotting_func(x, r::FittingResult)
+    seriestype := :steppre
+    label := "fit"
+    x, r.folded_invoke(r.x, r.u)
+end
+
 # ratio plots
 @userplot RatioPlot
-@recipe function _plotting_func(r::RatioPlot; datacolor=:auto, modelcolor=:auto, label=:auto)
-    if length(r.args) != 2 || !(typeof(r.args[1]) <: SpectralDataset) || !(typeof(r.args[2]) <: AbstractVector)
-        error("Ratio plots first argument must be `SpectralDataset` and second argument of type `AbstractVector`.")
+@recipe function _plotting_func(
+    r::RatioPlot;
+    datacolor = :auto,
+    modelcolor = :auto,
+    label = :auto,
+)
+    if length(r.args) != 2 ||
+       !(typeof(r.args[1]) <: SpectralDataset) ||
+       !(typeof(r.args[2]) <: AbstractVector)
+        error(
+            "Ratio plots first argument must be `SpectralDataset` and second argument of type `AbstractVector`.",
+        )
     end
     data, model_flux = r.args
     energy = data.bins_low
@@ -33,6 +48,7 @@ end
     ylabel := "Ratio [data / model]"
     xlabel := "Energy (keV)"
     minorgrid := true
+    xscale := :log10
 
     if (label == :auto)
         label = observation_id(data)
@@ -40,9 +56,11 @@ end
 
     @series begin
         linestyle := :dash
+        seriestype := :hline
         label := false
         color := modelcolor
-        energy, ones(length(energy))
+        # energy, ones(length(energy))
+        [1.0]
     end
 
     ratio_flux = data.rate ./ model_flux
