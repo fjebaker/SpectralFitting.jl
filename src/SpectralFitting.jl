@@ -19,6 +19,10 @@ using Interpolations
 using SpecialFunctions
 
 import Crayons
+# fitting backends
+import LsqFit
+import Optimization
+import OptimizationOptimJL
 
 using DocStringExtensions
 
@@ -49,7 +53,12 @@ include("spectral-datasets/missions/abstract-mission.jl")
 
 include("model-data-io.jl")
 
-include("fitting.jl")
+
+# include fitting api
+include("fitting/problem.jl")
+include("fitting/result.jl")
+include("fitting/methods.jl")
+
 include("plotting-recipes.jl")
 
 # include xspec models
