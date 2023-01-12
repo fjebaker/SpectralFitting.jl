@@ -29,7 +29,13 @@ function _lazy_folded_invokemodel(
     wrapped
 end
 
-function fit(prob::FittingProblem, alg::LevenbergMarquadt; verbose = false, max_iter = 1000, kwargs...)
+function fit(
+    prob::FittingProblem,
+    alg::LevenbergMarquadt;
+    verbose = false,
+    max_iter = 1000,
+    kwargs...,
+)
     if model_count(prob) == 1 && data_count(prob) == 1
         let model = prob.model.m[1], data = prob.data.d[1]
             f = _lazy_folded_invokemodel(model, data)

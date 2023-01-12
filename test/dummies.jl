@@ -9,9 +9,7 @@ function make_dummy_dataset(shape_function; energy = collect(range(0.2, 10.0, 10
 
     σ = 0.1 .* flux
     units = SpectralFitting.infer_units(:rate)
-    meta = SpectralFitting.BasicMetadata(
-        "mem", "mem", "telescope", "instrument"
-    )
+    meta = SpectralFitting.BasicMetadata("mem", "mem", "telescope", "instrument")
     channels = collect(1:length(flux))
     # diagonal response matrix
     rmf = SpectralFitting.ResponseMatrix(
@@ -20,7 +18,7 @@ function make_dummy_dataset(shape_function; energy = collect(range(0.2, 10.0, 10
         eltype(bins_low).(channels[1:end-1]),
         eltype(bins_low).(channels[2:end]),
         bins_low,
-        bins_high
+        bins_high,
     )
     SpectralDataset(
         bins_low,

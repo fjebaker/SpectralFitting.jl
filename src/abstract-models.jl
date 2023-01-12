@@ -282,13 +282,15 @@ function remake_with_number_type(model::AbstractSpectralModel{P}, T::Type) where
     end
     M{T,FreeParameters{free_parameter_symbols(model)}}(new_params...)
 end
-remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T} = 
+remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T} =
     remake_with_number_type(model, T)
 
-remake_with_free(model::AbstractSpectralModel{T}, free_params::AbstractVector{T}) where {T<:Number} =
-    updatefree(model, free_params)
-remake_with_free(model::AbstractSpectralModel, free_params) = 
-    updatefree(remake_with_number_type(model,eltype(free_params)), free_params)
+remake_with_free(
+    model::AbstractSpectralModel{T},
+    free_params::AbstractVector{T},
+) where {T<:Number} = updatefree(model, free_params)
+remake_with_free(model::AbstractSpectralModel, free_params) =
+    updatefree(remake_with_number_type(model, eltype(free_params)), free_params)
 
 """
     updatemodel(model::AbstractSpectralModel; kwargs...)

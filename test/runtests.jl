@@ -69,7 +69,7 @@ end
 @testset "fitting" verbose = true begin
     @testset "powerlaws" begin
         include("fitting/test-fit-powerlaw.jl")
-    end 
+    end
 end
 
 using Aqua
