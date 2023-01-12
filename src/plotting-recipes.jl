@@ -36,19 +36,24 @@ end
 )
     if length(r.args) != 2 ||
        !(typeof(r.args[1]) <: SpectralDataset) ||
-       !(typeof(r.args[2]) <: AbstractVector)
+       !(typeof(r.args[2]) <: AbstractVector || typeof(r.args[2]) <: FittingResult)
         error(
             "Ratio plots first argument must be `SpectralDataset` and second argument of type `AbstractVector`.",
         )
     end
-    data, model_flux = r.args
+    data = r.args[1]
+    model_flux = if (typeof(r.args[2]) <: FittingResult)
+        result = r.args[2]
+        result.folded_invoke(result.x, result.u)
+    else
+        r.args[2]
+    end
     energy = data.bins_low
     fieldnames(typeof(r))
 
     ylabel := "Ratio [data / model]"
     xlabel := "Energy (keV)"
     minorgrid := true
-    xscale := :log10
 
     if (label == :auto)
         label = observation_id(data)

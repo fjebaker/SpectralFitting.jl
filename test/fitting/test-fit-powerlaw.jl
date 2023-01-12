@@ -20,15 +20,15 @@ result = fit(prob, LevenbergMarquadt())
 dummy_data = make_dummy_dataset((E) -> (E^(-3.0) + E^(-1)))
 
 # julia implementation
-model = PowerLaw() + PowerLaw()
+model = PowerLaw() + PowerLaw(a=FitParam(1.0))
 prob = FittingProblem(model, dummy_data)
 result = fit(prob, LevenbergMarquadt())
 @test result.u ≈
-      [1.0929605489222565, 1.0372890824708065, 1.0994740399422531, 3.3105621077461107] atol =
+[1.0167392657565117, 1.0, 1.203211162317021, 3.225587384436137]
     1e-4
 
 # xpsec implementation
-model = XS_PowerLaw() + XS_PowerLaw()
+model = XS_PowerLaw() + XS_PowerLaw(a=FitParam(1.0))
 prob = FittingProblem(model, dummy_data)
 result = fit(prob, LevenbergMarquadt())
 @test result.u ≈
@@ -36,7 +36,7 @@ result = fit(prob, LevenbergMarquadt())
     1e-4
 
 # mixed implementation
-model = XS_PowerLaw() + PowerLaw()
+model = XS_PowerLaw() + PowerLaw(a=FitParam(1.0))
 prob = FittingProblem(model, dummy_data)
 result = fit(prob, LevenbergMarquadt())
 @test result.u ≈
