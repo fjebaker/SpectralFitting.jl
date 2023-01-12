@@ -21,6 +21,9 @@ end
 function observation_id(data::SpectralDataset{T,<:XmmNewtonMeta}) where {T}
     data.meta.observation_id
 end
+function observation_object(data::SpectralDataset{T,<:XmmNewtonMeta}) where {T}
+    data.meta.object
+end
 
 SpectralFitting.missiontrait(::Type{<:XmmNewtonMeta{D}}) where {D} = XmmNewton(D())
 
@@ -43,8 +46,7 @@ function SpectralDataset(
     ::XmmNewton{D},
     path,
     rm_path,
-    arf_path
-    ;
+    arf_path;
     T::Type = Float64,
 ) where {D}
     spec = OGIP_GroupedEvents(path; T)

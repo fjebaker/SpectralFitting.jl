@@ -1,12 +1,7 @@
-export mask_bad_channels!, mask_energy!
+export mask_bad_channels!, mask_energy!, normalize_counts!
 
 # utility constructor
-function SpectralDataset(
-    mission::AbstractMission,
-    path
-    ;
-    kwargs...
-)
+function SpectralDataset(mission::AbstractMission, path; kwargs...)
     paths = read_OGIP_paths_from_file(path)
     SpectralDataset(mission, paths.spectrum, paths.response, paths.ancillary; kwargs...)
 end
@@ -45,6 +40,10 @@ function observation_id(::SpectralDataset{T,MetaType}) where {T,MetaType}
     error("Not implemented for mission $(MetaType)")
 end
 
+function observation_object(::SpectralDataset{T,MetaType}) where {T,MetaType}
+    error("Not implemented for mission $(MetaType)")
+end
+
 function Base.propertynames(::SpectralDataset)
     (fieldnames(SpectralDataset)..., :counts, :rate, :energy_bin_widths)
 end
@@ -65,15 +64,15 @@ unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P}
 
 function Base.getproperty(data::SpectralDataset, s::Symbol)
     if s in (:bins_low, :bins_high, :_errors, :_data)
-        @views getfield(data, s)[data.mask]
+        getfield(data, s)[data.mask]
     elseif s == :counts
-        @views unmasked_counts(data, :_data)[data.mask]
+        unmasked_counts(data, :_data)[data.mask]
     elseif s == :rate
-        @views unmasked_rate(data, :_data)[data.mask]
+        unmasked_rate(data, :_data)[data.mask]
     elseif s == :countserror
-        @views unmasked_counts(data, :_errors)[data.mask]
+        unmasked_counts(data, :_errors)[data.mask]
     elseif s == :rateerror
-        @views unmasked_rate(data, :_errors)[data.mask]
+        unmasked_rate(data, :_errors)[data.mask]
     elseif s == :channels
         channels = @views getfield(data, s)[data.mask]
         # channels must start at 0
@@ -83,6 +82,12 @@ function Base.getproperty(data::SpectralDataset, s::Symbol)
     else
         getfield(data, s)
     end
+end
+
+function normalize_counts!(data::SpectralDataset)
+    ΔE = getfield(data, :bins_high) .- getfield(data, :bins_low)
+    unmasked_counts(data, :_data) ./= ΔE
+    unmasked_counts(data, :_errors) ./= ΔE
 end
 
 function fold_ancillary(data::SpectralDataset{T,M,P,U,A}) where {T,M,P,U,A}
@@ -125,7 +130,7 @@ function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     um_bins_low = unmasked(data, :bins_low)
     um_bins_high = unmasked(data, :bins_high)
     um_data = unmasked(data, :_data)
-    um_errors = unmasked(data, :_errors)
+    # um_errors = unmasked(data, :_errors)
 
     grouping_indices_callback(indices) do (i, index1, index2)
         energy_low[i] = um_bins_low[index1]
@@ -164,12 +169,13 @@ end
 # printing
 
 function Base.show(io::IO, dataset::SpectralDataset{T,M}) where {T,M}
-    print(io, "SpectralDataset[$(missiontrait(M))N=$(nrow(dataset.dataframe))]")
+    print(io, "SpectralDataset[$(missiontrait(M)),obs_id=$(observation_id(dataset))]")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", data::SpectralDataset{T,M}) where {T,M}
     e_min = Printf.@sprintf "%g" minimum(data.bins_low)
     e_max = Printf.@sprintf "%g" maximum(data.bins_high)
+    nbins = length(data.bins_low)
 
     rmf_e_min = Printf.@sprintf "%g" minimum(data.response.bins_low)
     rmf_e_max = Printf.@sprintf "%g" maximum(data.response.bins_high)
@@ -185,16 +191,19 @@ function Base.show(io::IO, ::MIME"text/plain", data::SpectralDataset{T,M}) where
     has_ancillary = isnothing(data.ancillary) ? "no" : "yes"
 
     descr = """SpectralDataset with $(length(data.channels)) populated channels:
+       Object            : $(observation_object(data))
+       Observation ID    : $(observation_id(data))
        Mission: $(typeof(missiontrait(M)))
-        . Exposure time: $(exposure_time) s
-        . E min      : $(rpad(e_min, 12)) E max : $(e_max)
-        . Data       : $(rpad(rate_min, 12)) to      $(rate_max) $(data.units)
-        . Grouped    : $(is_grouped)
-        . Background : $(has_background)
+        . Exposure time  : $(exposure_time) s
+        . Bins           : $(nbins)
+        . E (min/max)    : ($(e_min), $(e_max)) keV
+        . Data (min/max) : ($(rate_min), $(rate_max)) $(data.units)
+        . Grouped        : $(is_grouped)
+        . Background     : $(has_background)
        Instrument Response
         . $(length(data.response.channels)) RMF Channels
-        . E min      : $(rpad(rmf_e_min, 12)) E max : $(rmf_e_max)
-        . Anc        : $(has_ancillary)
+        . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV
+        . Anc            : $(has_ancillary)
     """
     print(io, descr)
 end
