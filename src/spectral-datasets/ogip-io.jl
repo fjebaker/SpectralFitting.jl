@@ -199,3 +199,23 @@ function OGIP_RMF(path::String; T = Float64)
     close(fits)
     rmf
 end
+
+function read_OGIP_paths_from_file(path::String)
+    fits = FITS(path)
+    header = read_header(fits[2])
+    close(fits)
+
+    # extract path information from header
+    data_directory = Base.dirname(path)
+    spec_path = path
+    response_path = haskey(header, "RESPFILE") ? header["RESPFILE"] : nothing
+    ancillary_path = haskey(header, "ANCRFILE") ? header["ANCRFILE"] : nothing
+    background_path = haskey(header, "BACKFILE") ? header["BACKFILE"] : nothing
+
+    (; 
+        spectrum = spec_path, 
+        response = joinpath(data_directory, response_path), 
+        ancillary = joinpath(data_directory, ancillary_path), 
+        background = joinpath(data_directory, background_path)
+    )
+end

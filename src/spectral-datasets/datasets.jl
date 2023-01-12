@@ -1,5 +1,16 @@
 export mask_bad_channels!, mask_energy!
 
+# utility constructor
+function SpectralDataset(
+    mission::AbstractMission,
+    path
+    ;
+    kwargs...
+)
+    paths = read_OGIP_paths_from_file(path)
+    SpectralDataset(mission, paths.spectrum, paths.response, paths.ancillary; kwargs...)
+end
+
 function SpectralDataset(
     units,
     spec::OGIP_GroupedEvents,
@@ -27,6 +38,11 @@ function SpectralDataset(
         BitVector([true for _ in spec.values]),
         spec.header.exposure_time,
     )
+end
+
+# observation_id
+function observation_id(::SpectralDataset{T,MetaType}) where {T,MetaType}
+    error("Not implemented for mission $(MetaType)")
 end
 
 function Base.propertynames(::SpectralDataset)
