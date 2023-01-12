@@ -16,3 +16,37 @@ using RecipesBase
     energy = (d.bins_low .+ d.bins_high) ./ 2
     (energy, rate)
 end
+
+# ratio plots
+@userplot RatioPlot
+@recipe function _plotting_func(r::RatioPlot; datacolor=:auto, label="data", modelcolor=:auto)
+    if length(r.args) != 2 || !(typeof(r.args[1]) <: SpectralDataset) || !(typeof(r.args[2]) <: AbstractVector)
+        error("Ratio plots first argument must be `SpectralDataset` and second argument of type `AbstractVector`.")
+    end
+    data, model_flux = r.args
+    energy = data.bins_low
+    fieldnames(typeof(r))
+
+    ylabel := "Ratio [data / model]"
+    xlabel := "Energy (keV)"
+    minorgrid := true
+
+    @series begin
+        linestyle := :dash
+        label := false
+        color := modelcolor
+        energy, ones(length(energy))
+    end
+
+    ratio_flux = data.rate ./ model_flux
+    @series begin
+        markerstrokecolor := datacolor
+        label := label
+        seriestype := :scatter
+        markershape := :none
+        markersize := 0.5
+        yerror := data.rateerror ./ model_flux
+        xerror := data.energy_bin_widths ./ 2
+        energy, ratio_flux
+    end
+end
