@@ -1,3 +1,46 @@
+using SparseArrays
+
+# dummy datasets
+function make_dummy_dataset(shape_function; energy = collect(range(0.2, 10.0, 101)))
+    bins_low = energy[1:end-1]
+    bins_high = energy[2:end]
+    # calculate flux from shape function
+    flux = shape_function.(bins_low)
+
+    σ = 0.1 .* flux
+    units = SpectralFitting.infer_units(:rate)
+    meta = SpectralFitting.BasicMetadata(
+        "mem", "mem", "telescope", "instrument"
+    )
+    channels = collect(1:length(flux))
+    # diagonal response matrix
+    rmf = SpectralFitting.ResponseMatrix(
+        SparseArrays.spdiagm(ones(1:length(flux))),
+        channels,
+        eltype(bins_low).(channels[1:end-1]),
+        eltype(bins_low).(channels[2:end]),
+        bins_low,
+        bins_high
+    )
+    SpectralDataset(
+        bins_low,
+        bins_high,
+        flux,
+        σ,
+        units,
+        meta,
+        false,
+        rmf,
+        nothing,
+        nothing,
+        channels,
+        zeros(Int64, length(flux)),
+        zeros(Int64, length(flux)),
+        BitVector([true for _ in flux]),
+        # exposure time
+        1.0,
+    )
+end
 
 # standard julia models for testing
 struct DummyAdditive{T,F} <: AbstractSpectralModel{T,Additive}
