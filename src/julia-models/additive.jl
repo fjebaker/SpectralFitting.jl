@@ -45,9 +45,15 @@ end
 @inline @fastmath function invoke!(flux, energy, model::PowerLaw)
     let a = model.a
         α = 1 - a
-        α⁻¹ = inv(α)
-        finite_diff_kernel!(flux, energy) do E
-            α⁻¹ * E^α
+        if (α ≈ 0.0)
+            finite_diff_kernel!(flux, energy) do E
+                log(E)
+            end
+        else
+            α⁻¹ = inv(α)
+            finite_diff_kernel!(flux, energy) do E
+                α⁻¹ * E^α
+            end
         end
     end
 end
