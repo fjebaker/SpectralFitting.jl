@@ -20,8 +20,8 @@ using RecipesBase
     (energy, rate)
 end
 
-@recipe function _plotting_func(x, r::FittingResult)
-    seriestype := :steppre
+@recipe function _plotting_func(x, r::FittingResult, seriestype = :stepmid)
+    seriestype := seriestype
     label := "fit"
     x, r.folded_invoke(r.x, r.u)
 end
