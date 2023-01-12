@@ -272,19 +272,23 @@ freeparameters(model::AbstractSpectralModel) = [free_parameters_tuple(model)...]
 frozenparameters(model::AbstractSpectralModel) = [frozen_parameters_tuple(model)...]
 
 # todo: this function could be cleaned up with some generated hackery 
-function remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T}
+function remake_with_number_type(model::AbstractSpectralModel{P}, T::Type) where {P}
     M = typeof(model).name.wrapper
     params = modelparameters(model)
-    new_params = convert.(T, params)
+    new_params = if P <: FitParam
+        convert.(T, get_value.(params))
+    else
+        convert.(T, param)
+    end
     M{T,FreeParameters{free_parameter_symbols(model)}}(new_params...)
 end
+remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T} = 
+    remake_with_number_type(model, T)
 
-function remake_with_free(model::AbstractSpectralModel{<:FitParam}, free_params)
-    updatefree(remake_with_number_type(model), free_params)
-end
-remake_with_free(model::AbstractSpectralModel{<:Number}, free_params) =
+remake_with_free(model::AbstractSpectralModel{T}, free_params::AbstractVector{T}) where {T<:Number} =
     updatefree(model, free_params)
-
+remake_with_free(model::AbstractSpectralModel, free_params) = 
+    updatefree(remake_with_number_type(model,eltype(free_params)), free_params)
 
 """
     updatemodel(model::AbstractSpectralModel; kwargs...)
