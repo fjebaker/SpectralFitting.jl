@@ -22,7 +22,7 @@ end
 
 # ratio plots
 @userplot RatioPlot
-@recipe function _plotting_func(r::RatioPlot; datacolor=:auto, modelcolor=:auto)
+@recipe function _plotting_func(r::RatioPlot; datacolor=:auto, modelcolor=:auto, label=:auto)
     if length(r.args) != 2 || !(typeof(r.args[1]) <: SpectralDataset) || !(typeof(r.args[2]) <: AbstractVector)
         error("Ratio plots first argument must be `SpectralDataset` and second argument of type `AbstractVector`.")
     end
@@ -34,6 +34,10 @@ end
     xlabel := "Energy (keV)"
     minorgrid := true
 
+    if (label == :auto)
+        label = observation_id(data)
+    end
+
     @series begin
         linestyle := :dash
         label := false
@@ -44,7 +48,7 @@ end
     ratio_flux = data.rate ./ model_flux
     @series begin
         markerstrokecolor := datacolor
-        label := observation_id(data)
+        label := label
         seriestype := :scatter
         markershape := :none
         markersize := 0.5
