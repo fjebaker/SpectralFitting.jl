@@ -24,16 +24,19 @@ model = PowerLaw() + PowerLaw(a = FitParam(1.0))
 prob = FittingProblem(model, dummy_data)
 result = fit(prob, LevenbergMarquadt())
 # for these the order keeps going wrong on the CI, so we'll just check the sum
-@test sum(result.u) ≈ sum([1.0167392657565117, 1.0, 1.203211162317021, 3.225587384436137]) atol = 1e-1
+@test sum(result.u) ≈ sum([1.0167392657565117, 1.0, 1.203211162317021, 3.225587384436137]) atol =
+    1e-1
 
 # xpsec implementation
 model = XS_PowerLaw() + XS_PowerLaw(a = FitParam(1.0))
 prob = FittingProblem(model, dummy_data)
 result = fit(prob, LevenbergMarquadt())
-@test sum(result.u) ≈ sum([1.0167392657565117, 1.0, 1.203211162317021, 3.225587384436137]) atol = 1e-1
+@test sum(result.u) ≈ sum([1.0167392657565117, 1.0, 1.203211162317021, 3.225587384436137]) atol =
+    1e-1
 
 # mixed implementation
 model = XS_PowerLaw() + PowerLaw(a = FitParam(1.0))
 prob = FittingProblem(model, dummy_data)
 result = fit(prob, LevenbergMarquadt())
-@test sum(result.u) ≈ sum([1.0167392657565117, 1.0, 1.203211162317021, 3.225587384436137]) atol = 1e-1
+@test sum(result.u) ≈ sum([1.0167392657565117, 1.0, 1.203211162317021, 3.225587384436137]) atol =
+    1e-1
