@@ -62,6 +62,7 @@ unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,
 unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P} =
     getfield(data, s)
 
+# TODO: this is incredibly type unstable
 function Base.getproperty(data::SpectralDataset, s::Symbol)
     if s in (:bins_low, :bins_high, :_errors, :_data)
         getfield(data, s)[data.mask]
