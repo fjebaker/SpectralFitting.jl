@@ -43,9 +43,18 @@ end
 # introspection for composite models
 cm = DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
 
+# this should throw to avoid accidently trying to generate function calls for composite models
+# prefer seperately named method to avoid this error
 @test_throws "" SpectralFitting.all_parameter_symbols(cm)
 @test_throws "" SpectralFitting.free_parameter_symbols(cm)
 @test_throws "" SpectralFitting.frozen_parameter_symbols(cm)
+
+# check the composite version
+free_symbs = SpectralFitting.FunctionGeneration.composite_free_parameter_symbols(typeof(cm))
+@test free_symbs == (:K_1, :a_1, :K_2, :a_2, :a_3)
+
+free_symbs = SpectralFitting.composite_free_parameter_symbols(cm)
+@test free_symbs == (:K_1, :a_1, :K_2, :a_2, :a_3)
 
 T = SpectralFitting.FunctionGeneration.model_T(typeof(cm))
 @test T == typeof(FitParam(1.0))

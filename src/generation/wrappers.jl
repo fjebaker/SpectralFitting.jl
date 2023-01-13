@@ -45,6 +45,11 @@ end
 free_parameter_symbols(::CompositeModel) =
     throw("This inspection method is for base models only.")
 
+@inline @generated function composite_free_parameter_symbols(model::CompositeModel)
+    params = FunctionGeneration.composite_free_parameter_symbols(model)
+    :($(params))
+end
+
 """
     frozen_parameter_symbols(model::AbstractSpectralModel)
 

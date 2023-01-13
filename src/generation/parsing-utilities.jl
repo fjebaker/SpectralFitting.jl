@@ -169,6 +169,17 @@ all_parameter_symbols(::Type{<:CompositeModel}) = error("Unreachable.")
 free_parameter_symbols(::Type{<:CompositeModel}) = error("Unreachable.")
 frozen_parameter_symbols(::Type{<:CompositeModel}) = error("Unreachable.")
 
+function composite_free_parameter_symbols(model::Type{<:CompositeModel})
+    info = getinfo(model)
+    all_symbols = _unique_parameter_symbols(info)
+    # get the indexes of the free parameters
+    indices = map(info) do i
+        map(s -> s in i.free, i.symbols)
+    end
+    I = reduce(vcat, indices)
+    all_symbols[I]
+end
+
 function closure_parameter_symbols(::Type{<:AbstractSpectralModel})
     error("This specialisation should never need to be invoked.")
 end

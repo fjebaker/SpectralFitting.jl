@@ -22,7 +22,6 @@ import Crayons
 # fitting backends
 import LsqFit
 import Optimization
-import OptimizationOptimJL
 
 using DocStringExtensions
 

@@ -3,10 +3,6 @@ export AbstractFittingAlgorithm, LevenbergMarquadt, fit
 
 abstract type AbstractFittingAlgorithm end
 
-function fit(::FittingProblem, alg::AbstractFittingAlgorithm; _...)
-    error("Algorithm `$(typeof(alg).name.name)` not implemented.")
-end
-
 struct LevenbergMarquadt{T} <: AbstractFittingAlgorithm
     λ_inc::T
     λ_dec::T
@@ -29,6 +25,33 @@ function _lazy_folded_invokemodel(
     wrapped
 end
 
+function _lsq_fit(
+    f,
+    x,
+    y,
+    cov,
+    parameters,
+    alg;
+    verbose = false,
+    max_iter = 1000,
+    kwargs...,
+)
+    LsqFit.curve_fit(
+        f,
+        x,
+        y,
+        cov,
+        get_value.(parameters);
+        lower = get_lowerlimit.(parameters),
+        upper = get_upperlimit.(parameters),
+        lambda_increase = alg.λ_inc,
+        lambda_decrease = alg.λ_dec,
+        show_trace = verbose,
+        maxIter = max_iter,
+        kwargs...,
+    )
+end
+
 function fit(
     prob::FittingProblem,
     alg::LevenbergMarquadt;
@@ -42,25 +65,45 @@ function fit(
             x = energy_vector(data)
             y = data.rate
             cov = 1 ./ data.rateerror .^ 2
-            parameters = modelparameters(model)
-            lsq_result = LsqFit.curve_fit(
+            parameters = freeparameters(model)
+            autodiff = implementation(model) isa JuliaImplementation ? :forward : :finite
+            lsq_result = _lsq_fit(
                 f,
                 x,
                 y,
                 cov,
-                get_value.(parameters);
-                lower = get_lowerlimit.(parameters),
-                upper = get_upperlimit.(parameters),
-                lambda_increase = alg.λ_inc,
-                lambda_decrease = alg.λ_dec,
-                show_trace = verbose,
-                autodiff = implementation(model) isa JuliaImplementation ? :forward :
-                           :finite,
-                maxIter = max_iter,
+                parameters,
+                alg;
+                verbose = verbose,
+                max_iter = max_iter,
+                autodiff = autodiff,
                 kwargs...,
             )
-            unpack_lsqfit_result(lsq_result, model, f, x, y, data.rateerror .^ 2)
+            bundle_result(LsqFit.coef(lsq_result), model, f, x, y, data.rateerror .^ 2)
         end
+    elseif model_count(prob) == data_count(prob)
+        f, parameters, state = assemble_multimodel(prob)
+        x = energy_vector(prob.data)
+        y = flux_vector(prob.data)
+        σ = std_dev_vector(prob.data)
+        cov = 1 ./ σ .^ 2
+        lsq_result = _lsq_fit(
+            f,
+            x,
+            y,
+            cov,
+            parameters,
+            alg;
+            verbose = verbose,
+            max_iter = max_iter,
+            autodiff = state.autodiff,
+            kwargs...,
+        )
+        unpack_multimodel(LsqFit.coef(lsq_result), prob.model, x, y, σ .^ 2, state)
+    elseif model_count(prob) < data_count(prob)
+        error("Single model, many data not yet implemented.")
+    else
+        error("Multi model, single data not yet implemented.")
     end
 end
 

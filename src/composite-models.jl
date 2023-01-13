@@ -157,8 +157,20 @@ conv_models(m1::M1, m2::M2) where {M1,M2} =
     conv_models(m1, m2, modelkind(M1), modelkind(M2))
 (m1::AbstractSpectralModel)(m2::M2) where {M2<:AbstractSpectralModel} = conv_models(m1, m2)
 
-function Base.show(io::IO, ::CompositeModel)
-    print(io, "CompositeModel")
+function Base.show(io::IO, model::CompositeModel)
+    expr, infos = _destructure_for_printing(model)
+    for (symbol, (m, _, _)) in zip(keys(infos), infos)
+        expr =
+            replace(expr, "$(symbol)" => "$(FunctionGeneration.model_base_name(typeof(m)))")
+    end
+    print(
+        io,
+        "CompositeModel[",
+        Crayons.Crayon(foreground = :cyan),
+        "$(expr)",
+        Crayons.Crayon(reset = true),
+        "]",
+    )
 end
 
 function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
