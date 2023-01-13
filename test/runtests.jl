@@ -70,6 +70,9 @@ end
     @testset "powerlaws" begin
         include("fitting/test-fit-powerlaw.jl")
     end
+    @testset "multifits" begin
+        include("fitting/test-fit-multi.jl")
+    end
 end
 
 using Aqua

@@ -3,10 +3,6 @@ export AbstractFittingAlgorithm, LevenbergMarquadt, fit
 
 abstract type AbstractFittingAlgorithm end
 
-function fit(::FittingProblem, alg::AbstractFittingAlgorithm; _...)
-    error("Algorithm `$(typeof(alg).name.name)` not implemented.")
-end
-
 struct LevenbergMarquadt{T} <: AbstractFittingAlgorithm
     λ_inc::T
     λ_dec::T
