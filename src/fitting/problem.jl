@@ -20,7 +20,39 @@ function _accumulated_indices(items)
     end
 end
 
-function assemble_multimodel(m::MultiModel, d::MultiDataset)
+function _assemble_parameter_indices(bindings, n_params)
+    remove = Int[]
+    carry = Ref(0)
+    parameter_indices = map((1:length(n_params)...,)) do i
+        s = i == 1 ? 1 : n_params[i-1] + 1
+        e = n_params[i]
+        indices = collect(s:e)
+        # assign bindings for all but the first models parameters
+        if i > 1
+            b = bindings[i]
+            map(enumerate(indices)) do (j, index)
+                # remove and replace index
+                if j in b
+                    push!(remove, index)
+                    carry[] += 1
+                    j
+                else
+                    # subtract the number of indices we've replaced / removed
+                    index - carry[]
+                end
+            end
+        else
+            indices
+        end
+    end
+    parameter_indices, remove
+end
+
+function assemble_multimodel(prob::FittingProblem)
+    # unpack
+    m = prob.model
+    d = prob.data
+    bindings = prob.bindings
     n_models = length(m.m)
     # map on tuple to keep output as tuple and therefore type stable
     funcs = map((1:n_models...,)) do i
@@ -29,6 +61,7 @@ function assemble_multimodel(m::MultiModel, d::MultiDataset)
         _lazy_folded_invokemodel(model, data)
     end
     parameters = map(freeparameters, m.m)
+    all_parameters = reduce(vcat, parameters)
     autodiff =
         all(model -> implementation(model) isa JuliaImplementation, m.m) ? :forward :
         :finite
@@ -37,11 +70,13 @@ function assemble_multimodel(m::MultiModel, d::MultiDataset)
     n_params = _accumulated_indices(map(length, parameters))
     n_energy = _accumulated_indices(map(data -> length(energy_vector(data)), d.d))
     n_output = _accumulated_indices(map(data -> length(data.bins_low), d.d))
+
+    parameter_indices, remove = _assemble_parameter_indices(bindings, n_params)
+    deleteat!(all_parameters, remove)
+
     F = (X, params) -> begin
         fluxes = map(1:n_models) do i
-            start_p = i == 1 ? 1 : n_params[i-1] + 1
-            end_p = n_params[i]
-            p = @views params[start_p:end_p]
+            p = @views params[parameter_indices[i]]
 
             start_x = i == 1 ? 1 : n_energy[i-1] + 1
             end_x = n_energy[i]
@@ -55,12 +90,12 @@ function assemble_multimodel(m::MultiModel, d::MultiDataset)
 
     (
         F,
-        reduce(vcat, parameters),
+        all_parameters,
         (;
             funcs = funcs,
             n_models = n_models,
             i_out = n_output,
-            i_params = n_params,
+            parameter_indices = parameter_indices,
             i_x = n_energy,
             autodiff = autodiff,
         ),
@@ -68,9 +103,10 @@ function assemble_multimodel(m::MultiModel, d::MultiDataset)
 end
 
 
-struct FittingProblem{M,D}
+struct FittingProblem{M,D,B}
     model::M
     data::D
+    bindings::B
     function FittingProblem(
         m::Union{<:MultiModel,AbstractSpectralModel},
         d::Union{<:MultiDataset,AbstractSpectralDataset},
@@ -85,7 +121,8 @@ struct FittingProblem{M,D}
         else
             d
         end
-        new{typeof(_m),typeof(_d)}(_m, _d)
+        bindings = map(_ -> Int[], _m.m)
+        new{typeof(_m),typeof(_d),typeof(bindings)}(_m, _d, bindings)
     end
 end
 
@@ -95,6 +132,40 @@ end
 
 function data_count(prob::FittingProblem)
     return length(prob.data.d)
+end
+
+function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
+    map(prob.model.m) do model
+        free_symbs =
+            model isa CompositeModel ? composite_free_parameter_symbols(model) :
+            free_parameter_symbols(model)
+        map(symbols) do s
+            i = findfirst(==(s), free_symbs)
+            if isnothing(i)
+                @warn "Model contains no symbol `$(Meta.quot(s))`"
+                -1
+            else
+                i
+            end
+        end
+    end
+end
+
+function bind!(prob::FittingProblem, symbols...)
+    indices = _get_binding_indices(prob, symbols...)
+    for (i, I) in enumerate(indices)
+        if any(==(-1), I)
+            j = findfirst(==(-1), I)
+            throw("Could not bind symbol `$(Meta.quot(symbols[j]))`")
+        end
+        for index in I
+            # avoid duplicating
+            if index ∉ prob.bindings[i]
+                push!(prob.bindings[i], index)
+            end
+        end
+    end
+    true
 end
 
 function Base.show(io::IO, ::MIME"text/plain", prob::FittingProblem)
@@ -109,4 +180,4 @@ function Base.show(io::IO, ::MIME"text/plain", prob::FittingProblem)
     end
 end
 
-export MultiDataset, MultiModel, FittingProblem
+export MultiDataset, MultiModel, FittingProblem, bind!

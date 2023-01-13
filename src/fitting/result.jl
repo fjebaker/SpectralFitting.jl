@@ -46,16 +46,14 @@ function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
 end
 
 function unpack_multimodel(parameters, m::MultiModel, X, Y, V, state)
-    n_params = state.i_params
+    parameter_indices = state.parameter_indices
     n_energy = state.i_x
     n_output = state.i_out
     results = map((1:state.n_models...,)) do i
         model = m.m[i]
         f = state.funcs[i]
-        start_p = i == 1 ? 1 : n_params[i-1] + 1
-        end_p = n_params[i]
         # don't view here as we want a copy for the output
-        u = parameters[start_p:end_p]
+        u = parameters[parameter_indices[i]]
 
         start_x = i == 1 ? 1 : n_energy[i-1] + 1
         end_x = n_energy[i]

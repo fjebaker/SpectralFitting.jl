@@ -86,7 +86,7 @@ function fit(
             bundle_result(LsqFit.coef(lsq_result), model, f, x, y, data.rateerror .^ 2)
         end
     elseif model_count(prob) == data_count(prob)
-        f, parameters, state = assemble_multimodel(prob.model, prob.data)
+        f, parameters, state = assemble_multimodel(prob)
         x = energy_vector(prob.data)
         y = flux_vector(prob.data)
         σ = std_dev_vector(prob.data)
