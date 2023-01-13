@@ -48,6 +48,54 @@ function _assemble_parameter_indices(bindings, n_params)
     parameter_indices, remove
 end
 
+struct FittingProblem{M,D,B}
+    model::M
+    data::D
+    bindings::B
+    function FittingProblem(
+        m::Union{<:MultiModel,AbstractSpectralModel},
+        d::Union{<:MultiDataset,AbstractSpectralDataset},
+    )
+        _m = if !(m isa MultiModel)
+            MultiModel(m)
+        else
+            m
+        end
+        _d = if !(d isa MultiDataset)
+            MultiDataset(d)
+        else
+            d
+        end
+        bindings = map(_ -> Int[], _m.m)
+        new{typeof(_m),typeof(_d),typeof(bindings)}(_m, _d, bindings)
+    end
+end
+
+function model_count(prob::FittingProblem)
+    return length(prob.model.m)
+end
+
+function data_count(prob::FittingProblem)
+    return length(prob.data.d)
+end
+
+function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
+    map(prob.model.m) do model
+        free_symbs =
+            model isa CompositeModel ? composite_free_parameter_symbols(model) :
+            free_parameter_symbols(model)
+        map(symbols) do s
+            i = findfirst(==(s), free_symbs)
+            if isnothing(i)
+                @warn "Model contains no symbol `$(Meta.quot(s))`"
+                -1
+            else
+                i
+            end
+        end
+    end
+end
+
 function assemble_multimodel(prob::FittingProblem)
     # unpack
     m = prob.model
@@ -100,55 +148,6 @@ function assemble_multimodel(prob::FittingProblem)
             autodiff = autodiff,
         ),
     )
-end
-
-
-struct FittingProblem{M,D,B}
-    model::M
-    data::D
-    bindings::B
-    function FittingProblem(
-        m::Union{<:MultiModel,AbstractSpectralModel},
-        d::Union{<:MultiDataset,AbstractSpectralDataset},
-    )
-        _m = if !(m isa MultiModel)
-            MultiModel(m)
-        else
-            m
-        end
-        _d = if !(d isa MultiDataset)
-            MultiDataset(d)
-        else
-            d
-        end
-        bindings = map(_ -> Int[], _m.m)
-        new{typeof(_m),typeof(_d),typeof(bindings)}(_m, _d, bindings)
-    end
-end
-
-function model_count(prob::FittingProblem)
-    return length(prob.model.m)
-end
-
-function data_count(prob::FittingProblem)
-    return length(prob.data.d)
-end
-
-function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
-    map(prob.model.m) do model
-        free_symbs =
-            model isa CompositeModel ? composite_free_parameter_symbols(model) :
-            free_parameter_symbols(model)
-        map(symbols) do s
-            i = findfirst(==(s), free_symbs)
-            if isnothing(i)
-                @warn "Model contains no symbol `$(Meta.quot(s))`"
-                -1
-            else
-                i
-            end
-        end
-    end
 end
 
 function bind!(prob::FittingProblem, symbols...)
