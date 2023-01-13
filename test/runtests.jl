@@ -54,11 +54,21 @@ end
         # include the general xspec models only when not CI
         @ciskip include("models/test-general-xspec-models.jl")
     end
+
+    @testset "model-consistency" begin
+        include("models/test-model-consistency.jl")
+    end
 end
 
 @testset "io" verbose = true begin
     @testset "printing" begin
         include("io/test-printing.jl")
+    end
+end
+
+@testset "fitting" verbose = true begin
+    @testset "powerlaws" begin
+        include("fitting/test-fit-powerlaw.jl")
     end
 end
 

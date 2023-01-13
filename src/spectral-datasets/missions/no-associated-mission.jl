@@ -10,6 +10,12 @@ struct BasicMetadata <: AbstractMetadata
 end
 
 missiontrait(::Type{<:BasicMetadata}) = NoMission()
+function observation_id(data::SpectralDataset{T,<:BasicMetadata}) where {T}
+    "noID"
+end
+function observation_object(data::SpectralDataset{T,<:BasicMetadata}) where {T}
+    "Unkown"
+end
 
 function SpectralDataset(::NoMission, path, rm_path; T::Type = Float64, units = nothing)
     spec = OGIP_GroupedEvents(path; T)

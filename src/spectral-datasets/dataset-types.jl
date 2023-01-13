@@ -28,7 +28,7 @@ struct ResponseMatrix{T}
     bins_high::Vector{T}
 end
 
-# concrete type
+abstract type AbstractSpectralDataset end
 mutable struct SpectralDataset{
     T,
     MetaType,
@@ -38,7 +38,7 @@ mutable struct SpectralDataset{
     BkgType,
     GroupType,
     VecType,
-}
+} <: AbstractSpectralDataset
     # store high and low seperately
     # incase discontinuous dataset
     # - will there ever be discontinuous bins??
