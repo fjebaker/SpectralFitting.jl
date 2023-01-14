@@ -264,7 +264,10 @@ function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
-    _printinfo(io, model)
+    buff = IOBuffer()
+    _printinfo(buff, model)
+    s = String(take!(buff))
+    print(io, encapsulate(s))
 end
 
 modelparameters(model::AbstractSpectralModel) = [model_parameters_tuple(model)...]

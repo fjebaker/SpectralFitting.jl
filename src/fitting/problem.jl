@@ -168,15 +168,17 @@ function bind!(prob::FittingProblem, symbols...)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", prob::FittingProblem)
-    println(io, "FittingProblem:")
-    println(io, "  Models:")
+    buff = IOBuffer()
+    println(buff, "FittingProblem:")
+    println(buff, "  Models:")
     for model in prob.model.m
-        println(io, " "^4 * "- $(model)")
+        println(buff, " "^4 * ". $(model)")
     end
-    println(io, "  Data:")
+    println(buff, "  Data:")
     for data in prob.data.d
-        println(io, " "^4 * "- $(data)")
+        println(buff, " "^4 * ". $(data)")
     end
+    println(io, encapsulate(String(take!(buff))))
 end
 
 export MultiDataset, MultiModel, FittingProblem, bind!

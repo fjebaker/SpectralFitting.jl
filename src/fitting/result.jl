@@ -7,15 +7,18 @@ struct FittingResult{T,M,E,F}
     folded_invoke::F
 end
 
+function _pretty_print(res::FittingResult)
+    chi2 = prettyfloat(res.χ2)
+    us = join((prettyfloat(i) for i in res.u), ", ")
+    """FittingResult:
+        Model: $(res.model)
+        . u     : [$(us)]
+        . χ²    : $(chi2) 
+    """
+end
+
 function Base.show(io::IO, ::MIME"text/plain", res::FittingResult)
-    println(
-        io,
-        """FittingResult:
-          Model: $(res.model)
-            - Parameters  : $(res.u)
-            - χ2          : $(res.χ2) 
-        """,
-    )
+    println(io, encapsulate(_pretty_print(res)))
 end
 
 function bundle_result(u, model, f, x, y, variance)
@@ -29,20 +32,19 @@ struct MultiFittingResult{F}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
-    println(io, "┌ MultiFittingResult:")
+    total_χ2 = prettyfloat(sum(i -> i.χ2, res.results))
+
     buff = IOBuffer()
-    for (i, result) in enumerate(res.results)
-        show(buff, MIME"text/plain"(), result)
-        s = String(take!(buff))
-        s = s[1:findlast(==('\n'), s)-1]
-        text = if i != lastindex(res.results)
-            replace(s, "\n" => "\n│ ")
-        else
-            _s = replace(s, "\n" => "\n│ ")
-            _s[1:findlast(==('│'), _s)-1] * '└'
-        end
-        println(io, "│ " * text)
+    println(buff, "MultiFittingResult:")
+    for result in res.results
+        b = _pretty_print(result)
+        r = indent(b, 1)
+        # drop last new line
+        
+        print(buff, r)
     end
+    text = String(take!(buff))
+    println(io, encapsulate(text) * "Σχ² = $(total_χ2)" )
 end
 
 function unpack_multimodel(parameters, m::MultiModel, X, Y, V, state)
