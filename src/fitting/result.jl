@@ -40,11 +40,11 @@ function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
         b = _pretty_print(result)
         r = indent(b, 1)
         # drop last new line
-        
+
         print(buff, r)
     end
     text = String(take!(buff))
-    println(io, encapsulate(text) * "Σχ² = $(total_χ2)" )
+    println(io, encapsulate(text) * "Σχ² = $(total_χ2)")
 end
 
 function unpack_multimodel(parameters, m::MultiModel, X, Y, V, state)
