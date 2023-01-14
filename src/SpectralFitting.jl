@@ -27,6 +27,7 @@ using DocStringExtensions
 
 # unitful units
 include("units.jl")
+include("print-utilities.jl")
 
 include("fitparam.jl")
 include("abstract-models.jl")
