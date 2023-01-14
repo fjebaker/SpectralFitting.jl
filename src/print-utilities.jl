@@ -24,5 +24,5 @@ end
 
 function indent(text, n)
     spacer = " "^n
-    spacer * replace(text, '\n' => "\n" * spacer)
+    replace(text, '\n' => "\n" * spacer)
 end

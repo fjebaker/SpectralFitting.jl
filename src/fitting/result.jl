@@ -36,8 +36,9 @@ function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
 
     buff = IOBuffer()
     println(buff, "MultiFittingResult:")
+    print(buff, " ")
     for result in res.results
-        b = _pretty_print(result)
+        b = _pretty_print(result) * "\n"
         r = indent(b, 1)
         # drop last new line
 
