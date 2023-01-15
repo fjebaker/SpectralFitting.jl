@@ -178,7 +178,7 @@ function Base.show(io::IO, ::MIME"text/plain", prob::FittingProblem)
     for data in prob.data.d
         println(buff, " "^4 * ". $(data)")
     end
-    println(io, encapsulate(String(take!(buff))))
+    print(io, encapsulate(String(take!(buff))))
 end
 
 export MultiDataset, MultiModel, FittingProblem, bind!

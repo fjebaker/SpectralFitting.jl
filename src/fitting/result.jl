@@ -1,5 +1,8 @@
+export FittingResult, MultiFittingResult, AbstractFittingResult
 
-struct FittingResult{T,M,E,F}
+abstract type AbstractFittingResult end
+
+struct FittingResult{T,M,E,F} <: AbstractFittingResult
     u::Vector{T}
     χ2::T
     model::M
@@ -18,7 +21,7 @@ function _pretty_print(res::FittingResult)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", res::FittingResult)
-    println(io, encapsulate(_pretty_print(res)))
+    print(io, encapsulate(_pretty_print(res)))
 end
 
 function bundle_result(u, model, f, x, y, variance)
@@ -26,7 +29,7 @@ function bundle_result(u, model, f, x, y, variance)
     FittingResult(u, chi2, model, x, f)
 end
 
-struct MultiFittingResult{F}
+struct MultiFittingResult{F} <: AbstractFittingResult
     results::F
     MultiFittingResult(result::Tuple) = new{typeof(result)}(result)
 end
@@ -45,7 +48,7 @@ function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
         print(buff, r)
     end
     text = String(take!(buff))
-    println(io, encapsulate(text) * "Σχ² = $(total_χ2)")
+    print(io, encapsulate(text) * "Σχ² = $(total_χ2)")
 end
 
 function unpack_multimodel(parameters, m::MultiModel, X, Y, V, state)
