@@ -224,15 +224,26 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
     param_name_offset = sym_buffer + maximum(infos) do (_, syms, _)
         maximum(length(s) for s in syms)
     end
+    buff = IOBuffer()
     for (symbol, (m, param_symbols, states)) in zip(keys(infos), infos)
         M = typeof(m)
         basename = FunctionGeneration.model_base_name(M)
-        println(io, lpad("$symbol", sym_buffer), " => $basename")
+        println(
+            buff,
+            Crayons.Crayon(foreground = :cyan),
+            lpad("$symbol", sym_buffer),
+            Crayons.Crayon(reset = true),
+            " => ",
+            Crayons.Crayon(foreground = :cyan),
+            "$basename",
+            Crayons.Crayon(reset = true),
+        )
 
         for (val, s::String, free::Bool) in zip(modelparameters(m), param_symbols, states)
-            _print_param(io, free, s, val, param_name_offset, q1, q2, q3, q4)
+            _print_param(buff, free, s, val, param_name_offset, q1, q2, q3, q4)
         end
     end
+    print(io, String(take!(buff)))
 end
 
 function remake_with_number_type(model::CompositeModel)
