@@ -44,7 +44,7 @@ include("meta-models/table-models.jl")
 
 include("poisson.jl")
 
-include("datasets/dataset-types.jl")
+include("datasets/types.jl")
 include("datasets/ogip-io.jl")
 include("datasets/ogip.jl")
 include("datasets/spectral-datasets.jl")
