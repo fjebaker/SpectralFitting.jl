@@ -1,11 +1,11 @@
 struct MultiDataset{D}
     d::D
-    MultiDataset(data::Vararg{<:AbstractSpectralDataset}) = new{typeof(data)}(data)
+    MultiDataset(data::Vararg{<:AbstractDataset}) = new{typeof(data)}(data)
 end
 
-energy_vector(d::MultiDataset) = reduce(vcat, (energy_vector(i) for i in d.d))
-flux_vector(d::MultiDataset) = reduce(vcat, (i.rate for i in d.d))
-std_dev_vector(d::MultiDataset) = reduce(vcat, (i.rateerror for i in d.d))
+domain_vector(d::MultiDataset) = reduce(vcat, (domain_vector(i) for i in d.d))
+target_vector(d::MultiDataset) = reduce(vcat, (i.rate for i in d.d))
+variance_vector(d::MultiDataset) = reduce(vcat, (i.rateerror .^ 2 for i in d.d))
 
 struct MultiModel{M}
     m::M
@@ -54,7 +54,7 @@ struct FittingProblem{M,D,B}
     bindings::B
     function FittingProblem(
         m::Union{<:MultiModel,AbstractSpectralModel},
-        d::Union{<:MultiDataset,AbstractSpectralDataset},
+        d::Union{<:MultiDataset,AbstractDataset},
     )
         _m = if !(m isa MultiModel)
             MultiModel(m)
@@ -116,7 +116,7 @@ function assemble_multimodel(prob::FittingProblem)
 
     # function which accepts all energy and parameters, and then dispatches them correctly to each sub model
     n_params = _accumulated_indices(map(length, parameters))
-    n_energy = _accumulated_indices(map(data -> length(energy_vector(data)), d.d))
+    n_energy = _accumulated_indices(map(data -> length(domain_vector(data)), d.d))
     n_output = _accumulated_indices(map(data -> length(data.bins_low), d.d))
 
     parameter_indices, remove = _assemble_parameter_indices(bindings, n_params)

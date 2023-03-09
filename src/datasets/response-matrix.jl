@@ -62,6 +62,27 @@ function build_matrix_response!(R, rmf::OGIP_RMF_Matrix)
     end
 end
 
+function build_response_matrix!(
+    R,
+    f_chan::Matrix,
+    n_chan::Matrix,
+    matrix_rows::Vector,
+    first_channel,
+)
+    for (i, (F, N)) in enumerate(zip(eachcol(f_chan), eachcol(n_chan)))
+        M = matrix_rows
+        index = 1
+        for (first, len) in zip(F, N)
+            if len == 0
+                break
+            end
+            first -= first_channel
+            @views R[first+1:first+len, i] .= M[index:index+len-1]
+            index += len
+        end
+    end
+end
+
 function normalise_rows!(matrix)
     # returns weights
     @views map(1:size(matrix, 2)) do

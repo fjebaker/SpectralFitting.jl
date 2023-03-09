@@ -44,12 +44,14 @@ include("meta-models/table-models.jl")
 
 include("poisson.jl")
 
-include("spectral-datasets/dataset-types.jl")
-include("spectral-datasets/ogip-io.jl")
-include("spectral-datasets/datasets.jl")
-include("spectral-datasets/response-matrix.jl")
-include("spectral-datasets/binning-utilities.jl")
-include("spectral-datasets/missions/abstract-mission.jl")
+include("datasets/dataset-types.jl")
+include("datasets/ogip-io.jl")
+include("datasets/ogip.jl")
+include("datasets/spectral-datasets.jl")
+include("datasets/response-matrix.jl")
+include("datasets/binning-utilities.jl")
+include("datasets/missions/abstract-mission.jl")
+include("datasets/simple-dataset.jl")
 
 include("model-data-io.jl")
 

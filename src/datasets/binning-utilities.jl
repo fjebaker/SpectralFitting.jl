@@ -1,4 +1,4 @@
-export rebin_flux, make_flux, make_fluxes, energy_vector, regroup
+export rebin_flux, make_flux, make_fluxes, domain_vector, regroup
 
 function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
@@ -55,15 +55,11 @@ function downsample_rebin(input, current_bins, target_bins_high)
     output
 end
 
-function energy_vector(data::SpectralDataset)
-    energy_vector(data.response)
+function domain_vector(response::ResponseMatrix{T}) where {T}
+    domain_vector(response, T)
 end
 
-function energy_vector(response::ResponseMatrix{T}) where {T}
-    energy_vector(response, T)
-end
-
-function energy_vector(x, T::Type)
+function domain_vector(x, T::Type)
     energy = zeros(T, length(x.bins_low) + 1)
     energy[1:end-1] .= x.bins_low
     energy[end] = x.bins_high[end]

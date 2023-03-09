@@ -1,6 +1,4 @@
-export NoMission
-
-struct NoMission <: AbstractMission end
+# NoMission is the default, so the type has to be declared ahead of time
 
 struct BasicMetadata <: AbstractMetadata
     grp_path::String
