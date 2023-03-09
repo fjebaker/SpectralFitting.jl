@@ -39,9 +39,9 @@ The performance of this model represents its complexity.
 
 ```@example surrogate_example
 energy = collect(range(0.1, 20.0, 100))
-flux = make_flux(energy)
-
 model = XS_PhotoelectricAbsorption()
+
+flux = make_flux(model, energy)
 ```
 
 Benchmarking with [BenchmarkTools.jl](https://juliaci.github.io/BenchmarkTools.jl/stable/):
