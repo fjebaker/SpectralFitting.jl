@@ -125,6 +125,7 @@ invokemodel!(fluxes, energy, cm, free_params)
 @test all(flux .== 140.0)
 
 # ensure we can pass different input parameter types and have the system update accordingly
+# needed for automatic differentation
 model = DummyAdditive()
 free_params = Float32[2.0, 1.0]
 flux = @inferred invokemodel(energy, model, free_params)
