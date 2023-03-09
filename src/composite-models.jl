@@ -116,18 +116,18 @@ function invokemodel!(f, e, model::CompositeModel, free_params)
 end
 
 function invokemodel(e, m::CompositeModel)
-    fluxes = make_fluxes(e, flux_count(m))
+    fluxes = make_fluxes(m, e)
     invokemodel!(fluxes, e, m)
     first(fluxes)
 end
 function invokemodel(e, m::CompositeModel, free_params)
     if eltype(free_params) <: Number
         # for compatability with AD
-        fluxes = make_fluxes(e, flux_count(m), eltype(free_params))
+        fluxes = make_fluxes(eltype(free_params), m, e)
         invokemodel!(fluxes, e, m, free_params)
     else
         p0 = get_value.(free_params)
-        fluxes = make_fluxes(e, flux_count(m), eltype(p0))
+        fluxes = make_fluxes(eltype(p0), m, e)
         invokemodel!(fluxes, e, m, p0)
     end
     first(fluxes)

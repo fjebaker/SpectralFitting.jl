@@ -20,8 +20,29 @@ using RecipesBase
     (energy, rate)
 end
 
-@recipe function _plotting_func(x, r::FittingResult, seriestype = :stepmid)
-    seriestype := seriestype
+@recipe function _plotting_func(d::SimpleDataset)
+    seriestype := :scatter
+    xscale := :log10
+    yscale := :log10
+    markerstrokewidth := 0
+    xlabel := "x ($(d.x_units))"
+    ylabel := "y ($(d.y_units))"
+    label := d.name
+    if !isnothing(d.x_err)
+        @views xerr := d.x_err[1:end-1]
+    end
+    if !isnothing(d.y_err)
+        yerr := d.y_err
+    end
+    minorgrid := true
+    @views (d.x[1:end-1], d.y)
+end
+
+@recipe function _plotting_func(r::FittingResult)
+    label := "fit"
+    r.x[1:end-1], r.folded_invoke(r.x, r.u)
+end
+@recipe function _plotting_func(x::AbstractVector, r::FittingResult)
     label := "fit"
     x, r.folded_invoke(r.x, r.u)
 end

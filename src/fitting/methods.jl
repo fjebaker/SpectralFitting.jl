@@ -97,7 +97,7 @@ function wrap_model(
     data::SpectralDataset{T};
     energy = domain_vector(data),
 ) where {T}
-    fluxes = make_fluxes(energy, flux_count(model), T)
+    fluxes = make_fluxes(model, energy)
     frozen_params = get_value.(frozenparameters(model))
     ΔE = data.energy_bin_widths
     # pre-mask the response matrix to ensure channel out corresponds to the active data points

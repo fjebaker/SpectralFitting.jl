@@ -159,7 +159,7 @@ end
 function wrap_model_as_objective(model::CompositeModel; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
-        flux = make_fluxes(energies, flux_count(model), typeof(x[2]))
+        flux = make_fluxes(typeof(x[2]), model, energies)
         generated_model_call!(flux, energies, model, x[2:end])[1]
     end
 end
