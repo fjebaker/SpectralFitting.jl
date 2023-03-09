@@ -105,8 +105,8 @@ has_closure_params(::WithoutClosures) = false
 has_closure_params(M::Type{<:AbstractSpectralModel}) = has_closure_params(closurekind(M))
 has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 
-output_length(::Type{<:AbstractSpectralModel}, n) = n - 1
-output_length(::M, n) where {M<:AbstractSpectralModel} = output_length(M, n)
+Δoutput_length(::Type{<:AbstractSpectralModel}) = -1
+Δoutput_length(::M) where {M<:AbstractSpectralModel} = Δoutput_length(M)
 
 # interface for ConstructionBase.jl
 function ConstructionBase.setproperties(

@@ -40,11 +40,13 @@ end
 
 @recipe function _plotting_func(r::FittingResult)
     label := "fit"
-    r.x[1:end-1], r.folded_invoke(r.x, r.u)
+    y = r.folded_invoke(r.x, r.u)
+    @views r.x[1:lastindex(y)], y
 end
 @recipe function _plotting_func(x::AbstractVector, r::FittingResult)
     label := "fit"
-    x, r.folded_invoke(r.x, r.u)
+    y = r.folded_invoke(x, r.u)
+    @views x[1:lastindex(y)], y
 end
 
 # ratio plots

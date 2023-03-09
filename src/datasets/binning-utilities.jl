@@ -68,12 +68,12 @@ end
 
 make_flux(m::AbstractSpectralModel, e::AbstractVector) = make_flux(eltype(e), m, e)
 make_flux(T::Type, m::AbstractSpectralModel, e::AbstractVector) =
-    make_flux(T, output_length(m, length(e)))
+    make_flux(T, length(e) + Δoutput_length(m))
 make_flux(T::Type, n::Int) = zeros(T, n)
 
 make_fluxes(m::AbstractSpectralModel, e) = make_fluxes(eltype(e), m, e)
 make_fluxes(T::Type, m::AbstractSpectralModel, e) =
-    make_fluxes(T, output_length(m, length(e)), flux_count(m))
+    make_fluxes(T, length(e) + Δoutput_length(m), flux_count(m))
 function make_fluxes(T::Type, n::Int, N::Int)
     flux = make_flux(T, n)
     fluxes = typeof(flux)[flux]
@@ -85,7 +85,7 @@ end
 
 make_dual_fluxes(m::AbstractSpectralModel, e) = make_dual_fluxes(eltype(e), m, e)
 make_dual_fluxes(T::Type, m::AbstractSpectralModel, e) =
-    make_dual_fluxes(T, output_length(m, length(e)), flux_count(m))
+    make_dual_fluxes(T, length(e) + Δoutput_length(m), flux_count(m))
 function make_dual_fluxes(T::Type, n, N::Int)
     flux = make_flux(T, n)
     d_flux = dualcache(flux)
