@@ -28,4 +28,3 @@ res = fit(prob, LevenbergMarquadt())
 
 # test error constructors
 data = SimpleDataset("example", x, y, x_err = 0.1 .* x, y_err = 0.1 * y)
-

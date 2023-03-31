@@ -11,7 +11,15 @@ data_xmm = SpectralFitting.OGIP.read_rmf(
     xmm_rmf_path,
     StandardOGIPConfig(rmf_matrix_index = 2, rmf_energy_index = 3),
 )
+data_xmm.matrix
+
+length.(data_xmm.f_chan) |> maximum
+
 data_nustar = SpectralFitting.OGIP.read_rmf(
     nustar_rmf_path,
     StandardOGIPConfig(rmf_matrix_index = 3, rmf_energy_index = 2),
 )
+
+
+rm = SpectralFitting.OGIP_RMF(xmm_rmf_path)
+typeof(rm)
