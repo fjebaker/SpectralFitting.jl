@@ -29,6 +29,9 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
+      - run: |
+          git clone "https://github.com/fjebaker/spectral-fitting-test-suite" --depth=1
+          export SF_TEST_SUITE_DATA="$(pwd)/spectral-fitting-test-suite/sample-data"
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
