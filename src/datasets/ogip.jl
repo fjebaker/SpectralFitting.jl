@@ -283,6 +283,27 @@ function read_spectrum(path, config::AbstractOGIPConfig; T::Type = Float64)
     end
 end
 
+function read_paths_from_spectrum(path::String)
+    header = _read_fits_and_close(path) do fits
+        read_header(fits[2])
+    end
+    # extract path information from header
+    data_directory = Base.dirname(path)
+    spec_path = path
+    response_path =
+        haskey(header, "RESPFILE") ? joinpath(data_directory, header["RESPFILE"]) : nothing
+    ancillary_path =
+        haskey(header, "ANCRFILE") ? joinpath(data_directory, header["ANCRFILE"]) : nothing
+    background_path =
+        haskey(header, "BACKFILE") ? joinpath(data_directory, header["BACKFILE"]) : nothing
+    (;
+        spectrum = spec_path,
+        response = joinpath(data_directory, response_path),
+        ancillary = joinpath(data_directory, ancillary_path),
+        background = joinpath(data_directory, background_path),
+    )
+end
+
 end # module
 
 using .OGIP

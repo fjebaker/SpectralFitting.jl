@@ -110,9 +110,7 @@ function assemble_multimodel(prob::FittingProblem)
     end
     parameters = map(freeparameters, m.m)
     all_parameters = reduce(vcat, parameters)
-    autodiff =
-        all(model -> implementation(model) isa JuliaImplementation, m.m) ? :forward :
-        :finite
+    autodiff = all(model -> implementation(model) isa JuliaImplementation, m.m)
 
     # function which accepts all energy and parameters, and then dispatches them correctly to each sub model
     n_params = _accumulated_indices(map(length, parameters))

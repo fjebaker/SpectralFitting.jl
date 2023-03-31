@@ -36,6 +36,51 @@ function _lsq_fit(
     )
 end
 
+struct FittingConfig{U,X,Y,V}
+    u::U
+    x::X
+    y::Y
+    variance::V
+    covariance::V
+    autodiff::Bool
+end
+
+FittingConfig(u, x, y, variance; autodiff = false, covariance = inv.(variance)) =
+    FittingConfig(u, x, y, variance, covariance, autodiff)
+
+function _unpack_fitting_configuration(prob)
+    if model_count(prob) == 1 && data_count(prob) == 1
+        # get first/only model and data
+        model = prob.model.m[1]
+        data = prob.data.d[1]
+
+        # wrap the model
+        f = _lazy_folded_invokemodel(model, data)
+        u = freeparameters(model)
+        x = domain_vector(data)
+        y = target_vector(data)
+        variance = target_variance(data)
+        autodiff = implementation(model) isa JuliaImplementation
+
+        bundler_single(res) = bundle_result(res, model, f, x, y, variance)
+        config = FittingConfig(u, x, y, variance; autodiff = autodiff)
+        return f, config, bundler_single
+    elseif model_count(prob) == data_count(prob)
+        f, u, state = assemble_multimodel(prob)
+        x = domain_vector(prob.data)
+        y = target_vector(prob.data)
+        variance = target_variance(prob.data)
+
+        bundler_multi(res) = bundle_multiresult(res, prob.model, x, y, variance, state)
+        config = FittingConfig(u, x, y, variance; autodiff = state.autodiff)
+        return f, config, bundler_multi
+    elseif model_count(prob) < data_count(prob)
+        error("Single model, many data not yet implemented.")
+    else
+        error("Multi model, single data not yet implemented.")
+    end
+end
+
 function fit(
     prob::FittingProblem,
     alg::LevenbergMarquadt;
@@ -43,53 +88,20 @@ function fit(
     max_iter = 1000,
     kwargs...,
 )
-    if model_count(prob) == 1 && data_count(prob) == 1
-        let model = prob.model.m[1], data = prob.data.d[1]
-            f = _lazy_folded_invokemodel(model, data)
-            x = domain_vector(data)
-            y = target_vector(data)
-            variance = target_variance(data)
-            cov = 1 ./ variance
-            parameters = freeparameters(model)
-            autodiff = implementation(model) isa JuliaImplementation ? :forward : :finite
-            lsq_result = _lsq_fit(
-                f,
-                x,
-                y,
-                cov,
-                parameters,
-                alg;
-                verbose = verbose,
-                max_iter = max_iter,
-                autodiff = autodiff,
-                kwargs...,
-            )
-            bundle_result(LsqFit.coef(lsq_result), model, f, x, y, variance)
-        end
-    elseif model_count(prob) == data_count(prob)
-        f, parameters, state = assemble_multimodel(prob)
-        x = domain_vector(prob.data)
-        y = target_vector(prob.data)
-        variance = target_variance(prob.data)
-        cov = 1 ./ variance
-        lsq_result = _lsq_fit(
-            f,
-            x,
-            y,
-            cov,
-            parameters,
-            alg;
-            verbose = verbose,
-            max_iter = max_iter,
-            autodiff = state.autodiff,
-            kwargs...,
-        )
-        unpack_multimodel(LsqFit.coef(lsq_result), prob.model, x, y, variance, state)
-    elseif model_count(prob) < data_count(prob)
-        error("Single model, many data not yet implemented.")
-    else
-        error("Multi model, single data not yet implemented.")
-    end
+    f, config, bundler = _unpack_fitting_configuration(prob)
+    lsq_result = _lsq_fit(
+        f,
+        config.x,
+        config.y,
+        config.covariance,
+        config.u,
+        alg;
+        verbose = verbose,
+        max_iter = max_iter,
+        autodiff = config.autodiff ? :forward : :finite,
+        kwargs...,
+    )
+    bundler(LsqFit.coef(lsq_result))
 end
 
 function wrap_model(

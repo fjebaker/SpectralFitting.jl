@@ -51,7 +51,7 @@ function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
     print(io, encapsulate(text) * "Σχ² = $(total_χ2)")
 end
 
-function unpack_multimodel(parameters, m::MultiModel, X, Y, V, state)
+function bundle_multiresult(parameters, m::MultiModel, X, Y, V, state)
     parameter_indices = state.parameter_indices
     n_energy = state.i_x
     n_output = state.i_out
