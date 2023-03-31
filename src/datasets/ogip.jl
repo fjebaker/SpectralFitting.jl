@@ -1,6 +1,7 @@
 module OGIP
 import SpectralFitting
 using FITSIO
+using SparseArrays
 
 export AbstractOGIPConfig, StandardOGIPConfig
 
@@ -56,7 +57,7 @@ function parse_rmf_header(table::TableHDU)
 
     findex = findfirst(==("F_CHAN"), columns)
     if isnothing(findex)
-        throw(MissingHeader("F_CHAIN"))
+        throw(MissingHeader("F_CHAN"))
     end
 
     tlindex = "TLMIN$findex"
@@ -82,13 +83,41 @@ function read_rmf_channels(table::TableHDU, T::Type)
     RMFChannels(channels, energy_low, energy_high)
 end
 
+function _chan_to_vectors(chan::Matrix)
+    map(eachcol(chan)) do column
+        i = findfirst(==(0), column)
+        # if no zeroes, return full column
+        if isnothing(i)
+            column
+        else
+            # exclude the zero from our selection
+            i = i > 1 ? i - 1 : i
+            column[1:i]
+        end
+    end
+end
+
 function read_rmf_matrix(table::TableHDU, header::RMFHeader, T::Type)
     energy_low = convert.(T, read(table, "ENERG_LO"))
     energy_high = convert.(T, read(table, "ENERG_HI"))
     f_chan_raw = read(table, "F_CHAN")
     n_chan_raw = read(table, "N_CHAN")
     matrix_raw = read(table, "MATRIX")
-    RMFMatrix(f_chan_raw, n_chan_raw, energy_low, energy_high, matrix_raw, header)
+
+    # type stable: convert to common vector of vector format
+    f_chan::Vector{Vector{Int}} =
+        f_chan_raw isa Matrix ? _chan_to_vectors(f_chan_raw) : f_chan_raw
+    n_chan::Vector{Vector{Int}} =
+        n_chan_raw isa Matrix ? _chan_to_vectors(n_chan_raw) : n_chan_raw
+
+    RMFMatrix(
+        f_chan,
+        n_chan,
+        energy_low,
+        energy_high,
+        map(row -> convert.(T, row), matrix_raw),
+        header,
+    )
 end
 
 function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float64)
@@ -108,12 +137,48 @@ function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float
         close(fits)
     end
 
-    SpectralFitting.ResponseMatrix(rmf, channels)
+    SpectralFitting.ResponseMatrix(header, rmf, channels, T)
 end
 
-function SpectralFitting.ResponseMatrix(rmf::RMFMatrix, channels::RMFChannels)
-    ResponseMatrix(rmf.matrix, channels.channels, channels.bins_low, channels.bins_high, rmf.bins_low, rmf.bins_high)
+function SpectralFitting.ResponseMatrix(
+    header::RMFHeader,
+    rmf::RMFMatrix,
+    channels::RMFChannels,
+    T::Type,
+)
+    R = spzeros(T, header.num_channels, length(rmf.bins_low))
+    build_response_matrix!(R, rmf.f_chan, rmf.n_chan, rmf.matrix, header.first_channel)
+    SpectralFitting.ResponseMatrix(
+        R,
+        channels.channels,
+        channels.bins_low,
+        channels.bins_high,
+        rmf.bins_low,
+        rmf.bins_high,
+    )
 end
+
+function build_response_matrix!(
+    R,
+    f_chan::Vector,
+    n_chan::Vector,
+    matrix_rows::Vector,
+    first_channel,
+)
+    for (i, (F, N)) in enumerate(zip(f_chan, n_chan))
+        M = matrix_rows[i]
+        index = 1
+        for (first, len) in zip(F, N)
+            if len == 0
+                break
+            end
+            first -= first_channel
+            @views R[first+1:first+len, i] .= M[index:index+len-1]
+            index += len
+        end
+    end
+end
+
 
 end # module
 

@@ -35,4 +35,3 @@ end
 target_vector(data::SimpleDataset) = data.y
 domain_vector(data::SimpleDataset) = data.x
 target_variance(data::SimpleDataset) = data.y_err .^ 2
-
