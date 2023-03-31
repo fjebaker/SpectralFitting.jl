@@ -48,7 +48,7 @@ function fit(
             f = _lazy_folded_invokemodel(model, data)
             x = domain_vector(data)
             y = target_vector(data)
-            variance = variance_vector(data)
+            variance = target_variance(data)
             cov = 1 ./ variance
             parameters = freeparameters(model)
             autodiff = implementation(model) isa JuliaImplementation ? :forward : :finite
@@ -70,7 +70,7 @@ function fit(
         f, parameters, state = assemble_multimodel(prob)
         x = domain_vector(prob.data)
         y = target_vector(prob.data)
-        variance = variance_vector(prob.data)
+        variance = target_variance(prob.data)
         cov = 1 ./ variance
         lsq_result = _lsq_fit(
             f,

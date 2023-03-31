@@ -97,22 +97,23 @@ function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float
     i = rmf_matrix_index(ogip_config)
     j = rmf_energy_index(ogip_config)
 
-    (header, res, channels) = try
+    (header, rmf, channels) = try
         header = parse_rmf_header(fits[i])
-        res = read_rmf_matrix(fits[i], header, T)
+        rmf = read_rmf_matrix(fits[i], header, T)
         channels::RMFChannels{T} = read_rmf_channels(fits[j], T)
-        (header, res, channels)
+        (header, rmf, channels)
     catch e
         throw(e)
-        # ... 
     finally
         close(fits)
     end
 
-    channels
+    SpectralFitting.ResponseMatrix(rmf, channels)
 end
 
-function SpectralFitting.ResponseMatrix(rmf::RMFMatrix, channels::RMFChannels) end
+function SpectralFitting.ResponseMatrix(rmf::RMFMatrix, channels::RMFChannels)
+    ResponseMatrix(rmf.matrix, channels.channels, channels.bins_low, channels.bins_high, rmf.bins_low, rmf.bins_high)
+end
 
 end # module
 

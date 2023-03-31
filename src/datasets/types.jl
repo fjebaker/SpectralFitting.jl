@@ -33,7 +33,7 @@ missiontrait(::AbstractDataset) = NoMission()
 target_vector(data::AbstractDataset) = error(
     "No implemented for $(typeof(data)) yet. This function should return the y vector for the fit.",
 )
-variance_vector(data::AbstractDataset) = error(
+target_variance(data::AbstractDataset) = error(
     "No implemented for $(typeof(data)) yet. This function should return the variance on the y vector for the fit.",
 )
 domain_vector(data::AbstractDataset) = error(
@@ -82,7 +82,7 @@ end
 # methods than can be subtypes for other dataset types
 missiontrait(::SpectralDataset{T,M}) where {T,M} = missiontrait(M)
 target_vector(data::SpectralDataset) = data.rate
-variance_vector(data::SpectralDataset) = data.rateerror .^ 2
+target_variance(data::SpectralDataset) = data.rateerror .^ 2
 domain_vector(data::SpectralDataset) = domain_vector(data.response)
 function _lazy_folded_invokemodel(model::AbstractSpectralModel, data::SpectralDataset)
     ΔE = data.energy_bin_widths
