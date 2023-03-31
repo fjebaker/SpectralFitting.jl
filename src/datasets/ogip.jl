@@ -50,6 +50,22 @@ struct RMFChannels{T}
     bins_high::Vector{T}
 end
 
+struct Spectrum{T}
+    channels::Vector{Int}
+    quality::Vector{Int}
+    grouping::Vector{Int}
+    values::Vector{T}
+    value_field::String
+    errors::Vector{T}
+    exposure_time::T
+    background_scale::T
+    area_scale::T
+    systematic_error::T
+    poisson_statistics::Bool
+    telescope::String
+    instrument::String
+end
+
 # functions
 function parse_rmf_header(table::TableHDU)
     header = FITSIO.read_header(table)
@@ -120,27 +136,48 @@ function read_rmf_matrix(table::TableHDU, header::RMFHeader, T::Type)
     )
 end
 
-function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float64)
+function _read_fits_and_close(f, path)
     fits = FITS(path)
-
-    i = rmf_matrix_index(ogip_config)
-    j = rmf_energy_index(ogip_config)
-
-    (header, rmf, channels) = try
-        header = parse_rmf_header(fits[i])
-        rmf = read_rmf_matrix(fits[i], header, T)
-        channels::RMFChannels{T} = read_rmf_channels(fits[j], T)
-        (header, rmf, channels)
+    res = try
+        f(fits)
     catch e
         throw(e)
     finally
         close(fits)
     end
-
-    SpectralFitting.ResponseMatrix(header, rmf, channels, T)
+    res
 end
 
-function SpectralFitting.ResponseMatrix(
+function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float64)
+    i = rmf_matrix_index(ogip_config)
+    j = rmf_energy_index(ogip_config)
+
+    (header, rmf, channels::RMFChannels{T}) = _read_fits_and_close(path) do fits
+        header = parse_rmf_header(fits[i])
+        rmf = read_rmf_matrix(fits[i], header, T)
+        channels = read_rmf_channels(fits[j], T)
+        (header, rmf, channels)
+    end
+
+    _build_reponse_matrix(header, rmf, channels, T)
+end
+
+function read_ancillary_response(
+    path::String,
+    ogip_config::AbstractOGIPConfig;
+    T::Type = Float64,
+)
+    fits = FITS(path)
+    (bins_low, bins_high, effective_area) = _read_fits_and_close(path) do fits
+        effective_area = convert.(T, read(fits[2], "SPECRESP"))
+        bins_low = convert.(T, read(fits[2], "ENERG_LO"))
+        bins_high = convert.(T, read(fits[2], "ENERG_HI"))
+        (bins_low, bins_high, effective_area)
+    end
+    SpectralFitting.AncillaryResponse(bins_low, bins_high, effective_area)
+end
+
+function _build_reponse_matrix(
     header::RMFHeader,
     rmf::RMFMatrix,
     channels::RMFChannels,
@@ -179,8 +216,74 @@ function build_response_matrix!(
     end
 end
 
+function _read_exposure_time(header)
+    if get(header, "EXPOSURE", 0.0) != 0.0
+        return header["EXPOSURE"]
+    end
+    if get(header, "TELAPSE", 0.0) != 0.0
+        return header["TELAPSE"]
+    end
+    # maybe time stops given
+    if (get(header, "TSTART", 0.0) != 0.0) && (get(header, "TSTOP", 0.0) != 0.0)
+        return header["TSTOP"] - header["TSTART"]
+    end
+    @warn "Cannot find or infer exposure time."
+    0.0
+end
+
+function read_spectrum(path, config::AbstractOGIPConfig; T::Type = Float64)
+    info = _read_fits_and_close(path) do fits
+        header = read_header(fits[2])
+        # if not set, assume not poisson errors
+        is_poisson = get(header, "POISSERR", false)
+        # read general infos
+        instrument = header["INSTRUME"]
+        telescope = header["TELESCOP"]
+        exposure_time = T(_read_exposure_time(header))
+        background_scale = T(header["BACKSCAL"])
+        area_scale = T(header["AREASCAL"])
+        sys_error = T(header["SYS_ERR"])
+
+        channels = Int.(read(fits[2], "CHANNEL"))
+        quality = Int.(read(fits[2], "QUALITY"))
+        grouping = Int.(read(fits[2], "GROUPING"))
+
+        column_names = FITSIO.colnames(fits[2])
+        units, values = if "RATE" ∈ column_names
+            "rate", T.(read(fits[2], "RATE"))
+        else
+            "counts", T.(read(fits[2], "COUNTS"))
+        end
+        stat_errors = if "STAT_ERR" ∈ column_names
+            if is_poisson
+                @warn "Both STAT_ERR column present and POISSERR flag set. Using STAT_ERR."
+            end
+            T.(read(fits[2], "STAT_ERR"))
+        elseif is_poisson
+            @. T(SpectralFitting.count_error(values, 1.0))
+        else
+            @warn "Unknown error statistics. Setting zero for all."
+            T[0 for _ in values]
+        end
+        Spectrum(
+            channels,
+            quality,
+            grouping,
+            values,
+            units,
+            stat_errors,
+            exposure_time,
+            background_scale,
+            area_scale,
+            sys_error,
+            is_poisson,
+            telescope,
+            instrument,
+        )
+    end
+end
 
 end # module
 
 using .OGIP
-export StandardOGIPConfig
+export OGIP, StandardOGIPConfig

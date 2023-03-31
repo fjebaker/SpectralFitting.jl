@@ -15,7 +15,7 @@ group_meta(::AbstractMetadata, mask, inds) = nothing
 struct AncillaryResponse{T}
     bins_low::Vector{T}
     bins_high::Vector{T}
-    spec_response::Vector{T}
+    effective_area::Vector{T}
 end
 
 # could be Response or Redistribution : how do we track this? 
