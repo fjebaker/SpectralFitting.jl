@@ -30,7 +30,9 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
       - run: |
-          git clone "https://github.com/fjebaker/spectral-fitting-test-suite" --depth=1
+          git clone --depth 1 "https://github.com/fjebaker/spectral-fitting-test-suite" ~/work/data
+          ls -la
+          ls -l ~/work/data
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
@@ -50,7 +52,7 @@ jobs:
             Pkg.test(; coverage=true, force_latest_compatible_version=true)
           '
         env:
-          SF_TEST_SUITE_DATA: "spectral-fitting-test-suite/sample-data"
+          SF_TEST_SUITE_DATA: "~/work/data/spectral-fitting-test-suite/sample-data"
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
