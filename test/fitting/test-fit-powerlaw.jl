@@ -9,7 +9,12 @@ dummy_data = make_dummy_dataset((E) -> (E^(-3.0)))
 # test that both julia and xspec implementations can fit simple
 model = PowerLaw()
 prob = FittingProblem(model, dummy_data)
+
+# test inference
+_ = @inferred SpectralFitting._unpack_fitting_configuration(prob)
+
 result = fit(prob, LevenbergMarquadt())
+
 @test result.u ≈ [1.1824968887784022, 3.0809925004740317] atol = 1e-4
 model = XS_PowerLaw()
 prob = FittingProblem(model, dummy_data)
