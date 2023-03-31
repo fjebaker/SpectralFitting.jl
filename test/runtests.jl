@@ -64,6 +64,9 @@ end
     @testset "printing" begin
         include("io/test-printing.jl")
     end
+    @testset "datasets" begin
+        include("datasets/test-ogip.jl")
+    end
 end
 
 @testset "fitting" verbose = true begin
