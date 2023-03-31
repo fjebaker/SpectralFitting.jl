@@ -26,3 +26,6 @@ res = fit(prob, LevenbergMarquadt())
 @test res.u[1] ≈ 13.12 atol = 0.1
 @test res.u[2] ≈ 3.201 atol = 0.1
 
+# test error constructors
+data = SimpleDataset("example", x, y, x_err = 0.1 .* x, y_err = 0.1 * y)
+
