@@ -60,6 +60,7 @@ include("model-data-io.jl")
 include("fitting/problem.jl")
 include("fitting/result.jl")
 include("fitting/methods.jl")
+include("fitting/statistics.jl")
 
 include("plotting-recipes.jl")
 

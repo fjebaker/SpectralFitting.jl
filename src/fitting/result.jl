@@ -25,7 +25,7 @@ function Base.show(io::IO, ::MIME"text/plain", res::FittingResult)
 end
 
 function bundle_result(u, model, f, x, y, variance)
-    chi2 = χ2_from_ŷyvar(f(x, u), y, variance)
+    chi2 = measure(ChiSquared(), y, f(x, u), variance)
     FittingResult(u, chi2, model, x, f)
 end
 
