@@ -46,7 +46,7 @@ sum(total_flux)
 Doing so would allow us to only pre-allocate 2 flux arrays, instead of 4 when using the in-place variants:
 
 ```@example model_invocation
-flux1, flux2 = make_fluxes(energy, 2)
+flux1, flux2 = make_fluxes(model, energy, 2)
 
 invokemodel!(flux1, energy, XS_PowerLaw())
 invokemodel!(flux2, energy, XS_PowerLaw(a=FitParam(3.0)))

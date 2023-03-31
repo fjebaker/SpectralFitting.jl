@@ -105,6 +105,9 @@ has_closure_params(::WithoutClosures) = false
 has_closure_params(M::Type{<:AbstractSpectralModel}) = has_closure_params(closurekind(M))
 has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 
+Δoutput_length(::Type{<:AbstractSpectralModel}) = -1
+Δoutput_length(::M) where {M<:AbstractSpectralModel} = Δoutput_length(M)
+
 # interface for ConstructionBase.jl
 function ConstructionBase.setproperties(
     model::M,
@@ -181,13 +184,13 @@ invokemodel(energy, model, p0)
 ```
 """
 function invokemodel(e, m::AbstractSpectralModel)
-    flux = make_flux(eltype(e), length(e) - 1)
+    flux = make_flux(m, e)
     invokemodel!(flux, e, m)
     flux
 end
 function invokemodel(e, m::AbstractSpectralModel, free_params)
     model = remake_with_free(m, free_params)
-    flux = make_flux(eltype(free_params), length(e) - 1)
+    flux = make_flux(eltype(free_params), m, e)
     invokemodel!(flux, e, model)
     flux
 end
@@ -212,7 +215,7 @@ Single spectral model components should use [`make_flux`](@ref) instead.
 ```julia
 model = XS_PowerLaw()
 energy = collect(range(0.1, 20.0, 100))
-flux = make_flux(energy)
+flux = make_flux(model, energy)
 invokemodel!(flux, energy, model)
 
 p0 = [0.1, 2.0] # change K and a

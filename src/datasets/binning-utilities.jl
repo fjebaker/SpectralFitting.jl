@@ -1,4 +1,4 @@
-export rebin_flux, make_flux, make_fluxes, energy_vector, regroup
+export rebin_flux, make_flux, make_fluxes, domain_vector, regroup
 
 function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
@@ -55,30 +55,27 @@ function downsample_rebin(input, current_bins, target_bins_high)
     output
 end
 
-function energy_vector(data::SpectralDataset)
-    energy_vector(data.response)
+function domain_vector(response::ResponseMatrix{T}) where {T}
+    domain_vector(response, T)
 end
 
-function energy_vector(response::ResponseMatrix{T}) where {T}
-    energy_vector(response, T)
-end
-
-function energy_vector(x, T::Type)
+function domain_vector(x, T::Type)
     energy = zeros(T, length(x.bins_low) + 1)
     energy[1:end-1] .= x.bins_low
     energy[end] = x.bins_high[end]
     energy
 end
 
-make_flux(energy::AbstractVector{T}) where {T} = make_flux(T, length(energy) - 1)
-make_flux(T::Type, length::Number) = zeros(T, length)
+make_flux(m::AbstractSpectralModel, e::AbstractVector) = make_flux(eltype(e), m, e)
+make_flux(T::Type, m::AbstractSpectralModel, e::AbstractVector) =
+    make_flux(T, length(e) + Δoutput_length(m))
+make_flux(T::Type, n::Int) = zeros(T, n)
 
-function make_fluxes(energy, N::Int)
-    make_fluxes(energy, N, eltype(energy))
-end
-
-function make_fluxes(energy, N::Int, T::Type)
-    flux = make_flux(T, length(energy) - 1)
+make_fluxes(m::AbstractSpectralModel, e) = make_fluxes(eltype(e), m, e)
+make_fluxes(T::Type, m::AbstractSpectralModel, e) =
+    make_fluxes(T, length(e) + Δoutput_length(m), flux_count(m))
+function make_fluxes(T::Type, n::Int, N::Int)
+    flux = make_flux(T, n)
     fluxes = typeof(flux)[flux]
     for _ = 1:N-1
         push!(fluxes, deepcopy(flux))
@@ -86,8 +83,11 @@ function make_fluxes(energy, N::Int, T::Type)
     fluxes
 end
 
-function make_dual_fluxes(energy, N::Int)
-    flux = make_flux(eltype(energy), length(energy) - 1)
+make_dual_fluxes(m::AbstractSpectralModel, e) = make_dual_fluxes(eltype(e), m, e)
+make_dual_fluxes(T::Type, m::AbstractSpectralModel, e) =
+    make_dual_fluxes(T, length(e) + Δoutput_length(m), flux_count(m))
+function make_dual_fluxes(T::Type, n, N::Int)
+    flux = make_flux(T, n)
     d_flux = dualcache(flux)
     d_fluxes = typeof(d_flux)[d_flux]
     for _ = 1:N-1

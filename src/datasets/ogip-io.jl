@@ -121,33 +121,34 @@ struct OGIP_RMF_Matrix{T,M}
 end
 
 function OGIP_RMF_Matrix(
-    fits::FITS,
+    table::TableHDU,
     first_channel,
     number_of_channels,
     ::Type{T},
 )::OGIP_RMF_Matrix{T} where {T}
-    e_lows = T.(read(fits[2], "ENERG_LO"))
+    e_lows = T.(read(table, "ENERG_LO"))
     OGIP_RMF_Matrix(
-        Int.(read(fits[2], "F_CHAN")),
-        Int.(read(fits[2], "N_CHAN")),
+        Int.(read(table, "F_CHAN")),
+        Int.(read(table, "N_CHAN")),
         e_lows,
-        T.(read(fits[2], "ENERG_HI")),
-        read(fits[2], "MATRIX"),
+        T.(read(table, "ENERG_HI")),
+        read(table, "MATRIX"),
         first_channel,
         number_of_channels,
         length(e_lows),
     )
 end
 
-function OGIP_RMF_Matrix(fits::FITS, ::Type{T})::OGIP_RMF_Matrix{T} where {T}
-    first_channel, number_of_channels = parse_rmf_fits_header(fits)
-    OGIP_RMF_Matrix(fits, first_channel, number_of_channels, T)
+function OGIP_RMF_Matrix(fits::FITS, ::Type{T}, index)::OGIP_RMF_Matrix{T} where {T}
+    table = fits[index]
+    first_channel, number_of_channels = parse_rmf_fits_header(table)
+    OGIP_RMF_Matrix(table, first_channel, number_of_channels, T)
 end
 
-function parse_rmf_fits_header(fits)
-    header = read_header(fits[2])
+function parse_rmf_fits_header(table::TableHDU)
+    header = read_header(table)
     # what can we learn from the header?
-    column_names = FITSIO.colnames(fits[2])
+    column_names = FITSIO.colnames(table)
     f_chan_index = findfirst(==("F_CHAN"), column_names)
 
     if isnothing(f_chan_index)
@@ -177,8 +178,8 @@ struct OGIP_RMF{T}
     ogip_rmf_channels::OGIP_RMF_Channels{T}
 end
 
-OGIP_RMF(fits::FITS, T::Type) =
-    OGIP_RMF(OGIP_RMF_Matrix(fits, T), OGIP_RMF_Channels(fits, T))
+OGIP_RMF(fits::FITS, T::Type, matrix_index::Int) =
+    OGIP_RMF(OGIP_RMF_Matrix(fits, T, matrix_index), OGIP_RMF_Channels(fits, T))
 
 # utility constructors for path specs
 function OGIP_GroupedEvents(path::String; T = Float64)
@@ -193,9 +194,9 @@ function OGIP_ARF(path::String; T = Float64)
     close(fits)
     arf
 end
-function OGIP_RMF(path::String; T = Float64)
+function OGIP_RMF(path::String; matrix_index = 2, T = Float64)
     fits = FITS(path)
-    rmf = OGIP_RMF(fits, T)
+    rmf = OGIP_RMF(fits, T, matrix_index)
     close(fits)
     rmf
 end

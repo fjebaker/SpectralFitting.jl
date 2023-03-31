@@ -9,22 +9,6 @@ struct LevenbergMarquadt{T} <: AbstractFittingAlgorithm
 end
 LevenbergMarquadt(; λ_inc = 10.0, λ_dec = 0.1) = LevenbergMarquadt(λ_inc, λ_dec)
 
-function _lazy_folded_invokemodel(
-    model::AbstractSpectralModel,
-    data::AbstractSpectralDataset,
-)
-    ΔE = data.energy_bin_widths
-    # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = fold_ancillary(data)[data.mask, :]
-    # pre-allocate the output 
-    wrapped = (energy, params) -> begin
-        flux = invokemodel(energy, model, params)
-        flux = (R * flux)
-        @. flux = flux / ΔE
-    end
-    wrapped
-end
-
 function _lsq_fit(
     f,
     x,
@@ -62,9 +46,10 @@ function fit(
     if model_count(prob) == 1 && data_count(prob) == 1
         let model = prob.model.m[1], data = prob.data.d[1]
             f = _lazy_folded_invokemodel(model, data)
-            x = energy_vector(data)
-            y = data.rate
-            cov = 1 ./ data.rateerror .^ 2
+            x = domain_vector(data)
+            y = target_vector(data)
+            variance = target_variance(data)
+            cov = 1 ./ variance
             parameters = freeparameters(model)
             autodiff = implementation(model) isa JuliaImplementation ? :forward : :finite
             lsq_result = _lsq_fit(
@@ -79,14 +64,14 @@ function fit(
                 autodiff = autodiff,
                 kwargs...,
             )
-            bundle_result(LsqFit.coef(lsq_result), model, f, x, y, data.rateerror .^ 2)
+            bundle_result(LsqFit.coef(lsq_result), model, f, x, y, variance)
         end
     elseif model_count(prob) == data_count(prob)
         f, parameters, state = assemble_multimodel(prob)
-        x = energy_vector(prob.data)
-        y = flux_vector(prob.data)
-        σ = std_dev_vector(prob.data)
-        cov = 1 ./ σ .^ 2
+        x = domain_vector(prob.data)
+        y = target_vector(prob.data)
+        variance = target_variance(prob.data)
+        cov = 1 ./ variance
         lsq_result = _lsq_fit(
             f,
             x,
@@ -99,7 +84,7 @@ function fit(
             autodiff = state.autodiff,
             kwargs...,
         )
-        unpack_multimodel(LsqFit.coef(lsq_result), prob.model, x, y, σ .^ 2, state)
+        unpack_multimodel(LsqFit.coef(lsq_result), prob.model, x, y, variance, state)
     elseif model_count(prob) < data_count(prob)
         error("Single model, many data not yet implemented.")
     else
@@ -110,9 +95,9 @@ end
 function wrap_model(
     model::AbstractSpectralModel,
     data::SpectralDataset{T};
-    energy = energy_vector(data),
+    energy = domain_vector(data),
 ) where {T}
-    fluxes = make_fluxes(energy, flux_count(model), T)
+    fluxes = make_fluxes(model, energy)
     frozen_params = get_value.(frozenparameters(model))
     ΔE = data.energy_bin_widths
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
@@ -131,7 +116,7 @@ end
 function wrap_model_noflux(
     model::AbstractSpectralModel,
     data::SpectralDataset{T};
-    energy = energy_vector(data),
+    energy = domain_vector(data),
 ) where {T}
     ΔE = data.energy_bin_widths
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
@@ -148,7 +133,7 @@ end
 function wrap_Optimization(
     model::AbstractSpectralModel,
     data::SpectralDataset{T};
-    energy = energy_vector(data),
+    energy = domain_vector(data),
     target = data.rate,
     variance = data.rateerror .^ 2,
 ) where {T}
@@ -171,7 +156,7 @@ end
 
 χ2_from_ŷyvar(ŷ, y, variance) = sum(@.((y - ŷ)^2 / variance))
 
-function χ2(model::Function, params, data::SpectralDataset; energy = energy_vector(data))
+function χ2(model::Function, params, data::SpectralDataset; energy = domain_vector(data))
     ŷ = model(energy, params)
     χ2_from_ŷyvar(ŷ, data.rate, data.rateerror .^ 2)
 end
