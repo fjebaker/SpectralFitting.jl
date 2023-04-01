@@ -16,4 +16,3 @@ result = fit(prob, ChiSquared(), NelderMead())
 # both models should fit more or less the same
 @test sum(result.results[1].u) ≈ sum(result.results[2].u) atol = 1e-2
 @test result.results[1].χ2 ≈ result.results[2].χ2 atol = 1e-2
-

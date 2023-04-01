@@ -1,6 +1,13 @@
 using Test
 using SpectralFitting
 
+testdir = get(ENV, "SF_TEST_SUITE_DATA", "./dev/spectral-fitting-test-suite/sample-data")
+
+has_test_dir = isdir(testdir)
+if !has_test_dir
+    @warn "No test data found. Skipping some tests."
+end
+
 include("utils.jl")
 
 @testset "function-generation" verbose = true begin
@@ -64,8 +71,12 @@ end
     @testset "printing" begin
         include("io/test-printing.jl")
     end
-    @testset "datasets" begin
-        include("datasets/test-ogip.jl")
+    if has_test_dir
+        @testset "datasets" begin
+            include("datasets/test-ogip.jl")
+        end
+    else
+        @warn "Skipping dataset tests."
     end
 end
 
