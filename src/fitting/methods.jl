@@ -125,20 +125,33 @@ function fit(
     stat::AbstractStatistic,
     optim_alg;
     verbose = false,
+    autodiff = nothing,
     kwargs...,
 )
     f, config, bundler = _unpack_fitting_configuration(prob)
-    objective = wrap_objective(stat, config)
+    objective = wrap_objective(stat, f, config)
     u0 = get_value.(config.u)
     lower = get_lowerlimit.(config.u)
     upper = get_upperlimit.(config.u)
-    # todo: lower and upper bounds on the variables
+
     # build problem and solve
-    opt_f = Optimization.OptimizationFunction(
+    # determine autodiff
+    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) && !supports_autodiff(config)
+        error("Model does not support automatic differentiation.")
+    end
+    _autodiff = if supports_autodiff(config) && isnothing(autodiff)
+        Optimization.AutoForwardDiff()
+    elseif !isnothing(autodiff)
+        autodiff
+    else
+        Optimization.SciMLBase.NoAD()
+    end
+    opt_f = Optimization.OptimizationFunction{false}(
         objective,
-        supports_autodiff(config) ? Optimization.AutoForwardDiff() : Optimization.NoAD(),
+        _autodiff,
     )
-    prob = Optimization.OptimizationProblem(opt_f, u0, config.x; lb = lower, ub = upper)
-    sol = Optimization.solve(prob, optim_alg; kwargs...)
+    # todo: something is broken with passing the boundaries
+    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.x)
+    sol = Optimization.solve(opt_prob, optim_alg; kwargs...)
     bundler(sol.u)
 end

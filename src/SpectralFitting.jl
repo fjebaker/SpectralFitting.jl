@@ -20,6 +20,7 @@ using SpecialFunctions
 
 import Crayons
 # fitting backends
+import ForwardDiff
 import LsqFit
 import Optimization
 

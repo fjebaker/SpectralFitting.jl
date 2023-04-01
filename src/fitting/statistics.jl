@@ -5,9 +5,9 @@ measure(::ChiSquared, y, ŷ, σ²) = sum(@.((y - ŷ)^2 / σ²))
 
 struct Cash <: AbstractStatistic end
 
-function wrap_objective(stat::AbstractStatistic, config::FittingConfig)
+function wrap_objective(stat::AbstractStatistic, f, config::FittingConfig)
     function _objective(u, x)
-        ŷ = config.f(x, u)
+        ŷ = f(x, u)
         measure(stat, config.y, ŷ, config.variance)
     end
 end
