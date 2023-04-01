@@ -1,8 +1,6 @@
 using Test
 using SpectralFitting
 
-testdir = get(ENV, "SF_TEST_SUITE_DATA", "./dev/spectral-fitting-test-suite/sample-data")
-
 xmm_config = StandardOGIPConfig(rmf_matrix_index = 2, rmf_energy_index = 3)
 nustar_config = StandardOGIPConfig(rmf_matrix_index = 3, rmf_energy_index = 2)
 

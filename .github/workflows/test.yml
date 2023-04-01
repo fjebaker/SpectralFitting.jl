@@ -26,13 +26,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: fjebaker/spectral-fitting-test-suite
+          path: data
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
       - run: |
-          git clone --depth 1 "https://github.com/fjebaker/spectral-fitting-test-suite" ~/work/data
           ls -la
-          ls -l ~/work/data
+          ls -la data
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
@@ -52,7 +55,7 @@ jobs:
             Pkg.test(; coverage=true, force_latest_compatible_version=true)
           '
         env:
-          SF_TEST_SUITE_DATA: "~/work/data/sample-data"
+          SF_TEST_SUITE_DATA: "../data/sample-data"
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src

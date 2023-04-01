@@ -1,7 +1,7 @@
-export wrap_model, wrap_model_noflux
 export AbstractFittingAlgorithm, LevenbergMarquadt, fit
 
 abstract type AbstractFittingAlgorithm end
+abstract type AbstractStatistic end
 
 struct LevenbergMarquadt{T} <: AbstractFittingAlgorithm
     λ_inc::T
@@ -36,55 +36,60 @@ function _lsq_fit(
     )
 end
 
-function fit(
-    prob::FittingProblem,
-    alg::LevenbergMarquadt;
-    verbose = false,
-    max_iter = 1000,
-    kwargs...,
-)
-    if model_count(prob) == 1 && data_count(prob) == 1
-        let model = prob.model.m[1], data = prob.data.d[1]
-            f = _lazy_folded_invokemodel(model, data)
-            x = domain_vector(data)
-            y = target_vector(data)
-            variance = target_variance(data)
-            cov = 1 ./ variance
-            parameters = freeparameters(model)
-            autodiff = implementation(model) isa JuliaImplementation ? :forward : :finite
-            lsq_result = _lsq_fit(
-                f,
-                x,
-                y,
-                cov,
-                parameters,
-                alg;
-                verbose = verbose,
-                max_iter = max_iter,
-                autodiff = autodiff,
-                kwargs...,
-            )
-            bundle_result(LsqFit.coef(lsq_result), model, f, x, y, variance)
-        end
-    elseif model_count(prob) == data_count(prob)
-        f, parameters, state = assemble_multimodel(prob)
-        x = domain_vector(prob.data)
-        y = target_vector(prob.data)
-        variance = target_variance(prob.data)
-        cov = 1 ./ variance
-        lsq_result = _lsq_fit(
-            f,
+struct FittingConfig{ImplType,U,X,Y,V}
+    u::U
+    x::X
+    y::Y
+    variance::V
+    covariance::V
+    function FittingConfig(impl, u, x, y, variance; covariance = inv.(variance))
+        new{typeof(impl),typeof(u),typeof(x),typeof(y),typeof(variance)}(
+            u,
             x,
             y,
-            cov,
-            parameters,
-            alg;
-            verbose = verbose,
-            max_iter = max_iter,
-            autodiff = state.autodiff,
-            kwargs...,
+            variance,
+            covariance,
         )
-        unpack_multimodel(LsqFit.coef(lsq_result), prob.model, x, y, variance, state)
+    end
+end
+
+supports_autodiff(config::FittingConfig{<:JuliaImplementation}) = true
+supports_autodiff(config::FittingConfig) = false
+
+function _unpack_single(prob)
+    # get first/only model and data
+    model = prob.model.m[1]
+    data = prob.data.d[1]
+
+    # wrap and get domain and target
+    f = _lazy_folded_invokemodel(model, data)
+    u = freeparameters(model)
+    x = domain_vector(data)
+    y = target_vector(data)
+    variance = target_variance(data)
+
+    bundler(res) = bundle_result(res, model, f, x, y, variance)
+    config = FittingConfig(implementation(model), u, x, y, variance)
+    return f, config, bundler
+end
+
+function _unpack_multi_model_multi_data(prob)
+    f, u, state = assemble_multimodel(prob)
+    x = domain_vector(prob.data)
+    y = target_vector(prob.data)
+    variance = target_variance(prob.data)
+
+    bundler(res) = bundle_multiresult(res, prob.model, x, y, variance, state)
+    config = FittingConfig(state.implementation, u, x, y, variance)
+    return f, config, bundler
+end
+
+
+function _unpack_fitting_configuration(prob)
+    if model_count(prob) == 1 && data_count(prob) == 1
+        _unpack_single(prob)
+    elseif model_count(prob) == data_count(prob)
+        _unpack_multi_model_multi_data(prob)
     elseif model_count(prob) < data_count(prob)
         error("Single model, many data not yet implemented.")
     else
@@ -92,71 +97,60 @@ function fit(
     end
 end
 
-function wrap_model(
-    model::AbstractSpectralModel,
-    data::SpectralDataset{T};
-    energy = domain_vector(data),
-) where {T}
-    fluxes = make_fluxes(model, energy)
-    frozen_params = get_value.(frozenparameters(model))
-    ΔE = data.energy_bin_widths
-    # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = fold_ancillary(data)[data.mask, :]
-    # pre-allocate the output 
-    outflux = zeros(T, length(ΔE))
-    wrapped =
-        (energy, params) -> begin
-            invokemodel!(fluxes, energy, model, params, frozen_params)
-            mul!(outflux, R, fluxes[1])
-            @. outflux = outflux / ΔE
-        end
-    energy, wrapped
+function fit(
+    prob::FittingProblem,
+    alg::LevenbergMarquadt;
+    verbose = false,
+    max_iter = 1000,
+    kwargs...,
+)
+    f, config, bundler = _unpack_fitting_configuration(prob)
+    lsq_result = _lsq_fit(
+        f,
+        config.x,
+        config.y,
+        config.covariance,
+        config.u,
+        alg;
+        verbose = verbose,
+        max_iter = max_iter,
+        autodiff = supports_autodiff(config) ? :forward : :finite,
+        kwargs...,
+    )
+    bundler(LsqFit.coef(lsq_result))
 end
 
-function wrap_model_noflux(
-    model::AbstractSpectralModel,
-    data::SpectralDataset{T};
-    energy = domain_vector(data),
-) where {T}
-    ΔE = data.energy_bin_widths
-    # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = fold_ancillary(data)[data.mask, :]
-    # pre-allocate the output 
-    wrapped = (energy, params) -> begin
-        flux = invokemodel(energy, model, params)
-        flux = (R * flux)
-        @. flux = flux / ΔE
+function fit(
+    prob::FittingProblem,
+    stat::AbstractStatistic,
+    optim_alg;
+    verbose = false,
+    autodiff = nothing,
+    kwargs...,
+)
+    f, config, bundler = _unpack_fitting_configuration(prob)
+    objective = wrap_objective(stat, f, config)
+    u0 = get_value.(config.u)
+    lower = get_lowerlimit.(config.u)
+    upper = get_upperlimit.(config.u)
+
+    # determine autodiff
+    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) &&
+       !supports_autodiff(config)
+        error("Model does not support automatic differentiation.")
     end
-    energy, wrapped
-end
-
-function wrap_Optimization(
-    model::AbstractSpectralModel,
-    data::SpectralDataset{T};
-    energy = domain_vector(data),
-    target = data.rate,
-    variance = data.rateerror .^ 2,
-) where {T}
-    ΔE = data.energy_bin_widths
-    # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = fold_ancillary(data)[data.mask, :]
-    n = length(target)
-    # pre-allocate the output 
-    wrapped = (params, energy) -> begin
-        flux = invokemodel(energy, model, params)
-        flux = (R * flux)
-        @. flux = flux / ΔE
-        χ2_from_ŷyvar(flux, target, variance)
-        # l = @. flux - target + target * ( log(target) - log(flux) )
-        # -l
-        # l, flux
+    _autodiff = if supports_autodiff(config) && isnothing(autodiff)
+        Optimization.AutoForwardDiff()
+    elseif !isnothing(autodiff)
+        autodiff
+    else
+        Optimization.SciMLBase.NoAD()
     end
-    energy, wrapped
-end
 
-χ2_from_ŷyvar(ŷ, y, variance) = sum(@.((y - ŷ)^2 / variance))
-
-function χ2(model::Function, params, data::SpectralDataset; energy = domain_vector(data))
-    ŷ = model(energy, params)
-    χ2_from_ŷyvar(ŷ, data.rate, data.rateerror .^ 2)
+    # build problem and solve
+    opt_f = Optimization.OptimizationFunction{false}(objective, _autodiff)
+    # todo: something is broken with passing the boundaries
+    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.x)
+    sol = Optimization.solve(opt_prob, optim_alg; kwargs...)
+    bundler(sol.u)
 end
