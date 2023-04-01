@@ -86,6 +86,7 @@ end
     end
     @testset "multifits" begin
         include("fitting/test-fit-multi.jl")
+        include("fitting/test-fit-optim.jl")
     end
 end
 
