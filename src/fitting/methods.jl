@@ -134,9 +134,9 @@ function fit(
     lower = get_lowerlimit.(config.u)
     upper = get_upperlimit.(config.u)
 
-    # build problem and solve
     # determine autodiff
-    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) && !supports_autodiff(config)
+    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) &&
+       !supports_autodiff(config)
         error("Model does not support automatic differentiation.")
     end
     _autodiff = if supports_autodiff(config) && isnothing(autodiff)
@@ -146,10 +146,9 @@ function fit(
     else
         Optimization.SciMLBase.NoAD()
     end
-    opt_f = Optimization.OptimizationFunction{false}(
-        objective,
-        _autodiff,
-    )
+
+    # build problem and solve
+    opt_f = Optimization.OptimizationFunction{false}(objective, _autodiff)
     # todo: something is broken with passing the boundaries
     opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.x)
     sol = Optimization.solve(opt_prob, optim_alg; kwargs...)
