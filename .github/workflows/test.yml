@@ -25,17 +25,15 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
         with:
           repository: fjebaker/spectral-fitting-test-suite
           path: data
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
-      - run: |
-          ls -la
-          ls -l ~/work/data
+      - run: ls -la
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
