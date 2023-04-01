@@ -2,10 +2,14 @@ using Test
 using SpectralFitting
 
 testdir = get(ENV, "SF_TEST_SUITE_DATA", "./dev/spectral-fitting-test-suite/sample-data")
+@show testdir
 
 has_test_dir = isdir(testdir)
 if !has_test_dir
     @warn "No test data found. Skipping some tests."
+end
+if !has_test_dir && get(ENV, "CI", false)
+    error("Missing test dir on CI")
 end
 
 include("utils.jl")
