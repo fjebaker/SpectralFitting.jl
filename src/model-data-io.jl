@@ -79,7 +79,7 @@ function _download_from_archive(
     dest;
     progress = true,
     io::IO = Core.stdout,
-    model_source_url = "http://www.star.bris.ac.uk/fbaker/XSPEC-model-data",
+    model_source_url = "https://www.star.bris.ac.uk/fergus/XSPEC-model-data/",
 )
     url = "$model_source_url/$src"
     pg = if progress
