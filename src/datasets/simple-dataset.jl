@@ -5,8 +5,8 @@ struct SimpleDataset{VecType,XUnitType,YUnitType,ErrType} <: AbstractDataset
     y::VecType
     x_units::XUnitType
     y_units::YUnitType
-    y_err::ErrType
     x_err::ErrType
+    y_err::ErrType
     name::String
     function SimpleDataset(
         name::String,
