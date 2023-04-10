@@ -51,27 +51,6 @@ struct RMFChannels{T}
     bins_high::Vector{T}
 end
 
-struct Spectrum{T}
-    channels::Vector{Int}
-    quality::Vector{Int}
-    grouping::Vector{Int}
-    values::Vector{T}
-    value_field::String
-    errors::Vector{T}
-    exposure_time::T
-    background_scale::T
-    area_scale::T
-    systematic_error::T
-    poisson_statistics::Bool
-    telescope::String
-    instrument::String
-end
-
-struct Background{T}
-    channels::Vector{Int}
-    values::Vector{T}
-end
-
 # functions
 function parse_rmf_header(table::TableHDU)
     header = FITSIO.read_header(table)
@@ -154,13 +133,13 @@ function _read_fits_and_close(f, path)
     res
 end
 
-function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float64)
+function read_rmf(path::String, ogip_config::AbstractOGIPConfig{T}) where {T}
     i = rmf_matrix_index(ogip_config)
     j = rmf_energy_index(ogip_config)
 
     (header, rmf, channels::RMFChannels{T}) = _read_fits_and_close(path) do fits
         hdr = parse_rmf_header(fits[i])
-        _rmf = read_rmf_matrix(fits[i], header, T)
+        _rmf = read_rmf_matrix(fits[i], hdr, T)
         _channels = read_rmf_channels(fits[j], T)
         (hdr, _rmf, _channels)
     end
@@ -168,10 +147,7 @@ function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float
     _build_reponse_matrix(header, rmf, channels, T)
 end
 
-function read_ancillary_response(
-    path::String,
-    ogip_config::AbstractOGIPConfig{T}
-   ) where {T}
+function read_ancillary_response(path::String, ogip_config::AbstractOGIPConfig{T}) where {T}
     fits = FITS(path)
     (bins_low, bins_high, effective_area) = _read_fits_and_close(path) do fits
         area::Vector{T} = convert.(T, read(fits[2], "SPECRESP"))
@@ -249,39 +225,53 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
         area_scale = T(header["AREASCAL"])
         sys_error = T(header["SYS_ERR"])
 
-        channels::Vector{Int} = convert.(Int, read(fits[2], "CHANNEL"))
-        quality::Vector{Int} = convert.(Int, read(fits[2], "QUALITY"))
-        grouping::Vector{Int} = convert.(Int, read(fits[2], "GROUPING"))
-
         column_names = FITSIO.colnames(fits[2])
+
+        channels::Vector{Int} = convert.(Int, read(fits[2], "CHANNEL"))
+
+        quality::Vector{Int} = if "QUALITY" ∈ column_names
+            convert.(Int, read(fits[2], "QUALITY"))
+        else
+            zeros(Int, size(channels))
+        end
+
+        grouping::Vector{Int} = if "GROUPING" ∈ column_names
+            convert.(Int, read(fits[2], "GROUPING"))
+        else
+            ones(Int, size(channels))
+        end
+
         units, values::Vector{T} = if "RATE" ∈ column_names
             "rate", convert.(T, read(fits[2], "RATE"))
         else
             "counts", convert.(T, read(fits[2], "COUNTS"))
         end
-        stat_errors = if "STAT_ERR" ∈ column_names
+
+        stat, _errors = if "STAT_ERR" ∈ column_names
             if is_poisson
                 @warn "Both STAT_ERR column present and POISSERR flag set. Using STAT_ERR."
             end
-            T.(read(fits[2], "STAT_ERR"))
+            SpectralFitting.ErrorStatistics.Numeric, convert.(T, read(fits[2], "STAT_ERR"))
         elseif is_poisson
+            SpectralFitting.ErrorStatistics.Poisson,
             @. T(SpectralFitting.count_error(values, 1.0))
         else
             @warn "Unknown error statistics. Setting zero for all."
-            T[0 for _ in values]
+            SpectralFitting.ErrorStatistics.Unknown, T[0 for _ in values]
         end
-        Spectrum(
+
+        SpectralFitting.Spectrum(
             channels,
             quality,
             grouping,
             values,
             units,
-            stat_errors,
             exposure_time,
             background_scale,
             area_scale,
+            stat,
+            _errors,
             sys_error,
-            is_poisson,
             telescope,
             instrument,
         )
@@ -289,14 +279,8 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
     info
 end
 
-function read_background(path::String, config::AbstractOGIPConfig{T}) where {T} 
-    fits = FITS(path)
-    (channels, values) = _read_fits_and_close(path) do fits
-        chnl::Vector{Int} = convert.(Int, read(fits[2], "CHANNEL"))
-        counts::Vector{T} = convert.(T, read(fits[2], "COUNTS"))
-        (chnl, counts)
-    end
-    Background(channels, values)
+function read_background(path::String, config::AbstractOGIPConfig{T}) where {T}
+    read_spectrum(path, config)
 end
 
 function read_paths_from_spectrum(path::String)
@@ -305,22 +289,24 @@ function read_paths_from_spectrum(path::String)
     end
     # extract path information from header
     data_directory = Base.dirname(path)
-    _read_entry(entry) = if haskey(header, entry)
-        _path::String = header[entry]
-        joinpath(data_directory, _path)
-    else
-        ""
-    end
+    _read_entry(entry) =
+        if haskey(header, entry)
+            _path::String = header[entry]
+            joinpath(data_directory, _path)
+        else
+            ""
+        end
 
     spec_path = path
     response_path = _read_entry("RESPFILE")
     ancillary_path = _read_entry("ANCRFILE")
     background_path = _read_entry("BACKFILE")
-    (;
+
+    SpectralFitting.SpectralFilePaths(
         spectrum = spec_path,
+        background = background_path,
         response = response_path,
         ancillary = ancillary_path,
-        background = background_path,
     )
 end
 

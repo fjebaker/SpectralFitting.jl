@@ -1,7 +1,11 @@
 using Test
 using SpectralFitting
 
-testdir = get(ENV, "SF_TEST_SUITE_DATA", "./dev/spectral-fitting-test-suite/sample-data")
+testdir = get(
+    ENV,
+    "SF_TEST_SUITE_DATA",
+    @__DIR__() * "/../../spectral-fitting-test-suite/sample-data",
+)
 @show testdir
 
 has_test_dir = isdir(testdir)

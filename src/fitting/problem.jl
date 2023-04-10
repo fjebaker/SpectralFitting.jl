@@ -4,8 +4,8 @@ struct MultiDataset{D}
 end
 
 domain_vector(d::MultiDataset) = reduce(vcat, (domain_vector(i) for i in d.d))
-target_vector(d::MultiDataset) = reduce(vcat, (i.rate for i in d.d))
-target_variance(d::MultiDataset) = reduce(vcat, (i.rateerror .^ 2 for i in d.d))
+target_vector(d::MultiDataset) = reduce(vcat, (target_vector(i) for i in d.d))
+target_variance(d::MultiDataset) = reduce(vcat, (target_variance(i) for i in d.d))
 
 struct MultiModel{M}
     m::M

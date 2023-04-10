@@ -17,6 +17,7 @@ using LinearAlgebra
 using FileIO
 using Interpolations
 using SpecialFunctions
+using EnumX
 
 import Crayons
 # fitting backends
@@ -46,7 +47,6 @@ include("meta-models/table-models.jl")
 include("poisson.jl")
 
 include("datasets/types.jl")
-include("datasets/ogip-io.jl")
 include("datasets/ogip.jl")
 include("datasets/spectral-datasets.jl")
 include("datasets/response-matrix.jl")

@@ -1,7 +1,6 @@
 using Test
 using SpectralFitting
 
-testdir = get(ENV, "SF_TEST_SUITE_DATA", "./dev/spectral-fitting-test-suite/sample-data")
 @show testdir
 
 xmm_config = StandardOGIPConfig(rmf_matrix_index = 2, rmf_energy_index = 3)
@@ -41,9 +40,6 @@ spec_nustar = OGIP.read_spectrum(nustar_spec_path, nustar_config)
 @test spec_xmm.telescope == "XMM"
 @test spec_nustar.telescope == "NuSTAR"
 
-@test spec_xmm.poisson_statistics
-@test spec_nustar.poisson_statistics
-
 # test reading background
 xmm_backgroud_path = joinpath(testdir, "xmm/pn_bg_spec.fits")
 nustar_background_path = joinpath(testdir, "nustar/nu60001047002A01_bk.pha")
@@ -63,6 +59,3 @@ xmm_paths = OGIP.read_paths_from_spectrum(xmm_spec_path)
 @test xmm_paths.response == xmm_rmf_path
 @test xmm_paths.background == xmm_backgroud_path
 @test xmm_paths.ancillary == xmm_arf_path
-
-
-

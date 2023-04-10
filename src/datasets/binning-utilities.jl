@@ -96,16 +96,16 @@ function make_dual_fluxes(T::Type, n, N::Int)
     d_fluxes
 end
 
-function augmented_energy_channels(channels, rm::ResponseMatrix{T}) where {T}
-    # just going to assume the channels line up
+function augmented_energy_channels(channels, other_channels, bins_high, bins_low)
+    # TODO: just going to assume the channels line up
     N = length(channels)
-    Emax = zeros(T, N)
-    Emin = zeros(T, N)
+    Emax = zeros(eltype(bins_high), N)
+    Emin = zeros(eltype(bins_high), N)
     @inbounds for (i, c) in enumerate(channels)
         if c ≤ N
-            index = findfirst(==(c), rm.channels)
-            Emax[i] = rm.channel_bins_high[index]
-            Emin[i] = rm.channel_bins_low[index]
+            index = findfirst(==(c), other_channels)
+            Emax[i] = bins_high[index]
+            Emin[i] = bins_low[index]
         end
     end
     (Emin, Emax)

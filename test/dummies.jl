@@ -20,23 +20,32 @@ function make_dummy_dataset(shape_function; energy = collect(range(0.2, 10.0, 10
         bins_low,
         bins_high,
     )
-    SpectralDataset(
-        bins_low,
-        bins_high,
+    spec = SpectralFitting.Spectrum(
+        channels,
+        zeros(Int64, size(flux)), # quality
+        zeros(Int64, size(flux)), # grouping
         flux,
+        "rate",
+        1.0, # exposure time
+        1.0, # background scale
+        1.0, # area scale
+        SpectralFitting.ErrorStatistics.Unknown,
         σ,
+        0.0,
+        "sample telescope",
+        "sample instrument",
+    )
+
+    SpectralDataset(
         units,
         meta,
-        false,
+        bins_low,
+        bins_high,
+        spec,
+        missing,
         rmf,
-        nothing,
-        nothing,
-        channels,
-        zeros(Int64, length(flux)),
-        zeros(Int64, length(flux)),
+        missing,
         BitVector([true for _ in flux]),
-        # exposure time
-        1.0,
     )
 end
 
