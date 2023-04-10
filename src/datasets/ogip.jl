@@ -1,4 +1,5 @@
 module OGIP
+
 import SpectralFitting
 using FITSIO
 using SparseArrays
@@ -64,6 +65,11 @@ struct Spectrum{T}
     poisson_statistics::Bool
     telescope::String
     instrument::String
+end
+
+struct Background{T}
+    channels::Vector{Int}
+    values::Vector{T}
 end
 
 # functions
@@ -153,10 +159,10 @@ function read_rmf(path::String, ogip_config::AbstractOGIPConfig; T::Type = Float
     j = rmf_energy_index(ogip_config)
 
     (header, rmf, channels::RMFChannels{T}) = _read_fits_and_close(path) do fits
-        header = parse_rmf_header(fits[i])
-        rmf = read_rmf_matrix(fits[i], header, T)
-        channels = read_rmf_channels(fits[j], T)
-        (header, rmf, channels)
+        hdr = parse_rmf_header(fits[i])
+        _rmf = read_rmf_matrix(fits[i], header, T)
+        _channels = read_rmf_channels(fits[j], T)
+        (hdr, _rmf, _channels)
     end
 
     _build_reponse_matrix(header, rmf, channels, T)
@@ -164,15 +170,14 @@ end
 
 function read_ancillary_response(
     path::String,
-    ogip_config::AbstractOGIPConfig;
-    T::Type = Float64,
-)
+    ogip_config::AbstractOGIPConfig{T}
+   ) where {T}
     fits = FITS(path)
     (bins_low, bins_high, effective_area) = _read_fits_and_close(path) do fits
-        effective_area = convert.(T, read(fits[2], "SPECRESP"))
-        bins_low = convert.(T, read(fits[2], "ENERG_LO"))
-        bins_high = convert.(T, read(fits[2], "ENERG_HI"))
-        (bins_low, bins_high, effective_area)
+        area::Vector{T} = convert.(T, read(fits[2], "SPECRESP"))
+        lo::Vector{T} = convert.(T, read(fits[2], "ENERG_LO"))
+        hi::Vector{T} = convert.(T, read(fits[2], "ENERG_HI"))
+        (lo, hi, area)
     end
     SpectralFitting.AncillaryResponse(bins_low, bins_high, effective_area)
 end
@@ -231,7 +236,7 @@ function _read_exposure_time(header)
     0.0
 end
 
-function read_spectrum(path, config::AbstractOGIPConfig; T::Type = Float64)
+function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
     info = _read_fits_and_close(path) do fits
         header = read_header(fits[2])
         # if not set, assume not poisson errors
@@ -244,15 +249,15 @@ function read_spectrum(path, config::AbstractOGIPConfig; T::Type = Float64)
         area_scale = T(header["AREASCAL"])
         sys_error = T(header["SYS_ERR"])
 
-        channels = Int.(read(fits[2], "CHANNEL"))
-        quality = Int.(read(fits[2], "QUALITY"))
-        grouping = Int.(read(fits[2], "GROUPING"))
+        channels::Vector{Int} = convert.(Int, read(fits[2], "CHANNEL"))
+        quality::Vector{Int} = convert.(Int, read(fits[2], "QUALITY"))
+        grouping::Vector{Int} = convert.(Int, read(fits[2], "GROUPING"))
 
         column_names = FITSIO.colnames(fits[2])
-        units, values = if "RATE" ∈ column_names
-            "rate", T.(read(fits[2], "RATE"))
+        units, values::Vector{T} = if "RATE" ∈ column_names
+            "rate", convert.(T, read(fits[2], "RATE"))
         else
-            "counts", T.(read(fits[2], "COUNTS"))
+            "counts", convert.(T, read(fits[2], "COUNTS"))
         end
         stat_errors = if "STAT_ERR" ∈ column_names
             if is_poisson
@@ -281,6 +286,17 @@ function read_spectrum(path, config::AbstractOGIPConfig; T::Type = Float64)
             instrument,
         )
     end
+    info
+end
+
+function read_background(path::String, config::AbstractOGIPConfig{T}) where {T} 
+    fits = FITS(path)
+    (channels, values) = _read_fits_and_close(path) do fits
+        chnl::Vector{Int} = convert.(Int, read(fits[2], "CHANNEL"))
+        counts::Vector{T} = convert.(T, read(fits[2], "COUNTS"))
+        (chnl, counts)
+    end
+    Background(channels, values)
 end
 
 function read_paths_from_spectrum(path::String)
@@ -289,18 +305,22 @@ function read_paths_from_spectrum(path::String)
     end
     # extract path information from header
     data_directory = Base.dirname(path)
+    _read_entry(entry) = if haskey(header, entry)
+        _path::String = header[entry]
+        joinpath(data_directory, _path)
+    else
+        ""
+    end
+
     spec_path = path
-    response_path =
-        haskey(header, "RESPFILE") ? joinpath(data_directory, header["RESPFILE"]) : nothing
-    ancillary_path =
-        haskey(header, "ANCRFILE") ? joinpath(data_directory, header["ANCRFILE"]) : nothing
-    background_path =
-        haskey(header, "BACKFILE") ? joinpath(data_directory, header["BACKFILE"]) : nothing
+    response_path = _read_entry("RESPFILE")
+    ancillary_path = _read_entry("ANCRFILE")
+    background_path = _read_entry("BACKFILE")
     (;
         spectrum = spec_path,
-        response = joinpath(data_directory, response_path),
-        ancillary = joinpath(data_directory, ancillary_path),
-        background = joinpath(data_directory, background_path),
+        response = response_path,
+        ancillary = ancillary_path,
+        background = background_path,
     )
 end
 
