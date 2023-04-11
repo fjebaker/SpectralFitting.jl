@@ -128,6 +128,49 @@ target_vector(data::SpectralDataset) = get_rate(data)
 target_variance(data::SpectralDataset) = get_rate_variance(data)
 domain_vector(data::SpectralDataset) = domain_vector(data.response)
 
+function background_subtracted_target_variance(
+    data::SpectralDataset{U,M,T},
+    subtract,
+)::Vector{T} where {U,M,T}
+    if !has_background(data) || !subtract
+        return target_variance(data)
+    end
+    if subtract && !has_background(data)
+        error("No background to subtract.")
+    end
+    # should all already be rates
+    # errors added in quadrature
+    # TODO: this needs fixing to propagate errors properly
+    D = @views data.spectrum.errors[data.mask] .^ 2
+    B = @views data.background.errors[data.mask] .^ 2
+    subtract_background(D, B, data)
+end
+
+function background_subtracted_target_vector(
+    data::SpectralDataset{U,M,T},
+    subtract,
+)::Vector{T} where {U,M,T}
+    if !has_background(data) || !subtract
+        # if no background, this is just the regular target vector
+        return target_vector(data)
+    end
+    if subtract && !has_background(data)
+        error("No background to subtract.")
+    end
+    # should all already be rates
+    D = @views data.spectrum.values[data.mask]
+    B = @views data.background.values[data.mask]
+    subtract_background(D, B, data)
+end
+
+function subtract_background(D, B, data)
+    aD = data.spectrum.area_scale
+    bD = data.spectrum.background_scale
+    aB = data.background.area_scale
+    bB = data.background.background_scale
+    @. (D / aD) - (bD / bB) * (B / aB)
+end
+
 function _lazy_folded_invokemodel(model::AbstractSpectralModel, data::SpectralDataset)
     ΔE = get_bin_widths(data)
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
