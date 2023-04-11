@@ -5,7 +5,11 @@ end
 
 domain_vector(d::MultiDataset) = reduce(vcat, (domain_vector(i) for i in d.d))
 target_vector(d::MultiDataset) = reduce(vcat, (target_vector(i) for i in d.d))
+background_subtracted_target_vector(d::MultiDataset, subtract) =
+    reduce(vcat, (background_subtracted_target_vector(i, subtract) for i in d.d))
 target_variance(d::MultiDataset) = reduce(vcat, (target_variance(i) for i in d.d))
+background_subtracted_target_variance(d::MultiDataset, subtract) =
+    reduce(vcat, (background_subtracted_target_variance(i, subtract) for i in d.d))
 
 struct MultiModel{M}
     m::M
@@ -104,7 +108,7 @@ function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
     end
 end
 
-function assemble_multimodel(prob::FittingProblem)
+function assemble_multimodel(prob::FittingProblem; subtract_background = true)
     # unpack
     m = prob.model
     d = prob.data
@@ -125,7 +129,13 @@ function assemble_multimodel(prob::FittingProblem)
     # function which accepts all energy and parameters, and then dispatches them correctly to each sub model
     n_params = _accumulated_indices(map(length, parameters))
     n_energy = _accumulated_indices(map(data -> length(domain_vector(data)), d.d))
-    n_output = _accumulated_indices(map(data -> length(target_vector(data)), d.d))
+    n_output = _accumulated_indices(
+        map(
+            data ->
+                length(background_subtracted_target_vector(data, subtract_background)),
+            d.d,
+        ),
+    )
 
     parameter_indices, remove = _assemble_parameter_indices(bindings, n_params)
     deleteat!(all_parameters, remove)
