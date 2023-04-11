@@ -128,7 +128,7 @@ function fit(
     optim_alg;
     verbose = false,
     autodiff = nothing,
-    all_kwargs...,
+    kwargs...,
 )
     method_kwargs, f, config, bundler = _unpack_fitting_configuration(prob; kwargs...)
     objective = wrap_objective(stat, f, config)
