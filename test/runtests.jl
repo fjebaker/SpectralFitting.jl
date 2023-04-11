@@ -96,6 +96,13 @@ end
         include("fitting/test-fit-multi.jl")
         include("fitting/test-fit-optim.jl")
     end
+    if has_test_dir
+        @testset "sample-data" begin
+            include("fitting/test-sample-data.jl")
+        end
+    else
+        @warn "Skipping dataset tests."
+    end
 end
 
 using Aqua
