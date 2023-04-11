@@ -302,27 +302,30 @@ function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
     n_masked = count(==(false), data.mask)
 
     descr = """SpectralDataset with $(length(data.spectrum.channels)) populated channels:
-       Object            : $(observation_object(data))
-       Observation ID    : $(observation_id(data))
-       Mission: $(typeof(missiontrait(M)))
-        . Exposure time  : $(exposure_time) s
-        . Bins           : $(nbins)
-        . E (min/max)    : ($(e_min), $(e_max)) keV
-        . Data (min/max) : ($(rate_min), $(rate_max)) $(data.units)
-        . Grouped        : $(is_grouped)
-        . Mask           : $(n_masked)
-       Instrument Response
-        . $(length(data.response.channels)) RMF Channels
-        . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV
-        . Ancillary      : $(has_anc)
+      Object            : $(observation_object(data))
+      Observation ID    : $(observation_id(data))
+      Mission: $(typeof(missiontrait(M)))
+       . Exposure time  : $(exposure_time) s
+       . Bins           : $(nbins)
+       . E (min/max)    : ($(e_min), $(e_max)) keV
+       . Data (min/max) : ($(rate_min), $(rate_max)) $(data.units)
+       . Grouped        : $(is_grouped)
+       . Mask           : $(n_masked)
+      Instrument Response
+       . $(length(data.response.channels)) RMF Channels
+       . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV
+       . Ancillary resp : $(has_anc)
     """
     print(io, descr)
     desc_background = if has_background(data)
-        bg_min = Printf.@sprintf "%g" minimum(data.background.values)
-        bg_max = Printf.@sprintf "%g" maximum(data.background.values)
+        bg_min = Printf.@sprintf "%g" minimum(data.background.values[data.mask])
+        bg_max = Printf.@sprintf "%g" maximum(data.background.values[data.mask])
+        bg_e_time = Printf.@sprintf "%g" data.background.exposure_time
+        bg_channels = length(data.background.channels[data.mask])
         """   Background
-            . Exposure time  : ($(bg_min), $(bg_max)) $(data.units)
-            . Data (min/max) :
+           . Exposure time  : $(bg_e_time) s
+           . Bins           : $(bg_channels)
+           . Data (min/max) : ($(bg_min), $(bg_max)) $(data.units)
         """
     else
         """   No Background
