@@ -216,7 +216,6 @@ function regroup!(data::SpectralDataset{U,M,T}, grouping) where {U,M,T}
     data.background = _fin2(indices)
     data.response = response
     data.mask = new_mask
-    @show N
     data
 end
 
