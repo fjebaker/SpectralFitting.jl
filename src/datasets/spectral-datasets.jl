@@ -1,4 +1,4 @@
-export mask_bad_channels!, normalize_counts!
+export mask_bad_channels!, normalize_counts!, mask_domain!
 
 # utility constructor
 function SpectralDataset(mission::AbstractMission, path; kwargs...)
@@ -77,6 +77,7 @@ function get_rate_variance(s::SpectralDataset)
     err =
         get_units(s) <: SpectralUnits._counts ?
         s.spectrum.errors / s.spectrum.exposure_time : s.spectrum.errors
+    # square to get the variance
     err[s.mask] .^ 2
 end
 function get_count_variance(s::SpectralDataset)
@@ -122,9 +123,11 @@ has_response(s::SpectralDataset) = !ismissing(s.response)
 has_ancillary(s::SpectralDataset) = !ismissing(s.ancillary)
 has_background(s::SpectralDataset) = !ismissing(s.background)
 
+# these must be masked, as they are used as the fitting targets and domains
 target_vector(data::SpectralDataset) = get_rate(data)
 target_variance(data::SpectralDataset) = get_rate_variance(data)
 domain_vector(data::SpectralDataset) = domain_vector(data.response)
+
 function _lazy_folded_invokemodel(model::AbstractSpectralModel, data::SpectralDataset)
     ΔE = get_bin_widths(data)
     # pre-mask the response matrix to ensure channel out corresponds to the active data points
@@ -139,9 +142,14 @@ function _lazy_folded_invokemodel(model::AbstractSpectralModel, data::SpectralDa
 end
 
 function normalize_counts!(data::SpectralDataset)
-    ΔE = get_bin_widths(data)
-    @. data.y /= ΔE
-    @. data.y_err /= ΔE
+    ΔE = data.bins_high .- data.bins_low
+    @. data.spectrum.values /= ΔE
+    @. data.spectrum.errors /= ΔE
+    if has_background(data)
+        @. data.background.values /= ΔE
+        @. data.background.errors /= ΔE
+    end
+    data
 end
 
 function fold_ancillary(data::SpectralDataset)
@@ -154,67 +162,111 @@ function fold_ancillary(data::SpectralDataset)
     else
         return response.matrix
     end
-    ancillary.spec_response' .* response.matrix
+    ancillary.effective_area' .* response.matrix
 end
 
 function mask_bad_channels!(data::SpectralDataset)
-    bad_indices = data.spectrum.quality .!= 0
-    data.mask[bad_indices] .= false
+    bad_indices = @. data.spectrum.quality != 0
+    @. data.mask[bad_indices] = false
     data
 end
 
 function mask_domain!(data::SpectralDataset, f)
     to_mask = @. f(data.bins_low) | f(data.bins_high)
-    data.mask[to_mask] .= false
+    @. data.mask[to_mask] = false
     data
 end
 
-function regroup(data::SpectralDataset{U,M,T}, grouping) where {U,M,T}
+function _regroup_warnings(data::SpectralDataset)
+    if !all(==(0), data.spectrum.quality[data.mask])
+        @warn "Dataset contains bad channels, and regrouping may be erroneous. Proceed only if you know what you're doing.\nBad channels masked out by using `mask_bad_channels!`."
+    end
+end
+
+function regroup!(data::SpectralDataset{U,M,T}, grouping) where {U,M,T}
+    _regroup_warnings(data)
+
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
 
     energy_low = zeros(T, N)
     energy_high = zeros(T, N)
-    new_data = zeros(T, N)
-    new_errs = zeros(T, N)
     new_mask = zeros(Bool, N)
 
-    old_bins_low, old_bins_high = get_bins(data)
-    old_data = data.y
-    # um_errors = unmasked(data, :_errors)
+    old_bins_low = data.bins_low
+    old_bins_high = data.bins_high
+
+    _grp1, _fin1 = regroup_callbacks(data.spectrum, N, data.units)
+    _grp2, _fin2 = regroup_callbacks(data.background, N, data.units)
 
     grouping_indices_callback(indices) do (i, index1, index2)
         energy_low[i] = old_bins_low[index1]
         energy_high[i] = old_bins_high[index2]
-
-        selection = @views old_data[index1:index2]
-        new_data[i] = sum(selection)
-        new_errs[i] = count_error(sum(selection), 1.0)
-
         # if not all are masked out, set true
-        new_mask[i] = !all(==(false), data.mask[index1:index2])
+        new_mask[i] = any(==(true), @views(data.mask[index1:index2]))
+        _grp1(i, index1, index2)
+        _grp2(i, index1, index2)
     end
 
     response = group_response_channels(data.response, grouping)
-    quality = group_quality_vector(data.mask, data.quality, indices)
 
-    SpectralDataset(
-        energy_low,
-        energy_high,
-        new_data,
-        new_errs,
-        data.units,
-        data.meta,
-        data.poisson_errors,
-        response,
-        data.ancillary,
-        data.background,
-        collect(1:N),
-        [1 for _ in new_data],
-        quality,
-        BitVector(new_mask),
-        data.exposure_time,
-    )
+    data.bins_low = energy_low
+    data.bins_high = energy_high
+    data.spectrum = _fin1(indices)
+    data.background = _fin2(indices)
+    data.response = response
+    data.mask = new_mask
+    @show N
+    data
+end
+
+regroup_callbacks(::Nothing, N, units) = ((i, i1, i2) -> missing, (inds) -> missing)
+
+function regroup_callbacks(spectrum::Spectrum{T}, N, units) where {T}
+    channels_grouped = zeros(Int, N)
+    values_grouped = zeros(T, N)
+
+    errors_grouped = ismissing(spectrum.errors) ? missing : zeros(T, N)
+    function _grouper(i, index1, index2)
+        channels_grouped[i] = spectrum.channels[index1]
+
+        vs = @views sum(spectrum.values[index1:index2])
+        values_grouped[i] = vs
+
+        # TODO: rework errors
+        if !ismissing(errors_grouped)
+            # errors are calculated on **counts** not on the rates
+            if units == SpectralUnits.u"counts"
+                errors_grouped[i] = count_error(vs, 1.0)
+            elseif units == SpectralUnits.u"counts / s"
+                vs = vs * spectrum.exposure_time
+                es = count_error(vs, 1.0)
+                errors_grouped[i] = es / spectrum.exposure_time
+            else
+                error("No method for grouping errors with given spectral units ($units).")
+            end
+        end
+    end
+    function _finalize(indices)
+        quality_grouped = group_quality_vector(spectrum.quality, indices)
+        grouping = ones(Int, N)
+        Spectrum(
+            channels_grouped,
+            quality_grouped,
+            grouping,
+            values_grouped,
+            spectrum.unit_string,
+            spectrum.exposure_time,
+            spectrum.background_scale,
+            spectrum.area_scale,
+            spectrum.error_statistics,
+            errors_grouped,
+            spectrum.systematic_error,
+            spectrum.telescope,
+            spectrum.instrument,
+        )
+    end
+    _grouper, _finalize
 end
 
 # printing
@@ -234,7 +286,7 @@ function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
     blow, bhigh = get_bins(data)
     e_min = Printf.@sprintf "%g" minimum(blow)
     e_max = Printf.@sprintf "%g" maximum(bhigh)
-    nbins = length(data.bins_low)
+    nbins = length(blow)
 
     rmf_e_min = Printf.@sprintf "%g" minimum(data.response.bins_low)
     rmf_e_max = Printf.@sprintf "%g" maximum(data.response.bins_high)
@@ -247,6 +299,7 @@ function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
     is_grouped = all(==(1), data.spectrum.grouping) ? "yes" : "no"
 
     has_anc = has_ancillary(data) ? "yes" : "no"
+    n_masked = count(==(false), data.mask)
 
     descr = """SpectralDataset with $(length(data.spectrum.channels)) populated channels:
        Object            : $(observation_object(data))
@@ -257,6 +310,7 @@ function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
         . E (min/max)    : ($(e_min), $(e_max)) keV
         . Data (min/max) : ($(rate_min), $(rate_max)) $(data.units)
         . Grouped        : $(is_grouped)
+        . Mask           : $(n_masked)
        Instrument Response
         . $(length(data.response.channels)) RMF Channels
         . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV

@@ -91,11 +91,6 @@ function _lazy_folded_invokemodel(model::AbstractSpectralModel, ::AbstractDatase
     (x, params) -> invokemodel(x, model, params)
 end
 
-struct Background{T}
-    channels::Vector{Int}
-    values::Vector{T}
-end
-
 mutable struct SpectralDataset{UnitType,MetaType,T} <: AbstractDataset
     # store high and low seperately incase discontinuous dataset
     # TODO: will there ever be discontinuous bins??

@@ -12,6 +12,14 @@ struct MultiModel{M}
     MultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
 end
 
+"""
+    _accumulated_indices(items)
+
+`items` is a tuple or vector of lengths `n1, n2, ...`
+
+Returns a tuple or array with same length as items, which gives the index boundaries of 
+an array with size `n1 + n2 + ...`.
+"""
 function _accumulated_indices(items)
     total::Int = 0
     map(items) do item
@@ -117,7 +125,7 @@ function assemble_multimodel(prob::FittingProblem)
     # function which accepts all energy and parameters, and then dispatches them correctly to each sub model
     n_params = _accumulated_indices(map(length, parameters))
     n_energy = _accumulated_indices(map(data -> length(domain_vector(data)), d.d))
-    n_output = _accumulated_indices(map(data -> length(data.bins_low), d.d))
+    n_output = _accumulated_indices(map(data -> length(target_vector(data)), d.d))
 
     parameter_indices, remove = _assemble_parameter_indices(bindings, n_params)
     deleteat!(all_parameters, remove)
@@ -139,6 +147,7 @@ function assemble_multimodel(prob::FittingProblem)
     (
         F,
         all_parameters,
+        # state
         (;
             funcs = funcs,
             n_models = n_models,

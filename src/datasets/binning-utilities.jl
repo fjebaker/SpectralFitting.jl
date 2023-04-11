@@ -1,4 +1,4 @@
-export rebin_flux, make_flux, make_fluxes, domain_vector, regroup
+export rebin_flux, make_flux, make_fluxes, domain_vector, regroup!
 
 function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
@@ -59,7 +59,7 @@ function domain_vector(response::ResponseMatrix{T}) where {T}
     domain_vector(response, T)
 end
 
-function domain_vector(x, T::Type)
+function domain_vector(x::ResponseMatrix, T::Type)
     energy = zeros(T, length(x.bins_low) + 1)
     energy[1:end-1] .= x.bins_low
     energy[end] = x.bins_high[end]
@@ -149,7 +149,7 @@ function grouping_indices_callback(func, indices)
     end
 end
 
-function regroup(vector::Vector{<:Number}, grouping)
+function regroup!(vector::Vector{<:Number}, grouping)
     inds = SpectralFitting.grouping_to_indices(grouping)
     output = zeros(eltype(vector), length(inds) - 1)
     SpectralFitting.grouping_indices_callback(inds) do (i, start, stop)
