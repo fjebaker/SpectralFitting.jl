@@ -3,6 +3,7 @@ using Test
 
 # might have to download the model data first
 SpectralFitting.download_model_data(XS_Laor)
+SpectralFitting.download_model_data(PhotoelectricAbsorption)
 
 function load_data(spec, mission)
     data = SpectralDataset(mission, spec)
