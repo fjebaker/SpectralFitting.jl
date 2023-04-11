@@ -1,4 +1,4 @@
-export rebin_flux, make_flux, make_fluxes, domain_vector, regroup
+export rebin_flux, make_flux, make_fluxes, domain_vector, regroup!
 
 function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
@@ -59,7 +59,7 @@ function domain_vector(response::ResponseMatrix{T}) where {T}
     domain_vector(response, T)
 end
 
-function domain_vector(x, T::Type)
+function domain_vector(x::ResponseMatrix, T::Type)
     energy = zeros(T, length(x.bins_low) + 1)
     energy[1:end-1] .= x.bins_low
     energy[end] = x.bins_high[end]
@@ -96,16 +96,16 @@ function make_dual_fluxes(T::Type, n, N::Int)
     d_fluxes
 end
 
-function augmented_energy_channels(channels, rm::ResponseMatrix{T}) where {T}
-    # just going to assume the channels line up
+function augmented_energy_channels(channels, other_channels, bins_high, bins_low)
+    # TODO: just going to assume the channels line up
     N = length(channels)
-    Emax = zeros(T, N)
-    Emin = zeros(T, N)
+    Emax = zeros(eltype(bins_high), N)
+    Emin = zeros(eltype(bins_high), N)
     @inbounds for (i, c) in enumerate(channels)
         if c ≤ N
-            index = findfirst(==(c), rm.channels)
-            Emax[i] = rm.channel_bins_high[index]
-            Emin[i] = rm.channel_bins_low[index]
+            index = findfirst(==(c), other_channels)
+            Emax[i] = bins_high[index]
+            Emin[i] = bins_low[index]
         end
     end
     (Emin, Emax)
@@ -149,7 +149,7 @@ function grouping_indices_callback(func, indices)
     end
 end
 
-function regroup(vector::Vector{<:Number}, grouping)
+function regroup!(vector::Vector{<:Number}, grouping)
     inds = SpectralFitting.grouping_to_indices(grouping)
     output = zeros(eltype(vector), length(inds) - 1)
     SpectralFitting.grouping_indices_callback(inds) do (i, start, stop)

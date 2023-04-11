@@ -1,7 +1,11 @@
 using Test
 using SpectralFitting
 
-testdir = get(ENV, "SF_TEST_SUITE_DATA", "./dev/spectral-fitting-test-suite/sample-data")
+testdir = get(
+    ENV,
+    "SF_TEST_SUITE_DATA",
+    @__DIR__() * "/../../spectral-fitting-test-suite/sample-data",
+)
 @show testdir
 
 has_test_dir = isdir(testdir)
@@ -91,6 +95,13 @@ end
     @testset "multifits" begin
         include("fitting/test-fit-multi.jl")
         include("fitting/test-fit-optim.jl")
+    end
+    if has_test_dir
+        @testset "sample-data" begin
+            include("fitting/test-sample-data.jl")
+        end
+    else
+        @warn "Skipping dataset tests."
     end
 end
 

@@ -10,9 +10,7 @@ const XmmNewtonEPIC = XmmNewton{XmmEPIC}
 
 struct XmmNewtonMeta{D} <: AbstractMetadata
     device::D
-    grp_path::String
-    rm_path::String
-    arf_path::String
+    paths::SpectralFilePaths
     observation_id::String
     exposure_id::String
     object::String
@@ -26,16 +24,15 @@ function observation_object(data::SpectralDataset{T,<:XmmNewtonMeta}) where {T}
 end
 
 SpectralFitting.missiontrait(::Type{<:XmmNewtonMeta{D}}) where {D} = XmmNewton(D())
+SpectralFitting.path_assembler(::Type{<:XmmNewton}) = OGIP.read_paths_from_spectrum
 
-function XmmNewtonMeta(device::AbstractXmmNewtonDevice, path, rm_path, arf_path)
-    fits = FITS(path)
+function XmmNewtonMeta(device::AbstractXmmNewtonDevice, paths)
+    fits = FITS(paths.spectrum)
     header = read_header(fits[1])
     close(fits)
     XmmNewtonMeta(
         device,
-        path,
-        rm_path,
-        arf_path,
+        paths,
         haskey(header, "OBS_ID") ? header["OBS_ID"] : "",
         haskey(header, "EXP_ID") ? header["EXP_ID"] : "",
         haskey(header, "OBJECT") ? header["OBJECT"] : "",
@@ -44,14 +41,11 @@ end
 
 function SpectralDataset(
     ::XmmNewton{D},
-    path,
-    rm_path,
-    arf_path;
+    paths::SpectralFilePaths,
     T::Type = Float64,
 ) where {D}
-    spec = OGIP_GroupedEvents(path; T)
-    rm = OGIP_RMF(rm_path; T)
-    arf = OGIP_ARF(arf_path; T)
-    meta = XmmNewtonMeta(D(), path, rm_path, arf_path)
-    SpectralDataset(SpectralUnits.u"counts", spec, rm, arf, nothing, meta)
+    config = StandardOGIPConfig(rmf_matrix_index = 2, rmf_energy_index = 3, T = T)
+    meta = XmmNewtonMeta(D(), paths)
+
+    dataset_from_ogip(paths, config, meta)
 end

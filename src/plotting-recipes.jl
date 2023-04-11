@@ -4,9 +4,9 @@ using RecipesBase
     seriestype --> :scatter
     markersize --> 0.5
     markershape --> :none
-    (rate, rateerror) = (d.rate, d.rateerror)
+    (rate, rateerror) = (get_rate(d), get_rate_variance(d))
     yerr --> rateerror
-    xerr --> d.energy_bin_widths ./ 2
+    xerr --> get_bin_widths(d) ./ 2
     markerstrokecolor --> :auto
     xscale --> :log10
     yscale --> :log10
@@ -16,8 +16,8 @@ using RecipesBase
     ylabel --> "counts s⁻¹ keV⁻¹"
     label --> observation_id(d)
     minorgrid --> true
-    energy = (d.bins_low .+ d.bins_high) ./ 2
-    (energy, rate)
+    x = ((d.bins_low.+d.bins_high)./2)[d.mask]
+    (x, rate)
 end
 
 @recipe function _plotting_func(d::SimpleDataset)
@@ -38,14 +38,10 @@ end
     @views (d.x[1:end-1], d.y)
 end
 
-@recipe function _plotting_func(r::FittingResult)
-    label --> "fit"
-    y = r.folded_invoke(r.x, r.u)
-    @views r.x[1:lastindex(y)], y
-end
 @recipe function _plotting_func(x::AbstractVector, r::FittingResult)
     label --> "fit"
-    y = r.folded_invoke(x, r.u)
+    seriestype --> :stepmid
+    y = r.folded_invoke(r.x, r.u)
     @views x[1:lastindex(y)], y
 end
 
@@ -71,7 +67,7 @@ end
     else
         r.args[2]
     end
-    energy = data.bins_low
+    energy = data.bins_low[data.mask]
     fieldnames(typeof(r))
 
     ylabel --> "Ratio [data / model]"
@@ -91,15 +87,15 @@ end
         [1.0]
     end
 
-    ratio_flux = data.rate ./ model_flux
+    ratio_flux = target_vector(data) ./ model_flux
     @series begin
         markerstrokecolor --> datacolor
         label --> label
         seriestype --> :scatter
         markershape --> :none
         markersize --> 0.5
-        yerror --> data.rateerror ./ model_flux
-        xerror --> data.energy_bin_widths ./ 2
+        yerror --> sqrt.(target_variance(data)) ./ model_flux
+        xerror --> get_bin_widths(data) ./ 2
         energy, ratio_flux
     end
 end

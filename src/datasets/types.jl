@@ -12,13 +12,39 @@ missiontrait(::M) where {M<:AbstractMetadata} = missiontrait(M)
 trim_meta!(::AbstractMetadata, inds) = nothing
 group_meta(::AbstractMetadata, mask, inds) = nothing
 
+@enumx ErrorStatistics begin
+    Numeric
+    Poisson
+    Gaussian
+    Unknown
+end
+
+struct SpectralFilePaths
+    spectrum::Union{Missing,String}
+    background::Union{Missing,String}
+    response::Union{Missing,String}
+    ancillary::Union{Missing,String}
+end
+
+path_assembler(::Type{NoMission}) = OGIP.read_paths_from_spectrum
+path_assembler(::T) where {T<:AbstractMission} = path_assembler(T)
+
+function SpectralFilePaths(; spectrum = "", background = "", response = "", ancillary = "")
+    SpectralFilePaths(
+        spectrum == "" ? missing : spectrum,
+        background == "" ? missing : background,
+        response == "" ? missing : response,
+        ancillary == "" ? missing : ancillary,
+    )
+end
+
 struct AncillaryResponse{T}
     bins_low::Vector{T}
     bins_high::Vector{T}
     effective_area::Vector{T}
 end
 
-# could be Response or Redistribution : how do we track this? 
+# TODO: could be Response or Redistribution : how do we track this? 
 struct ResponseMatrix{T}
     matrix::SparseMatrixCSC{T,Int}
     channels::Vector{Int}
@@ -27,6 +53,27 @@ struct ResponseMatrix{T}
     bins_low::Vector{T}
     bins_high::Vector{T}
 end
+
+struct Spectrum{T}
+    channels::Vector{Int}
+    quality::Vector{Int}
+    grouping::Vector{Int}
+
+    values::Vector{T}
+    unit_string::String
+
+    exposure_time::T
+    background_scale::T
+    area_scale::T
+
+    error_statistics::SpectralFitting.ErrorStatistics.T
+    errors::Union{Missing,Vector{T}}
+    systematic_error::T
+
+    telescope::String
+    instrument::String
+end
+
 
 abstract type AbstractDataset end
 missiontrait(::AbstractDataset) = NoMission()
@@ -44,57 +91,24 @@ function _lazy_folded_invokemodel(model::AbstractSpectralModel, ::AbstractDatase
     (x, params) -> invokemodel(x, model, params)
 end
 
-mutable struct SpectralDataset{
-    T,
-    MetaType,
-    PoissType,
-    UnitType,
-    AncType,
-    BkgType,
-    GroupType,
-    VecType,
-} <: AbstractDataset
-    # store high and low seperately
-    # incase discontinuous dataset
-    # - will there ever be discontinuous bins??
-    bins_low::VecType
-    bins_high::VecType
-
-    _data::VecType
-    _errors::VecType
+mutable struct SpectralDataset{UnitType,MetaType,T} <: AbstractDataset
+    # store high and low seperately incase discontinuous dataset
+    # TODO: will there ever be discontinuous bins??
     units::UnitType
-
     meta::MetaType
-    poisson_errors::PoissType
-    response::ResponseMatrix{T}
-    ancillary::AncType
-    background::BkgType
 
-    channels::Vector{Int}
-    grouping::GroupType
-    quality::Vector{Int}
+    bins_low::Vector{T}
+    bins_high::Vector{T}
+
+    spectrum::Spectrum{T}
+    background::Union{Missing,Spectrum{T}}
+    response::Union{Missing,ResponseMatrix{T}}
+    ancillary::Union{Missing,AncillaryResponse{T}}
 
     mask::BitVector
-
-    exposure_time::T
 end
 
 # methods than can be subtypes for other dataset types
-missiontrait(::SpectralDataset{T,M}) where {T,M} = missiontrait(M)
-target_vector(data::SpectralDataset) = data.rate
-target_variance(data::SpectralDataset) = data.rateerror .^ 2
-domain_vector(data::SpectralDataset) = domain_vector(data.response)
-function _lazy_folded_invokemodel(model::AbstractSpectralModel, data::SpectralDataset)
-    ΔE = data.energy_bin_widths
-    # pre-mask the response matrix to ensure channel out corresponds to the active data points
-    R = fold_ancillary(data)[data.mask, :]
-    # pre-allocate the output 
-    wrapped = (energy, params) -> begin
-        flux = invokemodel(energy, model, params)
-        flux = (R * flux)
-        @. flux = flux / ΔE
-    end
-    wrapped
-end
+missiontrait(::SpectralDataset{U,M}) where {U,M} = missiontrait(M)
 
 export SpectralDataset, ResponseMatrix, NoMission

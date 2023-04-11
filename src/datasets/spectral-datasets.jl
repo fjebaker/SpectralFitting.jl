@@ -1,38 +1,52 @@
-export mask_bad_channels!, mask_energy!, normalize_counts!
+export mask_bad_channels!, normalize_counts!, mask_domain!
 
 # utility constructor
 function SpectralDataset(mission::AbstractMission, path; kwargs...)
-    paths = read_OGIP_paths_from_file(path)
-    SpectralDataset(mission, paths.spectrum, paths.response, paths.ancillary; kwargs...)
+    paths = path_assembler(mission)(path)
+    SpectralDataset(mission, paths; kwargs...)
 end
 
-function SpectralDataset(
-    units,
-    spec::OGIP_GroupedEvents,
-    rmf::OGIP_RMF,
-    arf,
-    background,
-    meta::AbstractMetadata,
-)
-    rm = ResponseMatrix(rmf)
-    ebins_low, ebins_high = augmented_energy_channels(spec.channels, rm)
-    SpectralDataset(
-        ebins_low,
-        ebins_high,
-        spec.values,
-        spec.stat_error,
-        units,
-        meta,
-        spec.header.poisson_error,
-        rm,
-        arf,
-        background,
+function dataset_from_ogip(paths, config, meta)
+    spec = OGIP.read_spectrum(paths.spectrum, config)
+    back = if !ismissing(paths.background)
+        OGIP.read_background(paths.background, config)
+    else
+        @warn "No background file specified."
+        missing
+    end
+    resp = if !ismissing(paths.response)
+        OGIP.read_rmf(paths.response, config)
+    else
+        @warn "No response file specified."
+        missing
+    end
+    ancillary = if !ismissing(paths.ancillary)
+        OGIP.read_ancillary_response(paths.ancillary, config)
+    else
+        @warn "No ancillary file specified."
+        missing
+    end
+
+    # convert everything to rates
+    if spec.unit_string == "counts"
+        @. spec.values /= spec.exposure_time
+        if !ismissing(spec.errors)
+            @. spec.errors /= spec.exposure_time
+        end
+        if !ismissing(back) && back.unit_string == "counts"
+            @. back.values /= back.exposure_time
+        end
+    end
+
+    blow, bhigh = augmented_energy_channels(
         spec.channels,
-        spec.grouping,
-        spec.quality,
-        BitVector([true for _ in spec.values]),
-        spec.header.exposure_time,
+        resp.channels,
+        resp.channel_bins_low,
+        resp.channel_bins_high,
     )
+    units = SpectralUnits.u"counts / s"
+    mask = BitVector(fill(true, size(spec.values)))
+    SpectralDataset(units, meta, blow, bhigh, spec, back, resp, ancillary, mask)
 end
 
 # observation_id
@@ -44,129 +58,214 @@ function observation_object(::SpectralDataset{T,MetaType}) where {T,MetaType}
     error("Not implemented for mission $(MetaType)")
 end
 
-function Base.propertynames(::SpectralDataset)
-    (fieldnames(SpectralDataset)..., :counts, :rate, :energy_bin_widths)
+# incase anyone every knew what the old api was like
+# https://docs.julialang.org/en/v1/manual/style-guide/#Prefer-exported-methods-over-direct-field-access
+get_units(::SpectralDataset{T,M,Units}) where {T,M,Units} = Units
+function get_rate(s::SpectralDataset)
+    rate =
+        get_units(s) <: SpectralUnits._counts ?
+        s.spectrum.values / s.spectrum.exposure_time : s.spectrum.values
+    rate[s.mask]
 end
-
-unmasked(data::SpectralDataset, s) = getfield(data, s)
-
-unmasked_counts(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,P} =
-    getfield(data, s)
-
-unmasked_counts(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P} =
-    getfield(data, s) .* data.exposure_time
-
-unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._counts}, s) where {T,M,P} =
-    getfield(data, s) ./ data.exposure_time
-
-unmasked_rate(data::SpectralDataset{T,M,P,SpectralUnits._rate}, s) where {T,M,P} =
-    getfield(data, s)
-
-# TODO: this is incredibly type unstable
-@inline function Base.getproperty(data::SpectralDataset, s::Symbol)
-    if s in (:_data, :_errors)
-        getfield(data, s)
-    elseif s in (:bins_low, :bins_high)
-        @views getfield(data, s)[data.mask]
-    elseif s == :counts
-        unmasked_counts(data, :_data)[data.mask]
-    elseif s == :rate
-        unmasked_rate(data, :_data)[data.mask]
-    elseif s == :countserror
-        unmasked_counts(data, :_errors)[data.mask]
-    elseif s == :rateerror
-        unmasked_rate(data, :_errors)[data.mask]
-    elseif s == :channels
-        channels = @views getfield(data, s)[data.mask]
-        # channels must start at 0
-        channels .- (minimum(channels))
-    elseif s == :energy_bin_widths
-        get_energy_bin_widths(data)
+function get_counts(s::SpectralDataset)
+    counts =
+        get_units(s) <: SpectralUnits._counts ? s.spectrum.values :
+        s.spectrum.values * s.spectrum.exposure_time
+    counts[s.mask]
+end
+function get_rate_variance(s::SpectralDataset)
+    err =
+        get_units(s) <: SpectralUnits._counts ?
+        s.spectrum.errors / s.spectrum.exposure_time : s.spectrum.errors
+    # square to get the variance
+    err[s.mask] .^ 2
+end
+function get_count_variance(s::SpectralDataset)
+    err =
+        get_units(s) <: SpectralUnits._counts ? s.spectrum.errors :
+        s.spectrum.errors * s.spectrum.exposure_time
+    err[s.mask] .^ 2
+end
+function get_channels(s::SpectralDataset)
+    if has_background(s)
+        s.response.channels
     else
-        getfield(data, s)
+        error("No channels defined")
     end
+end
+function get_bin_widths(s::SpectralDataset)
+    low, high = get_bins(s)
+    @. high - low
+end
+function get_bins(s::SpectralDataset)
+    s.bins_low[s.mask], s.bins_high[s.mask]
+end
+function get_exposure_time(s::SpectralDataset)
+    s.spectrum.exposure_time
+end
+function get_response(s::SpectralDataset{T}) where {T}
+    if !has_response(s)
+        # TODO: better errors
+        error("No RMF defined")
+    else
+        s.response
+    end
+end
+function get_ancillary(s::SpectralDataset{T}) where {T}
+    if !has_ancillary(s)
+        # TODO: better errors
+        error("No ancillary response defined")
+    else
+        s.ancillary
+    end
+end
+has_response(s::SpectralDataset) = !ismissing(s.response)
+has_ancillary(s::SpectralDataset) = !ismissing(s.ancillary)
+has_background(s::SpectralDataset) = !ismissing(s.background)
+
+# these must be masked, as they are used as the fitting targets and domains
+target_vector(data::SpectralDataset) = get_rate(data)
+target_variance(data::SpectralDataset) = get_rate_variance(data)
+domain_vector(data::SpectralDataset) = domain_vector(data.response)
+
+function _lazy_folded_invokemodel(model::AbstractSpectralModel, data::SpectralDataset)
+    ΔE = get_bin_widths(data)
+    # pre-mask the response matrix to ensure channel out corresponds to the active data points
+    R = fold_ancillary(data)[data.mask, :]
+    # pre-allocate the output 
+    wrapped = (energy, params) -> begin
+        flux = invokemodel(energy, model, params)
+        flux = (R * flux)
+        @. flux = flux / ΔE
+    end
+    wrapped
 end
 
 function normalize_counts!(data::SpectralDataset)
-    ΔE = getfield(data, :bins_high) .- getfield(data, :bins_low)
-    unmasked_counts(data, :_data) ./= ΔE
-    unmasked_counts(data, :_errors) ./= ΔE
+    ΔE = data.bins_high .- data.bins_low
+    @. data.spectrum.values /= ΔE
+    @. data.spectrum.errors /= ΔE
+    if has_background(data)
+        @. data.background.values /= ΔE
+        @. data.background.errors /= ΔE
+    end
+    data
 end
 
-function fold_ancillary(data::SpectralDataset{T,M,P,U,A}) where {T,M,P,U,A}
-    if A === Nothing
-        data.response.matrix
+function fold_ancillary(data::SpectralDataset)
+    if !has_response(data)
+        return LinearAlgebra.I
+    end
+    response = get_response(data)
+    ancillary = if has_ancillary(data)
+        get_ancillary(data)
     else
-        data.ancillary.spec_response' .* data.response.matrix
+        return response.matrix
+    end
+    ancillary.effective_area' .* response.matrix
+end
+
+function mask_bad_channels!(data::SpectralDataset)
+    bad_indices = @. data.spectrum.quality != 0
+    @. data.mask[bad_indices] = false
+    data
+end
+
+function mask_domain!(data::SpectralDataset, f)
+    to_mask = @. f(data.bins_low) | f(data.bins_high)
+    @. data.mask[to_mask] = false
+    data
+end
+
+function _regroup_warnings(data::SpectralDataset)
+    if !all(==(0), data.spectrum.quality[data.mask])
+        @warn "Dataset contains bad channels, and regrouping may be erroneous. Proceed only if you know what you're doing.\nBad channels masked out by using `mask_bad_channels!`."
     end
 end
 
-function get_energy_bin_widths(data::SpectralDataset)
-    data.bins_high .- data.bins_low
-end
+function regroup!(data::SpectralDataset{U,M,T}, grouping) where {U,M,T}
+    _regroup_warnings(data)
 
-# interface
-
-function mask_bad_channels!(data::SpectralDataset)
-    bad_indices = data.quality .!= 0
-    data.mask[bad_indices] .= false
-    data
-end
-
-function mask_energy!(data::SpectralDataset, cond)
-    inds = cond.(unmasked(data, :bins_low))
-    data.mask[inds] .= false
-    data
-end
-
-
-function regroup(data::SpectralDataset{T,M,P,U}, grouping) where {T,M,P,U}
     indices = grouping_to_indices(grouping)
     N = length(indices) - 1
 
     energy_low = zeros(T, N)
     energy_high = zeros(T, N)
-    new_data = zeros(T, N)
-    new_errs = zeros(T, N)
     new_mask = zeros(Bool, N)
 
-    um_bins_low = unmasked(data, :bins_low)
-    um_bins_high = unmasked(data, :bins_high)
-    um_data = unmasked(data, :_data)
-    # um_errors = unmasked(data, :_errors)
+    old_bins_low = data.bins_low
+    old_bins_high = data.bins_high
+
+    _grp1, _fin1 = regroup_callbacks(data.spectrum, N, data.units)
+    _grp2, _fin2 = regroup_callbacks(data.background, N, data.units)
 
     grouping_indices_callback(indices) do (i, index1, index2)
-        energy_low[i] = um_bins_low[index1]
-        energy_high[i] = um_bins_high[index2]
-
-        selection = @views um_data[index1:index2]
-        new_data[i] = sum(selection)
-        new_errs[i] = count_error(sum(selection), 1.0)
-
+        energy_low[i] = old_bins_low[index1]
+        energy_high[i] = old_bins_high[index2]
         # if not all are masked out, set true
-        new_mask[i] = !all(==(false), data.mask[index1:index2])
+        new_mask[i] = any(==(true), @views(data.mask[index1:index2]))
+        _grp1(i, index1, index2)
+        _grp2(i, index1, index2)
     end
 
     response = group_response_channels(data.response, grouping)
-    quality = group_quality_vector(data.mask, data.quality, indices)
 
-    SpectralDataset(
-        energy_low,
-        energy_high,
-        new_data,
-        new_errs,
-        data.units,
-        data.meta,
-        data.poisson_errors,
-        response,
-        data.ancillary,
-        data.background,
-        collect(1:N),
-        [1 for _ in new_data],
-        quality,
-        BitVector(new_mask),
-        data.exposure_time,
-    )
+    data.bins_low = energy_low
+    data.bins_high = energy_high
+    data.spectrum = _fin1(indices)
+    data.background = _fin2(indices)
+    data.response = response
+    data.mask = new_mask
+    data
+end
+
+regroup_callbacks(::Nothing, N, units) = ((i, i1, i2) -> missing, (inds) -> missing)
+
+function regroup_callbacks(spectrum::Spectrum{T}, N, units) where {T}
+    channels_grouped = zeros(Int, N)
+    values_grouped = zeros(T, N)
+
+    errors_grouped = ismissing(spectrum.errors) ? missing : zeros(T, N)
+    function _grouper(i, index1, index2)
+        channels_grouped[i] = spectrum.channels[index1]
+
+        vs = @views sum(spectrum.values[index1:index2])
+        values_grouped[i] = vs
+
+        # TODO: rework errors
+        if !ismissing(errors_grouped)
+            # errors are calculated on **counts** not on the rates
+            if units == SpectralUnits.u"counts"
+                errors_grouped[i] = count_error(vs, 1.0)
+            elseif units == SpectralUnits.u"counts / s"
+                vs = vs * spectrum.exposure_time
+                es = count_error(vs, 1.0)
+                errors_grouped[i] = es / spectrum.exposure_time
+            else
+                error("No method for grouping errors with given spectral units ($units).")
+            end
+        end
+    end
+    function _finalize(indices)
+        quality_grouped = group_quality_vector(spectrum.quality, indices)
+        grouping = ones(Int, N)
+        Spectrum(
+            channels_grouped,
+            quality_grouped,
+            grouping,
+            values_grouped,
+            spectrum.unit_string,
+            spectrum.exposure_time,
+            spectrum.background_scale,
+            spectrum.area_scale,
+            spectrum.error_statistics,
+            errors_grouped,
+            spectrum.systematic_error,
+            spectrum.telescope,
+            spectrum.instrument,
+        )
+    end
+    _grouper, _finalize
 end
 
 # printing
@@ -176,37 +275,60 @@ function Base.show(io::IO, dataset::SpectralDataset{T,M}) where {T,M}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", data::SpectralDataset{T,M}) where {T,M}
-    e_min = Printf.@sprintf "%g" minimum(data.bins_low)
-    e_max = Printf.@sprintf "%g" maximum(data.bins_high)
-    nbins = length(data.bins_low)
+    buff = IOBuffer()
+    _printinfo(buff, data)
+    s = String(take!(buff))
+    print(io, encapsulate(s))
+end
+
+function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
+    blow, bhigh = get_bins(data)
+    e_min = Printf.@sprintf "%g" minimum(blow)
+    e_max = Printf.@sprintf "%g" maximum(bhigh)
+    nbins = length(blow)
 
     rmf_e_min = Printf.@sprintf "%g" minimum(data.response.bins_low)
     rmf_e_max = Printf.@sprintf "%g" maximum(data.response.bins_high)
 
-    rate_min = Printf.@sprintf "%g" minimum(data.counts)
-    rate_max = Printf.@sprintf "%g" maximum(data.counts)
-    exposure_time = Printf.@sprintf "%g" data.exposure_time
+    y = target_vector(data)
+    rate_min = Printf.@sprintf "%g" minimum(y)
+    rate_max = Printf.@sprintf "%g" maximum(y)
+    exposure_time = Printf.@sprintf "%g" data.spectrum.exposure_time
 
-    is_grouped = all(==(1), data.grouping) ? "yes" : "no"
+    is_grouped = all(==(1), data.spectrum.grouping) ? "yes" : "no"
 
-    has_background = isnothing(data.background) ? "no" : "yes"
+    has_anc = has_ancillary(data) ? "yes" : "no"
+    n_masked = count(==(false), data.mask)
 
-    has_ancillary = isnothing(data.ancillary) ? "no" : "yes"
-
-    descr = """SpectralDataset with $(length(data.channels)) populated channels:
-       Object            : $(observation_object(data))
-       Observation ID    : $(observation_id(data))
-       Mission: $(typeof(missiontrait(M)))
-        . Exposure time  : $(exposure_time) s
-        . Bins           : $(nbins)
-        . E (min/max)    : ($(e_min), $(e_max)) keV
-        . Data (min/max) : ($(rate_min), $(rate_max)) $(data.units)
-        . Grouped        : $(is_grouped)
-        . Background     : $(has_background)
-       Instrument Response
-        . $(length(data.response.channels)) RMF Channels
-        . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV
-        . Anc            : $(has_ancillary)
+    descr = """SpectralDataset with $(length(data.spectrum.channels)) populated channels:
+      Object            : $(observation_object(data))
+      Observation ID    : $(observation_id(data))
+      Mission: $(typeof(missiontrait(M)))
+       . Exposure time  : $(exposure_time) s
+       . Bins           : $(nbins)
+       . E (min/max)    : ($(e_min), $(e_max)) keV
+       . Data (min/max) : ($(rate_min), $(rate_max)) $(data.units)
+       . Grouped        : $(is_grouped)
+       . Mask           : $(n_masked)
+      Instrument Response
+       . $(length(data.response.channels)) RMF Channels
+       . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV
+       . Ancillary resp : $(has_anc)
     """
     print(io, descr)
+    desc_background = if has_background(data)
+        bg_min = Printf.@sprintf "%g" minimum(data.background.values[data.mask])
+        bg_max = Printf.@sprintf "%g" maximum(data.background.values[data.mask])
+        bg_e_time = Printf.@sprintf "%g" data.background.exposure_time
+        bg_channels = length(data.background.channels[data.mask])
+        """   Background
+           . Exposure time  : $(bg_e_time) s
+           . Bins           : $(bg_channels)
+           . Data (min/max) : ($(bg_min), $(bg_max)) $(data.units)
+        """
+    else
+        """   No Background
+        """
+    end
+    print(io, desc_background)
 end

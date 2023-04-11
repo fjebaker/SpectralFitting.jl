@@ -18,7 +18,7 @@ result = fit(prob, LevenbergMarquadt())
 
 # now change second models data to ensure the normalisations fit independelty 
 dummy_data2 = deepcopy(dummy_data)
-dummy_data2._data .*= 3.0
+dummy_data2.spectrum.values .*= 3.0
 
 prob = FittingProblem(MultiModel(model, model), MultiDataset(dummy_data, dummy_data2))
 

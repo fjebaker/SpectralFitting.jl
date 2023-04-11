@@ -151,7 +151,7 @@ end
 
 function ensure_model_data(M::Type)
     if !_is_model_data_downloaded(M)
-        @warn "Model data for $(model_base_name(M)) is not present!\nRequisite model data may be fetched with `SpectralFitting.download_model_data($(model_base_name(M)))`."
+        @warn "Model data for $(FunctionGeneration.model_base_name(M)) is not present!\nRequisite model data may be fetched with `SpectralFitting.download_model_data($(FunctionGeneration.model_base_name(M)))`."
         error("Missing data.")
     end
 end

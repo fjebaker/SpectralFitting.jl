@@ -1,23 +1,5 @@
 export ResponseMatrix, fold_response
 
-function ResponseMatrix(rmf::OGIP_RMF{T}) where {T}
-    rm = rmf.ogip_matrix
-    chan = rmf.ogip_rmf_channels
-    # allocate sparse matrix
-    matrix = spzeros(T, rm.number_of_channels, rm.number_of_energies)
-    # populate it
-    build_matrix_response!(matrix, rm)
-    # unpack and return 
-    ResponseMatrix(
-        matrix,
-        chan.channels,
-        chan.bins_low,
-        chan.bins_high,
-        rm.bins_low,
-        rm.bins_high,
-    )
-end
-
 Base.:*(rm::ResponseMatrix, flux) = fold_response(flux, rm)
 
 @fastmath fold_response(flux, rm::ResponseMatrix) = rm.matrix * flux
@@ -45,21 +27,6 @@ function group_response_channels(rm::ResponseMatrix{T}, grouping) where {T}
     end
 
     ResponseMatrix(R, collect(1:N), bin_low, bin_high, rm.bins_low, rm.bins_high)
-end
-
-function build_matrix_response!(R, rmf::OGIP_RMF_Matrix)
-    for (i, (F, N)) in enumerate(zip(eachcol(rmf.Fchan), eachcol(rmf.Nchan)))
-        M = rmf.matrix_rows[i]
-        index = 1
-        for (first, len) in zip(F, N)
-            if len == 0
-                break
-            end
-            first -= rmf.first_channel
-            @views R[first+1:first+len, i] .= M[index:index+len-1]
-            index += len
-        end
-    end
 end
 
 function build_response_matrix!(
