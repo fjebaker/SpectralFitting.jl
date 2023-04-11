@@ -89,7 +89,7 @@ function _unpack_fitting_configuration(prob; subtract_background = true, kwargs.
     f, config, bundler = if model_count(prob) == 1 && data_count(prob) == 1
         _unpack_single(prob; subtract_background = subtract_background)
     elseif model_count(prob) == data_count(prob)
-        _unpack_multi_model_multi_data(pro; subtract_background = subtract_background)
+        _unpack_multi_model_multi_data(prob; subtract_background = subtract_background)
     elseif model_count(prob) < data_count(prob)
         error("Single model, many data not yet implemented.")
     else
