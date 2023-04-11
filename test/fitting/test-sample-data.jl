@@ -25,8 +25,13 @@ display(model)
 # construct the model and data problem
 prob = FittingProblem(model, data1)
 
-result = fit(prob, LevenbergMarquadt())
-
+result = fit(prob, LevenbergMarquadt(), subtract_background = false)
 # these have been checked and are the same as XSPEC
 @test result.χ2 ≈ 484.55 atol = 0.1
 @test result.u ≈ [8.9215e-05, 6.5673, 0.010446, 1.8422, 0.13760] rtol = 1e-3
+
+# with background subtraction
+result = fit(prob, LevenbergMarquadt())
+# these have been checked and are the same as XSPEC
+@test result.χ2 ≈ 496.09 atol = 0.1
+@test result.u ≈ [9.181e-5, 6.55961, 0.0104753, 1.848017, 0.139510] rtol = 1e-3
