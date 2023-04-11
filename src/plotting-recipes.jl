@@ -40,6 +40,7 @@ end
 
 @recipe function _plotting_func(x::AbstractVector, r::FittingResult)
     label --> "fit"
+    seriestype --> :stepmid
     y = r.folded_invoke(r.x, r.u)
     @views x[1:lastindex(y)], y
 end
