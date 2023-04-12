@@ -135,7 +135,7 @@ end
 
 
 """
-    XS_KerrDisk(K, lineE, index1, index2, break_r, a, incl, inner_r, outer_r)
+    XS_KerrDisk(K, lineE, index1, index2, break_r, a, θ, inner_r, outer_r)
 
 $(FIELDS)
 
@@ -183,7 +183,7 @@ invokemodel(energy, XS_KerrDisk())
     "Dimensionless black hole spin."
     a::T
     "Disk inclination angle to line of sight (degrees)."
-    incl::T
+    θ::T
     "Inner radius of the disk in units of rₘₛ."
     inner_r::T
     "Outer radius of the disk in units of rₘₛ."
@@ -198,12 +198,12 @@ function XS_KerrDisk(;
     index2 = FitParam(3.0),
     break_r = FitParam(6.0),
     a = FitParam(0.998, lower_limit = 0, upper_limit = 0.998),
-    θ = FitParam(30.0),
+    θ = FitParam(30.0, lower_limit = 0, upper_limit = 90.0),
     inner_r = FitParam(1.0),
     outer_r = FitParam(400.0),
     z = FitParam(0.0),
 )
-    XS_KerrDisk{typeof(K),FreeParameters{(:K, :a)}}(
+    XS_KerrDisk{typeof(K),FreeParameters{(:K, :a, :θ)}}(
         K,
         lineE,
         index1,
