@@ -35,3 +35,30 @@ end
 target_vector(data::SimpleDataset) = data.y
 domain_vector(data::SimpleDataset) = data.x
 target_variance(data::SimpleDataset) = data.y_err .^ 2
+
+# background subtraction is not implemented for simple-dataset
+
+# placeholder for background subtraction
+has_background(s::SimpleDataset) = false
+
+# placeholder for background subtraction
+function background_subtracted_target_variance(
+    data::SimpleDataset,
+    subtract,
+)::Vector
+    if !has_background(data) || !subtract
+        return target_variance(data)
+    end
+    error("Background subtraction not implimented for simple datasets")
+end
+
+# placeholder for background subtraction
+function background_subtracted_target_vector(
+    data::SimpleDataset,
+    subtract,
+)::Vector
+    if !has_background(data) || !subtract
+        return target_vector(data)
+    end
+    error("Background subtraction not implimented for simple datasets")
+end
