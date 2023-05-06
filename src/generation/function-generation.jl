@@ -49,15 +49,10 @@ end
 
 function assemble_parameter_assignment(ga::GenerationAggregate, model)
     # unpack free and frozen seperately
-    i_frozen = 0
-    i_free = 0
+    i::Int = 0
     all = map(ga.infos) do info
         assignments = map(zip(info.symbols, info.generated_symbols)) do ((p, s))
-            if (p in info.frozen)
-                :($(s) = frozen_params[$(i_frozen += 1)])
-            else
-                :($(s) = free_params[$(i_free += 1)])
-            end
+            :($(s) = parameters[$(i += 1)])
         end
         assignments
     end
@@ -77,14 +72,6 @@ function generate_call(flux_unpack, closures, p_assignments, statements)
     end
 end
 
-function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
-    # propagate information about free parameters to allow for AD
-    ga = assemble_aggregate_info(model, eltype(free_params))
-    flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
-    p_assign = assemble_parameter_assignment(ga, model)
-    closures = assemble_closures(ga, model)
-    generate_call(flux_unpack, closures, p_assign, ga.statements)
-end
 function generated_model_call!(fluxes, energy, model, params)
     # propagate information about free parameters to allow for AD
     ga = assemble_aggregate_info(model, eltype(params))
@@ -93,7 +80,7 @@ function generated_model_call!(fluxes, energy, model, params)
     p_assign = reduce(
         vcat,
         [
-            [:($(s) = params[$(i += 1)]) for s in info.generated_symbols] for
+            [:($(s) = parameters[$(i += 1)]) for s in info.generated_symbols] for
             info in ga.infos
         ],
     )

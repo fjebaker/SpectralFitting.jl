@@ -1,20 +1,14 @@
-@inline @generated function generated_model_call!(fluxes, energy, model, params)
-    FunctionGeneration.generated_model_call!(fluxes, energy, model, params)
-end
-
 @inline @generated function generated_model_call!(
     fluxes,
     energy,
     model,
-    free_params,
-    frozen_params,
+    parameters,
 )
     FunctionGeneration.generated_model_call!(
         fluxes,
         energy,
         model,
-        free_params,
-        frozen_params,
+        parameters,
     )
 end
 

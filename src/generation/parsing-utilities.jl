@@ -1,9 +1,9 @@
 const Lens = Union{Symbol,Expr}
 
 struct ModelInfo
+    "All parameter symbols for the model."
     symbols::Vector{Symbol}
-    free::Vector{Symbol}
-    frozen::Vector{Symbol}
+    "Unique symbols generated for the parameter assignment when buildin the function call."
     generated_symbols::Vector{Symbol}
     lens::Lens
     type::Type
@@ -40,9 +40,7 @@ get_flux_symbol(i::Int) = Symbol(:flux, i)
 
 function getinfo(model::Type{<:AbstractSpectralModel}; lens::Lens = :(model))
     symbs = [all_parameter_symbols(model)...]
-    free = [free_parameter_symbols(model)...]
-    frozen = [frozen_parameter_symbols(model)...]
-    ModelInfo(symbs, free, frozen, [Base.gensym(s) for s in symbs], lens, model)
+    ModelInfo(symbs, [Base.gensym(s) for s in symbs], lens, model)
 end
 
 function getinfo(model::Type{<:CompositeModel}; lens::Lens = :(model))
@@ -105,9 +103,8 @@ function _addinfoinvoke!(
     # get the parameter type
     T = NumType <: SpectralFitting.FitParam ? NumType.parameters[1] : NumType
     model_constructor = :($(model.name.wrapper){
-        $(model.parameters[1:end-2]...),
+        $(model.parameters[1:end-1]...),
         $(T),
-        $(model.parameters[end]),
     })
 
     # assemble the invocation statement
@@ -155,30 +152,7 @@ function all_parameter_symbols(M::Type{<:AbstractSpectralModel})
     fieldnames(M)
 end
 
-function free_parameter_symbols(M::Type{<:AbstractSpectralModel})
-    first(M.parameters[end].parameters)
-end
-
-function frozen_parameter_symbols(M::Type{<:AbstractSpectralModel})
-    free_params = free_parameter_symbols(M)
-    frozen = filter(i -> i ∉ free_params, all_parameter_symbols(M))
-    tuple(frozen...)
-end
-
 all_parameter_symbols(::Type{<:CompositeModel}) = error("Unreachable.")
-free_parameter_symbols(::Type{<:CompositeModel}) = error("Unreachable.")
-frozen_parameter_symbols(::Type{<:CompositeModel}) = error("Unreachable.")
-
-function composite_free_parameter_symbols(model::Type{<:CompositeModel})
-    info = getinfo(model)
-    all_symbols = _unique_parameter_symbols(info)
-    # get the indexes of the free parameters
-    indices = map(info) do i
-        map(s -> s in i.free, i.symbols)
-    end
-    I = reduce(vcat, indices)
-    all_symbols[I]
-end
 
 function closure_parameter_symbols(::Type{<:AbstractSpectralModel})
     error("This specialisation should never need to be invoked.")
@@ -189,16 +163,6 @@ model_base_name(M::Type{<:AbstractSpectralModel}) = Base.typename(M).name
 function _vector_to_named_tuple(params, names)
     statements = [:(params[$(i)]) for i = 1:length(names)]
     :(NamedTuple{$(names)}(($(statements...),)))
-end
-
-function free_parameters_to_named_tuple(params, model)
-    names = free_parameter_symbols(model)
-    _vector_to_named_tuple(params, names)
-end
-
-function frozen_parameters_to_named_tuple(params, model)
-    names = frozen_parameter_symbols(model)
-    _vector_to_named_tuple(params, names)
 end
 
 function all_parameters_to_named_tuple(params, model::Type{<:AbstractSpectralModel})
@@ -245,7 +209,6 @@ function _destructure_for_printing(model::Type{<:CompositeModel}; lens = :(model
     descriptions = map(infos) do (name, info)
         # get parameter symbols
         params = all_parameter_symbols(info.type)
-        free_params = free_parameter_symbols(info.type)
 
         # get the symbols generated for the composite model
         n_params = length(params) - 1
@@ -255,7 +218,6 @@ function _destructure_for_printing(model::Type{<:CompositeModel}; lens = :(model
         descr = :(
             $(info.lens),
             ($(map(i -> "$i", names)...),),
-            ($(map(i -> i in free_params, params)...),),
         )
         descr
     end

@@ -274,8 +274,12 @@ function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
 end
 
 modelparameters(model::AbstractSpectralModel) = [model_parameters_tuple(model)...]
-freeparameters(model::AbstractSpectralModel) = [free_parameters_tuple(model)...]
-frozenparameters(model::AbstractSpectralModel) = [frozen_parameters_tuple(model)...]
+function freeparameters(model::AbstractSpectralModel)
+    filter(!isfrozen, modelparameters(model)) 
+end
+function frozenparameters(model::AbstractSpectralModel)
+    filter(isfrozen, modelparameters(model)) 
+end
 
 # todo: this function could be cleaned up with some generated hackery 
 function remake_with_number_type(model::AbstractSpectralModel{P}, T::Type) where {P}

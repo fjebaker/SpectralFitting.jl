@@ -100,19 +100,35 @@ function closurekind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
     end
 end
 
+function make_parameter_cache(model::AbstractSpectralModel)
+    error("Model needs to have field type `FitParam`")
+end
+
+function make_parameter_cache(model::AbstractSpectralModel{<:FitParam})
+    params = modelparameters(model)    
+    values = get_value.(params)
+    ParameterCache(params, values)
+end
+
+function invokemodel!(f, e, model::CompositeModel, cache::ParameterCache)
+    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
+
+end
+
 # invocation wrappers
 function invokemodel!(f, e, model::CompositeModel)
-    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
-    generated_model_call!(f, e, model, model_parameters_tuple(model))
+    cache = make_parameter_cache(model)
+    generated_model_call!(f, e, model, cache)
 end
 function invokemodel!(f, e, model::CompositeModel, free_params, frozen_params)
-    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
-    generated_model_call!(f, e, model, free_params, frozen_params)
+    cache = make_parameter_cache(model)
+    update_free_and_frozen!(cache, free_params, frozen_params)
+    generated_model_call!(f, e, model, cache)
 end
 function invokemodel!(f, e, model::CompositeModel, free_params)
-    @assert length(f) == flux_count(model) "Too few flux arrays allocated for this model."
-    frozen_params = convert.(eltype(free_params), (frozenparameters(model)))
-    invokemodel!(f, e, model, free_params, frozen_params)
+    cache = make_parameter_cache(model)
+    update_free!(cache, free_params)
+    invokemodel!(f, e, model, cache)
 end
 
 function invokemodel(e, m::CompositeModel)
@@ -221,11 +237,11 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
 
     println(io, "Model key and parameters:")
     sym_buffer = 5
-    param_name_offset = sym_buffer + maximum(infos) do (_, syms, _)
+    param_name_offset = sym_buffer + maximum(infos) do (_, syms)
         maximum(length(s) for s in syms)
     end
     buff = IOBuffer()
-    for (symbol, (m, param_symbols, states)) in zip(keys(infos), infos)
+    for (symbol, (m, param_symbols)) in zip(keys(infos), infos)
         M = typeof(m)
         basename = FunctionGeneration.model_base_name(M)
         println(
@@ -239,7 +255,8 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
             Crayons.Crayon(reset = true),
         )
 
-        for (val, s::String, free::Bool) in zip(modelparameters(m), param_symbols, states)
+        for (val, s::String) in zip(modelparameters(m), param_symbols)
+            free = !isfrozen(val)
             _print_param(buff, free, s, val, param_name_offset, q1, q2, q3, q4)
         end
     end

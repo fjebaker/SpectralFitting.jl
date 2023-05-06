@@ -16,12 +16,68 @@ mutable struct FitParam{T}
     lower_limit::T
     upper_limit::T
 
+    frozen::Bool
+
     FitParam(
         val::T;
         lower_limit = T(0.0),
         upper_limit = T(Inf),
         error = fit_param_default_error(val),
-    ) where {T} = new{T}(val, error, lower_limit, upper_limit)
+        frozen = false,
+    ) where {T} = new{T}(val, error, lower_limit, upper_limit, frozen)
+end
+
+struct ParameterCache{T}
+    fitparams::Vector{FitParam{T}}
+    params::Vector{T}
+end
+
+function Base.iterate(cache::ParameterCache, i)
+    if i > length(cache.fitparams)
+        return nothing 
+    end
+    return cache.fitparams[i], i + 1
+end
+
+function Base.iterate(cache::ParameterCache)
+    i::Int = 1
+    Base.iterate(cache, i)
+end
+
+function update_free!(cache::ParameterCache, free)
+    i::Int = 1
+    N = length(free)
+    for (j, fp) in enumerate(cache)
+        if isfree(fp)
+            if i > N
+                error("Too few free parameters given")
+            end
+            cache.params[j] = free[i]
+            i += 1
+        end
+    end
+    if N >= i
+        error("Too many free parameters given")
+    end
+    cache
+end
+
+function update_free_and_frozen!(cache::ParameterCache, free, frozen)
+    if length(cache.params) != length(free) + length(frozen)
+        error("Too many/few free/frozen parameters given")
+    end
+    i1::Int = 1
+    i2::Int = 1
+    for (j, fp) in enumerate(cache)
+        if isfree(fp)
+            cache.params[j] = free[i1]
+            i1 += 1 
+        else
+            cache.params[j] = frozen[i2]
+            i2 += 1
+        end
+    end
+    cache
 end
 
 # interface
@@ -37,6 +93,9 @@ function set!(f::FitParam, o::FitParam)
 end
 # edge case
 get_value(x::Number) = x
+
+isfrozen(f::FitParam) = f.frozen
+isfree(f::FitParam) = !isfrozen(f)
 
 get_error(f::FitParam) = f.error
 get_upperlimit(f::FitParam) = f.upper_limit
@@ -68,6 +127,9 @@ end
 
 function Base.show(io::IO, f::FitParam)
     s = Printf.@sprintf "(%.3g ± %.3g)" get_value(f) get_error(f)
+    if f.frozen
+        s *= "F"
+    end
     print(io, s)
 end
 
