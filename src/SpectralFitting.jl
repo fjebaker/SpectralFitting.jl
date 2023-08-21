@@ -53,6 +53,7 @@ include("datasets/response-matrix.jl")
 include("datasets/binning-utilities.jl")
 include("datasets/missions/abstract-mission.jl")
 include("datasets/simple-dataset.jl")
+include("datasets/binned-dataset.jl")
 
 include("model-data-io.jl")
 
