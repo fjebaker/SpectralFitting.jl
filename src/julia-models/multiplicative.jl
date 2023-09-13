@@ -7,7 +7,7 @@ function PhotoelectricAbsorption(ηH::T) where {T}
     data = get_model_data(PhotoelectricAbsorption)
     E::Vector{Float64} = data[1]["E"]
     σ::Vector{Float64} = data[1]["σ"]
-    table = LinearInterpolation(E, σ, extrapolation_bc = Line())
+    table = linear_interpolation(E, σ, extrapolation_bc = Line())
     PhotoelectricAbsorption{typeof(table),T,FreeParameters{(:ηH,)}}(table, ηH)
 end
 PhotoelectricAbsorption(; ηH = FitParam(1.0)) = PhotoelectricAbsorption(ηH)
