@@ -42,10 +42,7 @@ target_variance(data::SimpleDataset) = data.y_err .^ 2
 has_background(s::SimpleDataset) = false
 
 # placeholder for background subtraction
-function background_subtracted_target_variance(
-    data::SimpleDataset,
-    subtract,
-)::Vector
+function background_subtracted_target_variance(data::SimpleDataset, subtract)::Vector
     if !has_background(data) || !subtract
         return target_variance(data)
     end
@@ -53,10 +50,7 @@ function background_subtracted_target_variance(
 end
 
 # placeholder for background subtraction
-function background_subtracted_target_vector(
-    data::SimpleDataset,
-    subtract,
-)::Vector
+function background_subtracted_target_vector(data::SimpleDataset, subtract)::Vector
     if !has_background(data) || !subtract
         return target_vector(data)
     end

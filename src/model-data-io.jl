@@ -1,5 +1,13 @@
-_model_data_storage_path = joinpath(LibXSPEC_jll.artifact_dir, "spectral", "modelData")
-_model_to_data_map = Dict{Symbol,Vector{String}}()
+const DEFAULT_DOWNLOAD_ROOT_URL::String = "https://www.star.bris.ac.uk/fergus/xspec/data/"
+MODEL_DATA_STORAGE_PATH =
+    joinpath(LibXSPEC_jll.artifact_dir, "spectral", "modelData")
+
+struct ModelDataInfo
+    remote_path::String
+    local_path::String
+end
+
+_model_to_data_map = Dict{Symbol,Vector{ModelDataInfo}}()
 _model_available_memoize_cache = Dict{Symbol,Bool}()
 
 """
@@ -15,6 +23,8 @@ function download_all_model_data(; verbose = true)
 end
 
 """
+    SpectralFitting.register_model_data(M::Type{<:AbstractSpectralModel}, model_data::ModelDataInfo...)
+    SpectralFitting.register_model_data(M::Type{<:AbstractSpectralModel}, remote_and_local::Tuple{String,String}...)
     SpectralFitting.register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...)
     SpectralFitting.register_model_data(s::Symbol, filenames::String...)
 
@@ -38,10 +48,22 @@ register_model_data(:XS_KyrLine, "KBHline01.fits")
 register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...) =
     register_model_data(Base.typename(M).name, filenames...)
 function register_model_data(s::Symbol, filenames::String...)
+    model_data = map(filenames) do fname
+        ModelDataInfo(fname, fname)
+    end
+    register_model_data(s, model_data...)
+end
+function register_model_data(s::Symbol, remote_and_local::Tuple{String,String}...)
+    model_data = map(remote_and_local) do entry
+        ModelDataInfo(entry...)
+    end
+    register_model_data(s, model_data...)
+end
+function register_model_data(s::Symbol, model_data::ModelDataInfo...)
     if s in keys(_model_to_data_map)
-        push!(_model_to_data_map[s], filenames...)
+        push!(_model_to_data_map[s], model_data...)
     else
-        _model_to_data_map[s] = collect(filenames)
+        _model_to_data_map[s] = collect(model_data)
     end
 end
 
@@ -57,9 +79,9 @@ end
 
 function _check_model_files_and_add_to_cache(s::Symbol)
     # get the filenames we need
-    filenames = get(_model_to_data_map, s, nothing)
-    if !isnothing(filenames)
-        if !all(i -> ispath(joinpath(_model_data_storage_path, i)), filenames)
+    data = get(_model_to_data_map, s, nothing)
+    if !isnothing(data)
+        if !all(i -> ispath(joinpath(MODEL_DATA_STORAGE_PATH, i.local_path)), data)
             return false
         end
     end
@@ -69,7 +91,7 @@ function _check_model_files_and_add_to_cache(s::Symbol)
 end
 
 function _check_model_directory_present()
-    if !ispath(_model_data_storage_path)
+    if !ispath(MODEL_DATA_STORAGE_PATH)
         @warn "No model data directory found. Use `SpectralFitting.download_all_model_data()` to populate."
     end
 end
@@ -79,7 +101,7 @@ function _download_from_archive(
     dest;
     progress = true,
     io::IO = Core.stdout,
-    model_source_url = "https://www.star.bris.ac.uk/fergus/XSPEC-model-data/",
+    model_source_url = DEFAULT_DOWNLOAD_ROOT_URL,
 )
     url = "$model_source_url/$src"
     pg = if progress
@@ -132,16 +154,16 @@ function download_model_data(s::Symbol; verbose = true, kwargs...)
     end
 
     # check model data directory exists
-    if !ispath(_model_data_storage_path)
+    if !ispath(MODEL_DATA_STORAGE_PATH)
         # else make it
-        mkdir(_model_data_storage_path)
+        mkdir(MODEL_DATA_STORAGE_PATH)
     end
 
     _infolog("Checking model data for $s:")
     for src in _model_to_data_map[s]
-        dest = joinpath(_model_data_storage_path, src)
+        dest = joinpath(MODEL_DATA_STORAGE_PATH, src.local_path)
         if !ispath(dest)
-            _download_from_archive(src, dest; kwargs...)
+            _download_from_archive(src.remote_path, dest; kwargs...)
             _infolog("$src downloaded")
         end
     end
@@ -160,7 +182,7 @@ function load_and_unpack_model_data(M)
     files = _model_to_data_map[Base.typename(M).name]
     # load all of the data files
     contents = map(files) do f
-        path = joinpath(_model_data_storage_path, f)
+        path = joinpath(MODEL_DATA_STORAGE_PATH, f)
         load(path)
     end
     contents
