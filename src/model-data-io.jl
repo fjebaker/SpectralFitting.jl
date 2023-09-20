@@ -152,16 +152,13 @@ function download_model_data(s::Symbol; verbose = true, kwargs...)
         return nothing
     end
 
-    # check model data directory exists
-    if !ispath(MODEL_DATA_STORAGE_PATH)
-        # else make it
-        mkdir(MODEL_DATA_STORAGE_PATH)
-    end
+    mkdir_if_not_exists(MODEL_DATA_STORAGE_PATH)
 
     _infolog("Checking model data for $s:")
     for src in _model_to_data_map[s]
         dest = joinpath(MODEL_DATA_STORAGE_PATH, src.local_path)
         if !ispath(dest)
+            mkdir_if_not_exists(dirname(dest))
             _download_from_archive(src.remote_path, dest; kwargs...)
             _infolog("$(src.local_path) downloaded")
         end
@@ -169,6 +166,8 @@ function download_model_data(s::Symbol; verbose = true, kwargs...)
     _infolog("All requisite model data for $s downloaded.")
     return nothing
 end
+
+mkdir_if_not_exists(path) = !ispath(path) && mkdir(path)
 
 function ensure_model_data(M::Type)
     if !_is_model_data_downloaded(M)
