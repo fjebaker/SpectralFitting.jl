@@ -21,12 +21,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        julia-version: ['1.8']
+        julia-version: ['1.9']
         os: [ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           repository: fjebaker/spectral-fitting-test-suite
           path: data
