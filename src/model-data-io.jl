@@ -1,6 +1,5 @@
 const DEFAULT_DOWNLOAD_ROOT_URL::String = "https://www.star.bris.ac.uk/fergus/xspec/data/"
-MODEL_DATA_STORAGE_PATH =
-    joinpath(LibXSPEC_jll.artifact_dir, "spectral", "modelData")
+MODEL_DATA_STORAGE_PATH = joinpath(LibXSPEC_jll.artifact_dir, "spectral", "modelData")
 
 struct ModelDataInfo
     remote_path::String
@@ -164,7 +163,7 @@ function download_model_data(s::Symbol; verbose = true, kwargs...)
         dest = joinpath(MODEL_DATA_STORAGE_PATH, src.local_path)
         if !ispath(dest)
             _download_from_archive(src.remote_path, dest; kwargs...)
-            _infolog("$src downloaded")
+            _infolog("$(src.local_path) downloaded")
         end
     end
     _infolog("All requisite model data for $s downloaded.")
@@ -179,10 +178,10 @@ function ensure_model_data(M::Type)
 end
 
 function load_and_unpack_model_data(M)
-    files = _model_to_data_map[Base.typename(M).name]
+    data = _model_to_data_map[Base.typename(M).name]
     # load all of the data files
-    contents = map(files) do f
-        path = joinpath(MODEL_DATA_STORAGE_PATH, f)
+    contents = map(data) do f
+        path = joinpath(MODEL_DATA_STORAGE_PATH, f.local_path)
         load(path)
     end
     contents
