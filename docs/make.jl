@@ -18,7 +18,7 @@ makedocs(
             "Using models" => "using-models.md",
             "Model index" => "models.md",
             "Composite models" => "composite-models.md",
-            "Surrogate models" => "surrogate-models.md",
+            # "Surrogate models" => "surrogate-models.md",
         ],
         # "Parameters" => "parameters.md",
         # "Datasets" => "datasets.md",
