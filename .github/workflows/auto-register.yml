@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'Project.toml'
+  workflow_dispatch: null
 
 permissions:
   contents: read
