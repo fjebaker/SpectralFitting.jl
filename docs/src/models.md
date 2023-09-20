@@ -1,9 +1,5 @@
 # Models index
 
-```@setup model_plots
-using SpectralFitting
-```
-
 Models wrapped from XSPEC implementations are prefixed with `XS_*`, whereas pure-Julia models are simply named, e.g. [`XS_PowerLaw`](@ref) in XSPEC vs [`PowerLaw`](@ref) in Julia.
 
 The available models are
@@ -91,15 +87,15 @@ SpectralFitting.register_model_data
 
 To generate the unicode plot to add as a fingerprint, we use a simple function:
 
-```@example model_plots
-using UnicodePlots
+```@example
+using SpectralFitting, UnicodePlots
 
 function plotmodel(energy, model)
     flux = invokemodel(energy, model)
     lineplot(
         energy[1:end-1], 
         flux, 
-        title=String(SpectralFitting.model_base_name(typeof(model))), 
+        title=String(SpectralFitting.FunctionGeneration.model_base_name(typeof(model))), 
         xlabel="E (keV)", 
         canvas=DotCanvas
     )
