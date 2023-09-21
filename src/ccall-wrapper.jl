@@ -135,14 +135,23 @@ invoke!(::Type{<:XS_PowerLaw})
 """
 macro xspecmodel(args...)
     # parse args
-    c_function = args[end-1]
     model = args[end]
+    c_function = nothing
     model_float_type::Type = DEFAULT_MODEL_FLOAT_TYPE
     model_int_type::Type = DEFAULT_MODEL_INT_TYPE
-    generate_ffi_call::Bool = true
 
-    if (length(args) > 2)
-        for arg in args[1:end-2]
+    if (length(args) > 1)
+        for arg in args[1:end-1]
+            if (arg isa QuoteNode) || (arg.head !== :(=))
+                # parse only optional positional
+                if isnothing(c_function)
+                    c_function = arg
+                else
+                    error("Too many positionals.")
+                end
+                continue
+            end
+            # parse key value pair
             key = first(arg.args)
             value = last(arg.args)
             if key == :type
@@ -152,14 +161,6 @@ macro xspecmodel(args...)
                     Float64
                 else
                     error("Unsupported type $(value)")
-                end
-            elseif key == :generate_ffi_call
-                generate_ffi_call = if value == :false
-                    false
-                elseif value == :true
-                    true
-                else
-                    error("Expected boolean, got $(value)")
                 end
             else
                 error("Unknown key value pair: $(arg)")
@@ -178,16 +179,16 @@ macro xspecmodel(args...)
         symbols = symbols[2:end]
     end
 
-    if c_function isa QuoteNode
-        call_symbol = c_function
-        call_site = libXSFunctions
-    else
-        call_symbol = c_function.args[1]
-        call_site = c_function.args[2]
-    end
-
     _ffi_type_guard = _build_ffi_type_guard(model_name, model_float_type)
-    _unsafe_call_def = if generate_ffi_call
+
+    _unsafe_call_def = if !isnothing(c_function)
+        if c_function isa QuoteNode
+            call_symbol = c_function
+            call_site = libXSFunctions
+        else
+            call_symbol = c_function.args[1]
+            call_site = c_function.args[2]
+        end
         _build_unsafe_ffi_call(
             model_name,
             call_symbol,
