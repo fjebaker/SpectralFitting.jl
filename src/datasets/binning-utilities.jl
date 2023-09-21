@@ -55,7 +55,7 @@ function downsample_rebin(input, current_bins, target_bins_high)
     output
 end
 
-function domain_vector(response::ResponseMatrix{T}) where {T}
+function (response::ResponseMatrix{T}) where {T}
     domain_vector(response, T)
 end
 

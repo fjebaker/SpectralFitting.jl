@@ -80,6 +80,18 @@ function get_rate_variance(s::SpectralDataset)
     # square to get the variance
     err[s.mask] .^ 2
 end
+function get_domain_vector(s::SpectralDataset)
+    # return the domain of the response matrix if available
+    if has_response(s)
+        return(domain_vector(s.response))
+    end
+    # otherwise return the domain of the data
+    # note this currently assumes Float64; should be made more general
+    energy = zeros(length(s.bins_low) + 1)
+    energy[1:end-1] .= s.bins_low
+    energy[end] = s.bins_high[end]
+    energy
+end
 function get_count_variance(s::SpectralDataset)
     err =
         get_units(s) <: SpectralUnits._counts ? s.spectrum.errors :
@@ -126,7 +138,7 @@ has_background(s::SpectralDataset) = !ismissing(s.background)
 # these must be masked, as they are used as the fitting targets and domains
 target_vector(data::SpectralDataset) = get_rate(data)
 target_variance(data::SpectralDataset) = get_rate_variance(data)
-domain_vector(data::SpectralDataset) = domain_vector(data.response)
+domain_vector(data::SpectralDataset) = get_domain_vector(data)
 
 function background_subtracted_target_variance(
     data::SpectralDataset{U,M,T},
@@ -197,7 +209,7 @@ end
 
 function fold_ancillary(data::SpectralDataset)
     if !has_response(data)
-        return LinearAlgebra.I
+        return Matrix{Float64}(LinearAlgebra.I, length(data.spectrum.values), length(data.spectrum.values))
     end
     response = get_response(data)
     ancillary = if has_ancillary(data)
@@ -330,17 +342,33 @@ function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
     e_max = Printf.@sprintf "%g" maximum(bhigh)
     nbins = length(blow)
 
-    rmf_e_min = Printf.@sprintf "%g" minimum(data.response.bins_low)
-    rmf_e_max = Printf.@sprintf "%g" maximum(data.response.bins_high)
+    has_anc = has_ancillary(data) ? "yes" : "no"
+
+    desc_response = if has_response(data)
+        rmf_e_min = Printf.@sprintf "%g" minimum(data.response.bins_low)
+        rmf_e_max = Printf.@sprintf "%g" maximum(data.response.bins_high)
+        """
+          Instrument Response
+           . $(length(data.response.channels)) RMF Channels
+           . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV
+           . Ancillary resp : $(has_anc)
+        """
+    else
+        """
+          Instrument Response
+           . No response
+           . Ancillary resp : $(has_anc)
+        """
+    end
 
     y = target_vector(data)
     rate_min = Printf.@sprintf "%g" minimum(y)
     rate_max = Printf.@sprintf "%g" maximum(y)
     exposure_time = Printf.@sprintf "%g" data.spectrum.exposure_time
 
-    is_grouped = all(==(1), data.spectrum.grouping) ? "yes" : "no"
+    # if all grouping is 1, then it's not grouped (need at least one -1 for a channel to be part of a group)
+    is_grouped = all(==(1), data.spectrum.grouping) ? "no" : "yes"
 
-    has_anc = has_ancillary(data) ? "yes" : "no"
     n_masked = count(==(false), data.mask)
 
     descr = """SpectralDataset with $(length(data.spectrum.channels)) populated channels:
@@ -353,12 +381,9 @@ function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
        . Data (min/max) : ($(rate_min), $(rate_max)) $(data.units)
        . Grouped        : $(is_grouped)
        . Mask           : $(n_masked)
-      Instrument Response
-       . $(length(data.response.channels)) RMF Channels
-       . E (min/max)    : ($(rmf_e_min), $(rmf_e_max)) keV
-       . Ancillary resp : $(has_anc)
     """
     print(io, descr)
+    print(io, desc_response)
     desc_background = if has_background(data)
         bg_min = Printf.@sprintf "%g" minimum(data.background.values[data.mask])
         bg_max = Printf.@sprintf "%g" maximum(data.background.values[data.mask])
@@ -370,7 +395,7 @@ function _printinfo(io, data::SpectralDataset{T,M}) where {T,M}
            . Data (min/max) : ($(bg_min), $(bg_max)) $(data.units)
         """
     else
-        """   No Background
+        """  No Background
         """
     end
     print(io, desc_background)
