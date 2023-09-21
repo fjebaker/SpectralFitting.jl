@@ -106,19 +106,31 @@ macro wrap_xspec_model_ccall(
 end
 
 """
-    @xspecmodel model_kind call_symbol model
+    @xspecmodel [type=Float64] [ff_call_site] model
 
 Used to wrap additional XSPEC models, generating the needed [`AbstractSpectralModel`](@ref)
 implementation.
 
+The `type` keyword specifies the underlying type to coerce input and output arrays to, as different
+implementations may have incompatible number of bits. The `ff_call_site` is the foreign fuction call site,
+which is the first argument to `ccall`, and follows the same conventions. The `model` is a struct, which must subtype
+[`AbstractSpectralModel`](@ref).
+
+If the callsite is not specified, the user must implement [`_unsafe_ffi_invoke!`](@ref).
+
 # Examples
 
 ```julia
-@xspecmodel Additive :C_powerlaw struct XS_PowerLaw{F1,F2}
+@xspecmodel :C_powerlaw struct XS_PowerLaw{T,F} <: AbstractSpectralModel{T, Additive}
     "Normalisation."
-    K::F1 = FitParam(1.0)
+    K::T
     "Photon index."
-    a::F2 = FitParam(0.5)
+    a::T
+end
+
+# constructor has default values
+function XS_PowerLaw(; K = FitParam(1.0), a = FitParam(1.0))
+    XS_PowerLaw{typeof(K), SpectralFitting.FreeParameters{(:K, :a)}}(K, a)
 end
 ```
 
@@ -127,11 +139,12 @@ only a single parameter (`a`) is passed to the XSPEC function. The function we b
 is `:C_powerlaw` from the XSPEC C wrappers.
 
 The macro will then generate the following functions
-```julia
-modelkind(::Type{<:XS_PowerLaw})
-implementation(::Type{<:XS_PowerLaw})
-invoke!(::Type{<:XS_PowerLaw})
-```
+- [`implementation`](@ref) 
+- [`invoke!`](@ref) 
+- [`_safe_ffi_invoke!`](@ref) 
+
+If a callsite was specified, it will also generate:
+- [`_unsafe_ffi_invoke!`](@ref) 
 """
 macro xspecmodel(args...)
     # parse args
