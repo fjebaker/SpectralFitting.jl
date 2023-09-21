@@ -1,8 +1,20 @@
-UNTRACKED_ERROR = zeros(Float64, 1)
+UNTRACKED_ERROR_F64 = zeros(Float64, 1)
+UNTRACKED_ERROR_F32 = zeros(Float32, 1)
 
-function resize_untracked_error(n)
-    resize!(UNTRACKED_ERROR, n)
+DEFAULT_MODEL_FLOAT_TYPE = Float64
+DEFAULT_MODEL_INT_TYPE = Cint
+
+@inline function get_untracked_error(T::Type)
+    if T === Float64
+        UNTRACKED_ERROR_F64
+    elseif T === Float32
+        UNTRACKED_ERROR_F32
+    else
+        error("Unsupported type $(T)")
+    end
 end
+
+resize_untracked_error!(_error, n) = resize!(_error, n)
 
 _unsafe_unwrap_parameter(ptr, N, ::AbstractSpectralModelKind, T::Type) =
     unsafe_wrap(Vector{T}, ptr, N, own = false)
@@ -36,7 +48,30 @@ function unsafe_parameter_vector_conditioned(
     unsafe_parameter_vector(alloc_model)
 end
 
+function _unsafe_ffi_invoke!(
+    output,
+    error_vec,
+    input,
+    params,
+    ModelType::Type{<:AbstractSpectralModel},
+)
+    error("""
+          Not yet implemented for $(ModelType). 
+          If you set `generate_ffi_call=false` when using `@xspecmodel`, 
+          you must implement this function. Consult the documentation of 
+          `@xspecmodel` for reference.
+          """)
+end
+
+function _safe_ffi_invoke!(output, input, params, ModelType::Type{<:AbstractSpectralModel})
+    error(
+        "This error should be unreachable. Please open an issue with your use-case and include the stack trace.",
+    )
+end
+
 macro wrap_xspec_model_ccall(
+    FloatType,
+    IntType,
     func_name,
     callsite,
     input,
@@ -50,7 +85,15 @@ macro wrap_xspec_model_ccall(
         ccall(
             ($(func_name), $(callsite)),
             Cvoid,
-            (Ptr{Float64}, Cint, Ptr{Float64}, Cint, Ptr{Float64}, Ptr{Float64}, Cstring),
+            (
+                Ptr{$(FloatType)},
+                $(IntType),
+                Ptr{$(FloatType)},
+                $(IntType),
+                Ptr{$(FloatType)},
+                Ptr{$(FloatType)},
+                Cstring,
+            ),
             $(input),
             length($(input)) - 1,
             $(parameters),
@@ -63,7 +106,7 @@ macro wrap_xspec_model_ccall(
 end
 
 """
-    @xspecmodel model_kind func_name model
+    @xspecmodel model_kind call_symbol model
 
 Used to wrap additional XSPEC models, generating the needed [`AbstractSpectralModel`](@ref)
 implementation.
@@ -90,7 +133,40 @@ implementation(::Type{<:XS_PowerLaw})
 invoke!(::Type{<:XS_PowerLaw})
 ```
 """
-macro xspecmodel(c_function, model)
+macro xspecmodel(args...)
+    # parse args
+    c_function = args[end-1]
+    model = args[end]
+    model_float_type::Type = DEFAULT_MODEL_FLOAT_TYPE
+    model_int_type::Type = DEFAULT_MODEL_INT_TYPE
+    generate_ffi_call::Bool = true
+
+    if (length(args) > 2)
+        for arg in args[1:end-2]
+            key = first(arg.args)
+            value = last(arg.args)
+            if key == :type
+                model_float_type = if value == :Float32
+                    Float32
+                elseif value == :Float64
+                    Float64
+                else
+                    error("Unsupported type $(value)")
+                end
+            elseif key == :generate_ffi_call
+                generate_ffi_call = if value == :false
+                    false
+                elseif value == :true
+                    true
+                else
+                    error("Expected boolean, got $(value)")
+                end
+            else
+                error("Unknown key value pair: $(arg)")
+            end
+        end
+    end
+
     model_args = model.args[3]
     model_name = model.args[2].args[1].args[1]
     model_type_params = model.args[2].args[1].args[2:end]
@@ -103,13 +179,25 @@ macro xspecmodel(c_function, model)
     end
 
     if c_function isa QuoteNode
-        func_name = c_function
-        callsite = libXSFunctions
+        call_symbol = c_function
+        call_site = libXSFunctions
     else
-        func_name = c_function.args[1]
-        callsite = c_function.args[2]
+        call_symbol = c_function.args[1]
+        call_site = c_function.args[2]
     end
 
+    _ffi_type_guard = _build_ffi_type_guard(model_name, model_float_type)
+    _unsafe_call_def = if generate_ffi_call
+        _build_unsafe_ffi_call(
+            model_name,
+            call_symbol,
+            call_site,
+            model_float_type,
+            model_int_type,
+        )
+    else
+        :()
+    end
 
     quote
         Base.@__doc__ struct $(model_name){$(model_type_params...)} <: $(model_kind)
@@ -118,37 +206,97 @@ macro xspecmodel(c_function, model)
 
         SpectralFitting.implementation(::Type{<:$(model_name)}) = XSPECImplementation()
 
-        function SpectralFitting.invoke!(
-            flux,
-            energy,
-            model::$(model_name);
-            spectral_number = 1,
-            init_string = "",
-        )
-            @assert length(flux) + 1 == length(energy)
-            SpectralFitting.ensure_model_data($(model_name))
-
-            if length(SpectralFitting.UNTRACKED_ERROR) < length(flux)
-                SpectralFitting.resize_untracked_error(length(flux))
-            end
-
+        function SpectralFitting.invoke!(output, input, model::$(model_name))
             # allocate the model
             alloc_model = [model]
             params = SpectralFitting.unsafe_parameter_vector_conditioned(alloc_model)
+            SpectralFitting._safe_ffi_invoke!(output, input, params, typeof(model))
+        end
 
-            @wrap_xspec_model_ccall(
-                $(func_name),
-                $(callsite),
-                energy,
-                flux,
-                SpectralFitting.UNTRACKED_ERROR,
+        $(_ffi_type_guard)
+
+        @inline function SpectralFitting._safe_ffi_invoke!(
+            output::AbstractVector{<:$(model_float_type)},
+            input::AbstractVector{<:$(model_float_type)},
+            params::AbstractVector{<:$(model_float_type)},
+            ModelType::Type{<:$(model_name)},
+        )
+            @assert length(output) + 1 == length(input)
+            SpectralFitting.ensure_model_data($(model_name))
+
+            error_vec = SpectralFitting.get_untracked_error($(model_float_type))
+            if length(error_vec) < length(output)
+                SpectralFitting.resize_untracked_error!(error_vec, length(output))
+            end
+            SpectralFitting._unsafe_ffi_invoke!(
+                output,
+                error_vec,
+                input,
                 params,
-                spectral_number,
-                init_string
+                ModelType,
             )
         end
+
+        $(_unsafe_call_def)
+
         $(model_name)
     end |> esc
 end
+
+function _build_ffi_type_guard(model_name, model_float_type)
+    if model_float_type != DEFAULT_MODEL_FLOAT_TYPE
+        :(@inline function SpectralFitting._safe_ffi_invoke!(
+            output,
+            input,
+            params,
+            ModelType::Type{<:$(model_name)},
+        )
+            f_typed_output = convert.($(model_float_type), (output))
+            f_typed_input = convert.($(model_float_type), (input))
+            f_typed_params = convert.($(model_float_type), (params))
+            SpectralFitting._safe_ffi_invoke!(
+                f_typed_output,
+                f_typed_input,
+                f_typed_params,
+                ModelType,
+            )
+            @. output = f_typed_output
+        end)
+    else
+        :()
+    end
+end
+
+function _build_unsafe_ffi_call(
+    model_name,
+    call_symbol,
+    call_site,
+    model_float_type,
+    model_int_type,
+)
+    :(
+        function SpectralFitting._unsafe_ffi_invoke!(
+            output,
+            error_vec,
+            input,
+            params,
+            ::Type{<:$(model_name)},
+        )
+            SpectralFitting.@wrap_xspec_model_ccall(
+                $(model_float_type),
+                $(model_int_type),
+                $(call_symbol),
+                $(call_site),
+                input,
+                output,
+                error_vec,
+                params,
+                1,
+                ""
+            )
+        end
+    )
+end
+
 
 export @xspecmodel, @wrap_xspec_model_ccall
