@@ -44,19 +44,17 @@ register_model_data(XS_Laor, "ari.mod")
 register_model_data(:XS_KyrLine, "KBHline01.fits")
 ```
 """
-register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...) =
-    register_model_data(Base.typename(M).name, filenames...)
-function register_model_data(s::Symbol, filenames::String...)
+function register_model_data(s, filenames::String...)
     model_data = map(filenames) do fname
         ModelDataInfo(fname, fname)
     end
-    register_model_data(s, model_data...)
+    register_model_data(_translate_model_name(s), model_data...)
 end
-function register_model_data(s::Symbol, remote_and_local::Tuple{String,String}...)
+function register_model_data(s, remote_and_local::Tuple{String,String}...)
     model_data = map(remote_and_local) do entry
         ModelDataInfo(entry...)
     end
-    register_model_data(s, model_data...)
+    register_model_data(_translate_model_name(s), model_data...)
 end
 function register_model_data(s::Symbol, model_data::ModelDataInfo...)
     if s in keys(_model_to_data_map)
@@ -65,6 +63,9 @@ function register_model_data(s::Symbol, model_data::ModelDataInfo...)
         _model_to_data_map[s] = collect(model_data)
     end
 end
+
+_translate_model_name(s::Symbol) = s
+_translate_model_name(M::Type) = Base.typename(M).name
 
 _is_model_data_downloaded(M::Type{<:AbstractSpectralModel}) =
     _is_model_data_downloaded(Base.typename(M).name)
