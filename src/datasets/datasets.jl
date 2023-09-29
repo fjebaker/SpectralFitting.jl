@@ -55,45 +55,6 @@ supports(::ContiguouslyBinned, T::Type) = supports_contiguosly_binned(T)
 supports(::OneToOne, T::Type) = supports_one_to_one(T)
 
 """
-we make special exceptions if only a single support is given
-
-above is used for both models and
-datasets to address compatability. if the models and data have different support,
-they are incompatible
-
-Cases to address:
-
-x to y
-
-contiguously binned x to y
-
-if not contiguously binned can split into multiple seperate datasets
-
-- things like background subtraction should happend _before_ it is wrapped
-simplifies everything conceptually
-- might need to have some kind of `prepare!` api that does all preparation before a fit is done
-but an issue with that is that it would modify the underlying data representation without
-the user's knowledge. can avoid that via duplication, but that seems excessive
-- only thing is though is if that is called internally, that then forces the user to have the
-data in a specific format during fit. maybe they don't want background subtraction
-- think it's good to keep a `prepare!` API that does all the sensible default things,
-but that it isn't called by the fitting routines
-- this is then hopefully minimal boilerplate. we just add a whole load of warnings
-
-how do we handle things like response folding or background subtraction in fit?
-- i think we need a `apply_objective_transformation!(y, x, dataset)` function for this, that
-does any folding or whatever else. the difficulty here would be communicating back
-what format the data is in. ideally need some kind of bi-directional transformations
-- 
-
-multiple distinct data sets?
-- for this we just have many AbstractDatasets
-i think it's probably easiest to just have one "underlying" dataset being wrapped in this
-wrapping structure, and to handle multiplexing seperately
-"""
-
-
-"""
     abstract type AbstractDataset
     
 Abstract type for use in fitting routines. High level representation of some underlying 

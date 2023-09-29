@@ -81,9 +81,9 @@ function _f_objective(config::FittingConfig)
     end
 end
 
-function finalize(config::FittingConfig, params)
+function finalize(config::FittingConfig, params; statistic = ChiSquared())
     y = _f_objective(config)(config.domain, params)
-    chi2 = measure(ChiSquared(), config.objective, y, config.variance)
+    chi2 = measure(statistic, config.objective, y, config.variance)
     FittingResult(chi2, params, config)
 end
 

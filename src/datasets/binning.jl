@@ -9,10 +9,6 @@ function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     )
 end
 
-function rebin_flux(flux, current_energy, rm::ResponseMatrix)
-    downsample_rebin(flux, current_energy, rm.bins_high)
-end
-
 function downsample_rebin(input, current_bins, target_bins_high)
     # ensure we are down-sampling, and not up-sampling
     if (length(current_bins) ≤ length(target_bins_high) + 1)
@@ -55,17 +51,6 @@ function downsample_rebin(input, current_bins, target_bins_high)
     output
 end
 
-function domain_vector(response::ResponseMatrix{T}) where {T}
-    domain_vector(response, T)
-end
-
-function domain_vector(x::ResponseMatrix, T::Type)
-    energy = zeros(T, length(x.bins_low) + 1)
-    energy[1:end-1] .= x.bins_low
-    energy[end] = x.bins_high[end]
-    energy
-end
-
 make_flux(m::AbstractSpectralModel, e::AbstractVector) = make_flux(eltype(e), m, e)
 make_flux(T::Type, m::AbstractSpectralModel, e::AbstractVector) =
     make_flux(T, length(e) + Δoutput_length(m))
@@ -90,42 +75,4 @@ function augmented_energy_channels(channels, other_channels, bins_high, bins_low
         end
     end
     (Emin, Emax)
-end
-
-function energy_to_channel(E, channels, bins_low, bins_high, start)
-    @views energy_to_channel(
-        E,
-        channels[start:end],
-        bins_low[start:end],
-        bins_high[start:end],
-    )
-end
-
-function energy_to_channel(E, channels, bins_low, bins_high)
-    for (c, low_e, high_e) in zip(channels, bins_low, bins_high)
-        if (E ≥ low_e) && (high_e > E)
-            return convert(Int, c)
-        end
-    end
-    # for type stability
-    return -1
-end
-
-function grouping_to_indices(grouping)
-    indices = Int[]
-    for (i, g) in enumerate(grouping)
-        if g == 1
-            push!(indices, i)
-        end
-    end
-    push!(indices, length(grouping))
-    indices
-end
-
-function grouping_indices_callback(func, indices)
-    for i = 1:length(indices)-1
-        index1 = indices[i]
-        index2 = indices[i+1] - 1
-        func((i, index1, index2))
-    end
 end

@@ -8,7 +8,10 @@ dummy_data = make_dummy_dataset((E) -> (E^(-0.1) + E^(-3.0) + E^(-1.0)))
 
 # model with two components
 model = PowerLaw() + PowerLaw()
-prob = FittingProblem(MultiModel(model, model), MultiDataset(dummy_data, dummy_data))
+prob = FittingProblem(
+    FittableMultiModel(model, model),
+    FittableMultiDataset(dummy_data, dummy_data),
+)
 
 result = fit(prob, LevenbergMarquadt())
 
@@ -20,7 +23,10 @@ result = fit(prob, LevenbergMarquadt())
 dummy_data2 = deepcopy(dummy_data)
 dummy_data2.spectrum.values .*= 3.0
 
-prob = FittingProblem(MultiModel(model, model), MultiDataset(dummy_data, dummy_data2))
+prob = FittingProblem(
+    FittableMultiModel(model, model),
+    FittableMultiDataset(dummy_data, dummy_data2),
+)
 
 result = fit(prob, LevenbergMarquadt())
 # photon indices should still be the same
@@ -40,7 +46,10 @@ r2 = result.results[2]
 # now the second model will be different
 model2 = PowerLaw() + PowerLaw() + PowerLaw()
 
-prob = FittingProblem(MultiModel(model, model2), MultiDataset(dummy_data, dummy_data2))
+prob = FittingProblem(
+    FittableMultiModel(model, model2),
+    FittableMultiDataset(dummy_data, dummy_data2),
+)
 
 # ensure we can fit this fine
 result = fit(prob, LevenbergMarquadt())

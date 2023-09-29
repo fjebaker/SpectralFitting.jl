@@ -1,6 +1,6 @@
 export SimpleDataset
 
-struct SimpleDataset{VecType,XUnitType,YUnitType,ErrType} <: AbstractDataset
+struct SimpleDataset{VecType,XUnitType,YUnitType,ErrType}
     x::VecType
     y::VecType
     x_units::XUnitType

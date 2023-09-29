@@ -28,7 +28,7 @@ function _invoke_and_transform!(cache::MultiModelCache, domain, params)
     all_outputs
 end
 
-function _build_parameter_mapping(model::MultiModel, bindings)
+function _build_parameter_mapping(model::FittableMultiModel, bindings)
     parameters = map(freeparameters, model.m)
     parameters_counts = _accumulated_indices(map(length, parameters))
 
@@ -47,9 +47,9 @@ function _build_mapping_length(f, itt::Tuple)
     values, mapping
 end
 
-_build_objective_mapping(layout::AbstractLayout, dataset::MultiDataset) =
+_build_objective_mapping(layout::AbstractLayout, dataset::FittableMultiDataset) =
     _build_mapping_length(i -> make_objective(layout, i), dataset.d)
-_build_domain_mapping(layout::AbstractLayout, dataset::MultiDataset) =
+_build_domain_mapping(layout::AbstractLayout, dataset::FittableMultiDataset) =
     _build_mapping_length(i -> make_domain(layout, i), dataset.d)
 
 function FittingConfig(prob::FittingProblem)
@@ -96,7 +96,11 @@ function FittingConfig(prob::FittingProblem)
     )
 end
 
-function finalize(config::FittingConfig{Impl,<:MultiModelCache}, params) where {Impl}
+function finalize(
+    config::FittingConfig{Impl,<:MultiModelCache},
+    params;
+    statistic = ChiSquared(),
+) where {Impl}
     domain = config.domain
     cache = config.cache
     results = map(enumerate(cache.caches)) do (i, ch)
@@ -110,7 +114,7 @@ function finalize(config::FittingConfig{Impl,<:MultiModelCache}, params) where {
         output = _invoke_and_transform!(ch, d, p)
 
         chi2 = measure(
-            ChiSquared(),
+            statistic,
             config.objective[objective_start:objective_end],
             output,
             config.variance[objective_start:objective_end],

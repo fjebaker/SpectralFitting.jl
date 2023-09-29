@@ -12,14 +12,14 @@ function _pretty_print_result(model, u, chi2)
     ppx2 = prettyfloat(chi2)
     ppu = join((prettyfloat(i) for i in u), ",")
     """
-        Model: $(model)
-        . u     : [$(ppu)]
-        . χ²    : $(ppx2) 
+      Model: $(model)
+      . u     : [$(ppu)]
+      . χ²    : $(ppx2) 
     """
 end
 
 function _pretty_print(res::FittingResult)
-    "FittingResult:" * _pretty_print_result(res.config.cache.model, res.u, res.χ2)
+    "FittingResult:\n" * _pretty_print_result(res.config.cache.model, res.u, res.χ2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", res::FittingResult)

@@ -31,6 +31,45 @@ function Base.resize!(response::ResponseMatrix, n)
     resize!(response.channel_bins_high, n)
 end
 
+# todo: currently unused; do we need this?
+function normalise_rows!(matrix)
+    # returns weights
+    @views map(1:size(matrix, 2)) do
+        w = sum(matrix[i, :])
+        if ΣR > 0.0
+            matrix[i, :] .= matrix[i, :] / w
+        end
+        w
+    end
+end
+
+function build_response_matrix!(
+    R,
+    f_chan::Matrix,
+    n_chan::Matrix,
+    matrix_rows::Vector,
+    first_channel,
+)
+    for (i, (F, N)) in enumerate(zip(eachcol(f_chan), eachcol(n_chan)))
+        M = matrix_rows
+        index = 1
+        for (first, len) in zip(F, N)
+            if len == 0
+                break
+            end
+            first -= first_channel
+            @views R[first+1:first+len, i] .= M[index:index+len-1]
+            index += len
+        end
+    end
+end
+
+function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) where {T}
+    nchans = length(rm.channels)
+    println(io, "ResponseMatrix with $nchans channels:")
+    Base.print_array(io, rm.matrix)
+end
+
 function _printinfo(io, resp::ResponseMatrix{T}) where {T}
     emin, emax = minimum(resp.bins_low), maximum(resp.bins_high)
     c_emin, c_emax = minimum(resp.channel_bins_low), maximum(resp.channel_bins_high)
@@ -73,3 +112,5 @@ fold_ancillary(response::ResponseMatrix, ancillary::AncillaryResponse) =
     ancillary.effective_area' .* response.matrix
 
 fold_ancillary(response::ResponseMatrix, ::Nothing) = response.matrix
+
+export ResponseMatrix

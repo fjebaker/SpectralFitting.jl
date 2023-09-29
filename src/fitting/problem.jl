@@ -1,19 +1,26 @@
-struct MultiDataset{D}
+struct FittableMultiDataset{D}
     d::D
-    MultiDataset(data::Vararg{<:AbstractDataset}) = new{typeof(data)}(data)
+    FittableMultiDataset(data::Vararg{<:AbstractDataset}) = new{typeof(data)}(data)
 end
 
-domain_vector(d::MultiDataset) = reduce(vcat, (domain_vector(i) for i in d.d))
-target_vector(d::MultiDataset) = reduce(vcat, (target_vector(i) for i in d.d))
-background_subtracted_target_vector(d::MultiDataset, subtract) =
-    reduce(vcat, (background_subtracted_target_vector(i, subtract) for i in d.d))
-target_variance(d::MultiDataset) = reduce(vcat, (target_variance(i) for i in d.d))
-background_subtracted_target_variance(d::MultiDataset, subtract) =
-    reduce(vcat, (background_subtracted_target_variance(i, subtract) for i in d.d))
-
-struct MultiModel{M}
+struct FittableMultiModel{M}
     m::M
-    MultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
+    FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
+end
+
+function _multi_constructor_wrapper(
+    T::Union{<:Type{<:FittableMultiDataset},<:Type{<:FittableMultiModel}},
+    args,
+)
+    if args isa T
+        args
+    else
+        if args isa Tuple
+            T(args...)
+        else
+            T(args)
+        end
+    end
 end
 
 """
@@ -60,13 +67,12 @@ function _assemble_parameter_indices(bindings, n_params)
     parameter_indices, remove
 end
 
-export MultiModel, MultiDataset
 
-struct FittingProblem{M<:MultiModel,D<:MultiDataset,B}
+struct FittingProblem{M<:FittableMultiModel,D<:FittableMultiDataset,B}
     model::M
     data::D
     bindings::B
-    function FittingProblem(m::MultiModel, d::MultiDataset)
+    function FittingProblem(m::FittableMultiModel, d::FittableMultiDataset)
         bindings = map(_ -> Int[], m.m)
         new{typeof(m),typeof(d),typeof(bindings)}(m, d, bindings)
     end
@@ -75,24 +81,8 @@ end
 FittingProblem(pairs::Vararg{<:Pair}) = FittingProblem(first.(pairs), last.(pairs))
 
 function FittingProblem(m, d)
-    _m = if !(m isa MultiModel)
-        if m isa Tuple
-            MultiModel(m...)
-        else
-            MultiModel(m)
-        end
-    else
-        m
-    end
-    _d = if !(d isa MultiDataset)
-        if d isa Tuple
-            MultiDataset(d...)
-        else
-            MultiDataset(d)
-        end
-    else
-        d
-    end
+    _m = _multi_constructor_wrapper(FittableMultiModel, m)
+    _d = _multi_constructor_wrapper(FittableMultiDataset, d)
     FittingProblem(_m, _d)
 end
 
@@ -119,67 +109,6 @@ function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
             end
         end
     end
-end
-
-function assemble_multimodel(prob::FittingProblem; subtract_background = true)
-    # unpack
-    m = prob.model
-    d = prob.data
-    bindings = prob.bindings
-    n_models = length(m.m)
-    # map on tuple to keep output as tuple and therefore type stable
-    funcs = map((1:n_models...,)) do i
-        model = m.m[i]
-        data = d.d[i]
-        _lazy_folded_invokemodel(model, data)
-    end
-    parameters = map(freeparameters, m.m)
-    all_parameters = reduce(vcat, parameters)
-    impl =
-        all(model -> implementation(model) isa JuliaImplementation, m.m) ?
-        JuliaImplementation : XSPECImplementation
-
-    # function which accepts all energy and parameters, and then dispatches them correctly to each sub model
-    n_params = _accumulated_indices(map(length, parameters))
-    n_energy = _accumulated_indices(map(data -> length(domain_vector(data)), d.d))
-    n_output = _accumulated_indices(
-        map(
-            data ->
-                length(background_subtracted_target_vector(data, subtract_background)),
-            d.d,
-        ),
-    )
-
-    parameter_indices, remove = _assemble_parameter_indices(bindings, n_params)
-    deleteat!(all_parameters, remove)
-
-    F = (X, params) -> begin
-        fluxes = map(1:n_models) do i
-            p = @views params[parameter_indices[i]]
-
-            start_x = i == 1 ? 1 : n_energy[i-1] + 1
-            end_x = n_energy[i]
-            x = @views X[start_x:end_x]
-            # invoke wrapped model
-            funcs[i](x, p)
-        end
-        # combine all fluxes into single array
-        reduce(vcat, fluxes)
-    end
-
-    (
-        F,
-        all_parameters,
-        # state
-        (;
-            funcs = funcs,
-            n_models = n_models,
-            i_out = n_output,
-            parameter_indices = parameter_indices,
-            i_x = n_energy,
-            implementation = impl,
-        ),
-    )
 end
 
 function bind!(prob::FittingProblem, symbols...)
@@ -213,4 +142,4 @@ function Base.show(io::IO, ::MIME"text/plain", prob::FittingProblem)
     print(io, encapsulate(String(take!(buff))))
 end
 
-export FittingProblem, bind!
+export FittingProblem, bind!, FittableMultiModel, FittableMultiDataset

@@ -9,7 +9,10 @@ dummy_data = make_dummy_dataset((E) -> (E^(-0.1) + E^(-3.0) + E^(-1.0)))
 
 # model with two components
 model = PowerLaw() + PowerLaw()
-prob = FittingProblem(MultiModel(model, model), MultiDataset(dummy_data, dummy_data))
+prob = FittingProblem(
+    FittableMultiModel(model, model),
+    FittableMultiDataset(dummy_data, dummy_data),
+)
 
 result = fit(prob, ChiSquared(), NelderMead())
 #

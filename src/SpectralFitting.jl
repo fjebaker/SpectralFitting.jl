@@ -28,6 +28,10 @@ import Optimization
 
 using DocStringExtensions
 
+# for future use: mission specific parsing
+abstract type AbstractMission end
+struct NoMission <: AbstractMission end
+
 # unitful units
 include("units.jl")
 include("print-utilities.jl")
@@ -48,18 +52,12 @@ include("meta-models/table-models.jl")
 include("poisson.jl")
 
 include("datasets/ogip.jl")
-include("datasets/new/datasets.jl")
-include("datasets/new/grouping.jl")
-
-include("datasets/types.jl")
-include("datasets/spectral-datasets.jl")
-include("datasets/response-matrix.jl")
-include("datasets/binning-utilities.jl")
-include("datasets/missions/abstract-mission.jl")
+include("datasets/binning.jl")
+include("datasets/datasets.jl")
+include("datasets/grouping.jl")
 include("datasets/simple-dataset.jl")
 
 include("model-data-io.jl")
-
 
 # include fitting api
 include("fitting/result.jl")

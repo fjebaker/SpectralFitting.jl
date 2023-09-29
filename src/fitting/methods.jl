@@ -36,15 +36,6 @@ function _lsq_fit(
     )
 end
 
-function _unpack_multi_model_multi_data(prob; subtract_background = true)
-    f, u, state = assemble_multimodel(prob, subtract_background = subtract_background)
-    x = domain_vector(prob.data)
-    y = background_subtracted_target_vector(prob.data, subtract_background)
-    variance = background_subtracted_target_variance(prob.data, subtract_background)
-
-    bundler(res) = bundle_multiresult(res, prob.model, x, y, variance, state)
-end
-
 function _unpack_fitting_configuration(prob; kwargs...)
     config = if model_count(prob) == 1 && data_count(prob) == 1
         FittingConfig(prob.model.m[1], prob.data.d[1])
@@ -85,17 +76,17 @@ end
 
 function fit(
     prob::FittingProblem,
-    stat::AbstractStatistic,
+    statistic::AbstractStatistic,
     optim_alg;
     verbose = false,
     autodiff = nothing,
     kwargs...,
 )
-    method_kwargs, f, config = _unpack_fitting_configuration(prob; kwargs...)
-    objective = wrap_objective(stat, f, config)
-    u0 = get_value.(config.u)
-    lower = get_lowerlimit.(config.u)
-    upper = get_upperlimit.(config.u)
+    method_kwargs, config = _unpack_fitting_configuration(prob; kwargs...)
+    objective = _f_wrap_objective(statistic, config)
+    u0 = get_value.(config.parameters)
+    lower = get_lowerlimit.(config.parameters)
+    upper = get_upperlimit.(config.parameters)
 
     # determine autodiff
     if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) &&
@@ -113,7 +104,7 @@ function fit(
     # build problem and solve
     opt_f = Optimization.OptimizationFunction{false}(objective, _autodiff)
     # todo: something is broken with passing the boundaries
-    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.x)
+    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.domain)
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
-    sol.u
+    finalize(config, sol.u; statistic = statistic)
 end
