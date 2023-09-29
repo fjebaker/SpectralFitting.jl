@@ -17,6 +17,7 @@ using LinearAlgebra
 using FileIO
 using Interpolations
 using SpecialFunctions
+using PreallocationTools
 using EnumX
 
 import Crayons
@@ -46,8 +47,11 @@ include("meta-models/table-models.jl")
 
 include("poisson.jl")
 
-include("datasets/types.jl")
 include("datasets/ogip.jl")
+include("datasets/new/datasets.jl")
+include("datasets/new/grouping.jl")
+
+include("datasets/types.jl")
 include("datasets/spectral-datasets.jl")
 include("datasets/response-matrix.jl")
 include("datasets/binning-utilities.jl")
@@ -58,8 +62,10 @@ include("model-data-io.jl")
 
 
 # include fitting api
-include("fitting/problem.jl")
 include("fitting/result.jl")
+include("fitting/cache.jl")
+include("fitting/problem.jl")
+include("fitting/multi-cache.jl")
 include("fitting/methods.jl")
 include("fitting/statistics.jl")
 

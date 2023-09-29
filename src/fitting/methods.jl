@@ -36,43 +36,6 @@ function _lsq_fit(
     )
 end
 
-struct FittingConfig{ImplType,U,X,Y,V}
-    u::U
-    x::X
-    y::Y
-    variance::V
-    covariance::V
-    function FittingConfig(impl, u, x, y, variance; covariance = inv.(variance))
-        new{typeof(impl),typeof(u),typeof(x),typeof(y),typeof(variance)}(
-            u,
-            x,
-            y,
-            variance,
-            covariance,
-        )
-    end
-end
-
-supports_autodiff(config::FittingConfig{<:JuliaImplementation}) = true
-supports_autodiff(config::FittingConfig) = false
-
-function _unpack_single(prob; subtract_background = true)
-    # get first/only model and data
-    model = prob.model.m[1]
-    data = prob.data.d[1]
-
-    # wrap and get domain and target
-    f = _lazy_folded_invokemodel(model, data)
-    u = freeparameters(model)
-    x = domain_vector(data)
-    y = background_subtracted_target_vector(data, subtract_background)
-    variance = background_subtracted_target_variance(data, subtract_background)
-
-    bundler(res) = bundle_result(res, model, f, x, y, variance)
-    config = FittingConfig(implementation(model), u, x, y, variance)
-    return f, config, bundler
-end
-
 function _unpack_multi_model_multi_data(prob; subtract_background = true)
     f, u, state = assemble_multimodel(prob, subtract_background = subtract_background)
     x = domain_vector(prob.data)
@@ -80,23 +43,20 @@ function _unpack_multi_model_multi_data(prob; subtract_background = true)
     variance = background_subtracted_target_variance(prob.data, subtract_background)
 
     bundler(res) = bundle_multiresult(res, prob.model, x, y, variance, state)
-    config = FittingConfig(state.implementation, u, x, y, variance)
-    return f, config, bundler
 end
 
-
-function _unpack_fitting_configuration(prob; subtract_background = true, kwargs...)
-    f, config, bundler = if model_count(prob) == 1 && data_count(prob) == 1
-        _unpack_single(prob; subtract_background = subtract_background)
+function _unpack_fitting_configuration(prob; kwargs...)
+    config = if model_count(prob) == 1 && data_count(prob) == 1
+        FittingConfig(prob.model.m[1], prob.data.d[1])
     elseif model_count(prob) == data_count(prob)
-        _unpack_multi_model_multi_data(prob; subtract_background = subtract_background)
+        FittingConfig(prob)
     elseif model_count(prob) < data_count(prob)
         error("Single model, many data not yet implemented.")
     else
         error("Multi model, single data not yet implemented.")
     end
 
-    kwargs, f, config, bundler
+    kwargs, config
 end
 
 function fit(
@@ -106,20 +66,21 @@ function fit(
     max_iter = 1000,
     kwargs...,
 )
-    method_kwargs, f, config, bundler = _unpack_fitting_configuration(prob; kwargs...)
+    method_kwargs, config = _unpack_fitting_configuration(prob; kwargs...)
     lsq_result = _lsq_fit(
-        f,
-        config.x,
-        config.y,
+        _f_objective(config),
+        config.domain,
+        config.objective,
         config.covariance,
-        config.u,
+        config.parameters,
         alg;
         verbose = verbose,
         max_iter = max_iter,
         autodiff = supports_autodiff(config) ? :forward : :finite,
         method_kwargs...,
     )
-    bundler(LsqFit.coef(lsq_result))
+    params = LsqFit.coef(lsq_result)
+    finalize(config, params)
 end
 
 function fit(
@@ -130,7 +91,7 @@ function fit(
     autodiff = nothing,
     kwargs...,
 )
-    method_kwargs, f, config, bundler = _unpack_fitting_configuration(prob; kwargs...)
+    method_kwargs, f, config = _unpack_fitting_configuration(prob; kwargs...)
     objective = wrap_objective(stat, f, config)
     u0 = get_value.(config.u)
     lower = get_lowerlimit.(config.u)
@@ -154,5 +115,5 @@ function fit(
     # todo: something is broken with passing the boundaries
     opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.x)
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
-    bundler(sol.u)
+    sol.u
 end

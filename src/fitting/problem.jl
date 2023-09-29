@@ -60,27 +60,40 @@ function _assemble_parameter_indices(bindings, n_params)
     parameter_indices, remove
 end
 
-struct FittingProblem{M,D,B}
+export MultiModel, MultiDataset
+
+struct FittingProblem{M<:MultiModel,D<:MultiDataset,B}
     model::M
     data::D
     bindings::B
-    function FittingProblem(
-        m::Union{<:MultiModel,AbstractSpectralModel},
-        d::Union{<:MultiDataset,AbstractDataset},
-    )
-        _m = if !(m isa MultiModel)
-            MultiModel(m)
-        else
-            m
-        end
-        _d = if !(d isa MultiDataset)
-            MultiDataset(d)
-        else
-            d
-        end
-        bindings = map(_ -> Int[], _m.m)
-        new{typeof(_m),typeof(_d),typeof(bindings)}(_m, _d, bindings)
+    function FittingProblem(m::MultiModel, d::MultiDataset)
+        bindings = map(_ -> Int[], m.m)
+        new{typeof(m),typeof(d),typeof(bindings)}(m, d, bindings)
     end
+end
+
+FittingProblem(pairs::Vararg{<:Pair}) = FittingProblem(first.(pairs), last.(pairs))
+
+function FittingProblem(m, d)
+    _m = if !(m isa MultiModel)
+        if m isa Tuple
+            MultiModel(m...)
+        else
+            MultiModel(m)
+        end
+    else
+        m
+    end
+    _d = if !(d isa MultiDataset)
+        if d isa Tuple
+            MultiDataset(d...)
+        else
+            MultiDataset(d)
+        end
+    else
+        d
+    end
+    FittingProblem(_m, _d)
 end
 
 function model_count(prob::FittingProblem)
@@ -200,4 +213,4 @@ function Base.show(io::IO, ::MIME"text/plain", prob::FittingProblem)
     print(io, encapsulate(String(take!(buff))))
 end
 
-export MultiDataset, MultiModel, FittingProblem, bind!
+export FittingProblem, bind!

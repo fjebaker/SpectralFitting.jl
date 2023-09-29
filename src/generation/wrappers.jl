@@ -80,7 +80,7 @@ flux_count(model)
 end
 
 @inline @generated function free_parameters_to_named_tuple(
-    params::Vector,
+    params::AbstractVector,
     model::AbstractSpectralModel,
 )
     FunctionGeneration.free_parameters_to_named_tuple(params, model)
@@ -91,7 +91,7 @@ end
 end
 
 @inline @generated function all_parameters_to_named_tuple(
-    params::Vector,
+    params::AbstractVector,
     model::AbstractSpectralModel,
 )
     FunctionGeneration.all_parameters_to_named_tuple(params, model)

@@ -67,7 +67,7 @@ end
 function generate_call(flux_unpack, closures, p_assignments, statements)
     quote
         @fastmath begin
-            @inbounds let ($(flux_unpack...),) = fluxes
+            @inbounds let ($(flux_unpack...))
                 $(closures...)
                 $(p_assignments...)
                 $(statements...)
@@ -77,10 +77,16 @@ function generate_call(flux_unpack, closures, p_assignments, statements)
     end
 end
 
+function make_flux_unpack(N)
+    symbols = (Symbol(:flux, i) for i = 1:N)
+    unpacks = [:($f = view(fluxes, :, $i)) for (i, f) in enumerate(symbols)]
+    unpacks
+end
+
 function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
     # propagate information about free parameters to allow for AD
     ga = assemble_aggregate_info(model, eltype(free_params))
-    flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
+    flux_unpack = make_flux_unpack(ga.maximum_flux_count)
     p_assign = assemble_parameter_assignment(ga, model)
     closures = assemble_closures(ga, model)
     generate_call(flux_unpack, closures, p_assign, ga.statements)
@@ -88,7 +94,7 @@ end
 function generated_model_call!(fluxes, energy, model, params)
     # propagate information about free parameters to allow for AD
     ga = assemble_aggregate_info(model, eltype(params))
-    flux_unpack = [Symbol(:flux, i) for i = 1:ga.maximum_flux_count]
+    flux_unpack = make_flux_unpack(ga.maximum_flux_count)
     i = 0
     p_assign = reduce(
         vcat,

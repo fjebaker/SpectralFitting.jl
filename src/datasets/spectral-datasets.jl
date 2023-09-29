@@ -119,7 +119,6 @@ function get_ancillary(s::SpectralDataset{T}) where {T}
         s.ancillary
     end
 end
-has_response(s::SpectralDataset) = !ismissing(s.response)
 has_ancillary(s::SpectralDataset) = !ismissing(s.ancillary)
 has_background(s::SpectralDataset) = !ismissing(s.background)
 

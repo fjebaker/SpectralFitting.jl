@@ -12,12 +12,12 @@ missiontrait(::M) where {M<:AbstractMetadata} = missiontrait(M)
 trim_meta!(::AbstractMetadata, inds) = nothing
 group_meta(::AbstractMetadata, mask, inds) = nothing
 
-@enumx ErrorStatistics begin
-    Numeric
-    Poisson
-    Gaussian
-    Unknown
-end
+# @enumx ErrorStatistics begin
+#     Numeric
+#     Poisson
+#     Gaussian
+#     Unknown
+# end
 
 struct SpectralFilePaths
     spectrum::Union{Missing,String}
@@ -38,41 +38,41 @@ function SpectralFilePaths(; spectrum = "", background = "", response = "", anci
     )
 end
 
-struct AncillaryResponse{T}
-    bins_low::Vector{T}
-    bins_high::Vector{T}
-    effective_area::Vector{T}
-end
+# struct AncillaryResponse{T}
+#     bins_low::Vector{T}
+#     bins_high::Vector{T}
+#     effective_area::Vector{T}
+# end
 
 # TODO: could be Response or Redistribution : how do we track this? 
-struct ResponseMatrix{T}
-    matrix::SparseMatrixCSC{T,Int}
-    channels::Vector{Int}
-    channel_bins_low::Vector{T}
-    channel_bins_high::Vector{T}
-    bins_low::Vector{T}
-    bins_high::Vector{T}
-end
+# struct ResponseMatrix{T}
+#     matrix::SparseMatrixCSC{T,Int}
+#     channels::Vector{Int}
+#     channel_bins_low::Vector{T}
+#     channel_bins_high::Vector{T}
+#     bins_low::Vector{T}
+#     bins_high::Vector{T}
+# end
 
-struct Spectrum{T}
-    channels::Vector{Int}
-    quality::Vector{Int}
-    grouping::Vector{Int}
+# struct Spectrum{T}
+#     channels::Vector{Int}
+#     quality::Vector{Int}
+#     grouping::Vector{Int}
 
-    values::Vector{T}
-    unit_string::String
+#     values::Vector{T}
+#     unit_string::String
 
-    exposure_time::T
-    background_scale::T
-    area_scale::T
+#     exposure_time::T
+#     background_scale::T
+#     area_scale::T
 
-    error_statistics::SpectralFitting.ErrorStatistics.T
-    errors::Union{Missing,Vector{T}}
-    systematic_error::T
+#     error_statistics::SpectralFitting.ErrorStatistics.T
+#     errors::Union{Missing,Vector{T}}
+#     systematic_error::T
 
-    telescope::String
-    instrument::String
-end
+#     telescope::String
+#     instrument::String
+# end
 
 
 abstract type AbstractDataset end

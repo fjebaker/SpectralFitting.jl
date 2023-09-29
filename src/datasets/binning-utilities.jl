@@ -71,29 +71,10 @@ make_flux(T::Type, m::AbstractSpectralModel, e::AbstractVector) =
     make_flux(T, length(e) + Δoutput_length(m))
 make_flux(T::Type, n::Int) = zeros(T, n)
 
-make_fluxes(m::AbstractSpectralModel, e) = make_fluxes(eltype(e), m, e)
-make_fluxes(T::Type, m::AbstractSpectralModel, e) =
-    make_fluxes(T, length(e) + Δoutput_length(m), flux_count(m))
-function make_fluxes(T::Type, n::Int, N::Int)
-    flux = make_flux(T, n)
-    fluxes = typeof(flux)[flux]
-    for _ = 1:N-1
-        push!(fluxes, deepcopy(flux))
-    end
-    fluxes
-end
-
-make_dual_fluxes(m::AbstractSpectralModel, e) = make_dual_fluxes(eltype(e), m, e)
-make_dual_fluxes(T::Type, m::AbstractSpectralModel, e) =
-    make_dual_fluxes(T, length(e) + Δoutput_length(m), flux_count(m))
-function make_dual_fluxes(T::Type, n, N::Int)
-    flux = make_flux(T, n)
-    d_flux = dualcache(flux)
-    d_fluxes = typeof(d_flux)[d_flux]
-    for _ = 1:N-1
-        push!(d_fluxes, deepcopy(d_flux))
-    end
-    d_fluxes
+make_fluxes(model::AbstractSpectralModel, domain::AbstractVector{T}) where {T} =
+    make_fluxes(T, model, domain)
+function make_fluxes(T, model::AbstractSpectralModel, domain)
+    zeros(T, (length(domain) - 1, flux_count(model)))
 end
 
 function augmented_energy_channels(channels, other_channels, bins_high, bins_low)
@@ -147,13 +128,4 @@ function grouping_indices_callback(func, indices)
         index2 = indices[i+1] - 1
         func((i, index1, index2))
     end
-end
-
-function regroup!(vector::Vector{<:Number}, grouping)
-    inds = SpectralFitting.grouping_to_indices(grouping)
-    output = zeros(eltype(vector), length(inds) - 1)
-    SpectralFitting.grouping_indices_callback(inds) do (i, start, stop)
-        output[i] = @views sum(vector[start:stop])
-    end
-    output
 end

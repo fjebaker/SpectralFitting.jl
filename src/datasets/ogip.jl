@@ -294,20 +294,13 @@ function read_paths_from_spectrum(path::String)
             _path::String = header[entry]
             joinpath(data_directory, _path)
         else
-            ""
+            nothing
         end
 
-    spec_path = path
     response_path = _read_entry("RESPFILE")
     ancillary_path = _read_entry("ANCRFILE")
     background_path = _read_entry("BACKFILE")
-
-    SpectralFitting.SpectralFilePaths(
-        spectrum = spec_path,
-        background = background_path,
-        response = response_path,
-        ancillary = ancillary_path,
-    )
+    (background_path, response_path, ancillary_path)
 end
 
 end # module
