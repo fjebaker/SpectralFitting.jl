@@ -174,7 +174,9 @@ regroup!(dataset::SpectralData) = regroup!(dataset, dataset.spectrum.grouping)
 
 function normalize!(dataset::SpectralData)
     normalize!(dataset.spectrum)
-    normalize!(dataset.background)
+    if has_background(dataset)
+        normalize!(dataset.background)
+    end
     dataset
 end
 
@@ -240,15 +242,12 @@ function _make_domain_vector(::Spectrum, resp::ResponseMatrix{T}) where {T}
 end
 
 function _make_energy_vector(spec::Spectrum, resp::ResponseMatrix{T}) where {T}
-    blow, bhigh = augmented_energy_channels(
+    augmented_energy_channels(
         spec.channels,
         resp.channels,
         resp.channel_bins_low,
         resp.channel_bins_high,
     )
-    resize!(blow, length(blow) + 1)
-    blow[end] = bhigh[end]
-    return blow
 end
 
 macro _forward_SpectralData_api(args)
