@@ -111,6 +111,6 @@ end
 fold_ancillary(response::ResponseMatrix, ancillary::AncillaryResponse) =
     ancillary.effective_area' .* response.matrix
 
-fold_ancillary(response::ResponseMatrix, ::Nothing) = response.matrix
+fold_ancillary(response::ResponseMatrix, ::Missing) = response.matrix
 
 export ResponseMatrix
