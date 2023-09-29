@@ -62,17 +62,23 @@ function make_fluxes(T, model::AbstractSpectralModel, domain)
     zeros(T, (length(domain) - 1, flux_count(model)))
 end
 
-function augmented_energy_channels(channels, other_channels, bins_high, bins_low)
+function augmented_energy_channels(channels, other_channels, bins_low, bins_high)
     # TODO: just going to assume the channels line up
     N = length(channels)
-    Emax = zeros(eltype(bins_high), N)
-    Emin = zeros(eltype(bins_high), N)
-    @inbounds for (i, c) in enumerate(channels)
-        if c ≤ N
-            index = findfirst(==(c), other_channels)
-            Emax[i] = bins_high[index]
-            Emin[i] = bins_low[index]
+    energies = zeros(eltype(bins_high), N + 1)
+    for (i, c) in enumerate(channels)
+        index = findnext(==(c), other_channels, i)
+        if isnothing(index)
+            error("Failed to calculate channel to energy mapping.")
         end
+        if index > N
+            break
+        end
+        if (i > 1) && !(energies[i] ≈ bins_low[index])
+            @warn "Channel $index: misaligned $(energies[i-1]) != $(bins_low[index])! Data may not be contiguous."
+        end
+        energies[i] = bins_low[index]
+        energies[i+1] = bins_high[index]
     end
-    (Emin, Emax)
+    energies
 end
