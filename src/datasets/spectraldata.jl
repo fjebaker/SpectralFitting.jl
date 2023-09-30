@@ -69,14 +69,14 @@ end
 
 supports_contiguosly_binned(::Type{<:SpectralData}) = true
 
-function make_objective(layout::AbstractLayout, dataset::SpectralData)
+function make_objective(layout::AbstractDataLayout, dataset::SpectralData)
     if dataset.spectrum.unit_string != "count / s keV"
         @warn "Spectrum is currently still in $(dataset.spectrum.unit_string). Most models fit in rate (count / s keV). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
     end
     make_objective(layout, dataset.spectrum)[dataset.data_mask]
 end
 
-function make_objective_variance(layout::AbstractLayout, dataset::SpectralData)
+function make_objective_variance(layout::AbstractDataLayout, dataset::SpectralData)
     if dataset.spectrum.unit_string != "count / s keV"
         @warn "Spectrum is currently still in $(dataset.spectrum.unit_string). Most models fit in rate (count / s keV). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
     end
@@ -135,7 +135,7 @@ function drop_channels!(dataset::SpectralData, indices)
     end
     deleteat!(dataset.data_mask, indices)
     deleteat!(dataset.channel_to_energy, indices)
-    dataset
+    length(indices)
 end
 
 spectrum_energy(dataset::SpectralData) =
@@ -269,20 +269,20 @@ macro _forward_SpectralData_api(args)
     T, field = args.args
     quote
         SpectralFitting.supports_contiguosly_binned(t::Type{<:$(T)}) = true
-        SpectralFitting.make_domain(layout::SpectralFitting.AbstractLayout, t::$(T)) =
+        SpectralFitting.make_domain(layout::SpectralFitting.AbstractDataLayout, t::$(T)) =
             SpectralFitting.make_domain(layout, getproperty(t, $(field)))
         SpectralFitting.make_domain_variance(
-            layout::SpectralFitting.AbstractLayout,
+            layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
         ) = SpectralFitting.make_domain_variance(layout, getproperty(t, $(field)))
-        SpectralFitting.make_objective(layout::SpectralFitting.AbstractLayout, t::$(T)) =
+        SpectralFitting.make_objective(layout::SpectralFitting.AbstractDataLayout, t::$(T)) =
             SpectralFitting.make_objective(layout, getproperty(t, $(field)))
         SpectralFitting.make_objective_variance(
-            layout::SpectralFitting.AbstractLayout,
+            layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
         ) = SpectralFitting.make_objective_variance(layout, getproperty(t, $(field)))
         SpectralFitting.objective_transformer(
-            layout::SpectralFitting.AbstractLayout,
+            layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
         ) = SpectralFitting.objective_transformer(layout, getproperty(t, $(field)))
         SpectralFitting.regroup!(t::$(T), args...) =
@@ -306,36 +306,40 @@ end
 
 # printing utilities
 
-function Base.show(io::IO, ::SpectralData{T}) where {T}
-    print(io, "SpectralData")
+function Base.show(io::IO, @nospecialize(data::SpectralData)) 
+    print(io, "SpectralData[$(data.spectrum.telescope_name)]")
 end
 
 function _printinfo(io, data::SpectralData{T}) where {T}
-    domain = @views data.domain[data.domain_mask]
-    descr = """SpectralData:
-      . Masked channels     : $(count(==(false), data.data_mask))
-      . Channel-Energy (CE) : $(extrema(data.channel_to_energy))
-      . CE length           : $(length(data.channel_to_energy))
-      . Masked domain       : $(count(==(false), data.domain_mask))
-      . Domain length       : $(length(domain))
-      . Domain (min/max)    : $(extrema(domain))
+    domain = @views data.domain
+    ce_min, ce_max = @views prettyfloat.(extrema(data.channel_to_energy[1:end-1][data.data_mask]))
+    dom_min, dom_max = @views prettyfloat.(extrema(domain))
+    @views println(io, Crayons.Crayon(foreground = :cyan), "SpectralData", Crayons.Crayon(reset = true), " with ", Crayons.Crayon(foreground = :cyan), length(data.channel_to_energy[1:end-1][data.data_mask]) - 1, Crayons.Crayon(reset = true), " active channels:")
+    descr = """  . Chn. E (min/max)    : ($ce_min, $ce_max)
+      . Masked channels     : $(count(==(false), data.data_mask)) / $(length(data.data_mask))
+      . Model domain size   : $(length(domain))
+      . Domain (min/max)    : ($dom_min, $dom_max)
     """
     print(io, descr)
-    print(io, "- Primary Spectrum:\n ")
+
+    print(io, Crayons.Crayon(foreground = :cyan), "Primary Spectrum:", Crayons.Crayon(reset = true), "\n ")
     _printinfo(io, data.spectrum)
+
+    print(io, Crayons.Crayon(foreground = :cyan), "Response:", Crayons.Crayon(reset = true), "\n ")
+    _printinfo(io, data.response)
+
     if has_background(data)
-        print(io, "- Background:\n ")
+        print(io, Crayons.Crayon(foreground = :cyan), "Background: ", Crayons.Crayon(reset = true), "\n ")
         _printinfo(io, data.background)
     else
-        print(io, "- Background: missing\n")
+        print(io, Crayons.Crayon(foreground = :dark_gray), "Background: missing", Crayons.Crayon(reset = true), "\n")
     end
-    print(io, "- Response:\n ")
-    _printinfo(io, data.response)
+
     if has_ancillary(data)
-        print(io, "- Ancillary:\n ")
+        print(io, Crayons.Crayon(foreground = :cyan), "Ancillary:", Crayons.Crayon(reset = true), "\n ")
         _printinfo(io, data.ancillary)
     else
-        print(io, "- Ancillary: missing\n")
+        print(io, Crayons.Crayon(foreground = :dark_gray), "Ancillary: missing", Crayons.Crayon(reset = true), "\n")
     end
 end
 

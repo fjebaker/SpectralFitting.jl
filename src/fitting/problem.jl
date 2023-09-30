@@ -128,7 +128,7 @@ function bind!(prob::FittingProblem, symbols...)
     true
 end
 
-function Base.show(io::IO, ::MIME"text/plain", prob::FittingProblem)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProblem))
     buff = IOBuffer()
     println(buff, "FittingProblem:")
     println(buff, "  Models:")

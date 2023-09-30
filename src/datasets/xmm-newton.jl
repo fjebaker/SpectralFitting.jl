@@ -31,7 +31,7 @@ make_label(data::XMMData) = data.observation_id
 
 @_forward_SpectralData_api XMMData.data
 
-function Base.show(io::IO, data::XMMData{T}) where {T}
+function Base.show(io::IO, @nospecialize(data::XMMData{T})) where {T}
     print(io, "XMMData[dev=$(data.device),obs_id=$(data.observation_id)]")
 end
 

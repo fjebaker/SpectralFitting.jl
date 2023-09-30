@@ -47,9 +47,9 @@ function _build_mapping_length(f, itt::Tuple)
     values, mapping
 end
 
-_build_objective_mapping(layout::AbstractLayout, dataset::FittableMultiDataset) =
+_build_objective_mapping(layout::AbstractDataLayout, dataset::FittableMultiDataset) =
     _build_mapping_length(i -> make_objective(layout, i), dataset.d)
-_build_domain_mapping(layout::AbstractLayout, dataset::FittableMultiDataset) =
+_build_domain_mapping(layout::AbstractDataLayout, dataset::FittableMultiDataset) =
     _build_mapping_length(i -> make_domain(layout, i), dataset.d)
 
 function FittingConfig(prob::FittingProblem)

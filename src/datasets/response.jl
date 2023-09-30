@@ -64,20 +64,19 @@ function build_response_matrix!(
     end
 end
 
-function Base.show(io::IO, ::MIME{Symbol("text/plain")}, rm::ResponseMatrix{T}) where {T}
+function Base.show(io::IO, ::MIME{Symbol("text/plain")}, @nospecialize(rm::ResponseMatrix{T})) where {T}
     nchans = length(rm.channels)
     println(io, "ResponseMatrix with $nchans channels:")
     Base.print_array(io, rm.matrix)
 end
 
 function _printinfo(io, resp::ResponseMatrix{T}) where {T}
-    emin, emax = minimum(resp.bins_low), maximum(resp.bins_high)
-    c_emin, c_emax = minimum(resp.channel_bins_low), maximum(resp.channel_bins_high)
-    descr = """Reponse Matrix:
-      . Channels            : $(length(resp.channels))
-      . Channel E (min/max) : ($c_emin, $c_emax)
-      . Matrix dims         : $(size(resp.matrix))
-      . E (min/max)         : ($emin, $emax)
+    emin, emax = prettyfloat(minimum(resp.bins_low)), prettyfloat(maximum(resp.bins_high))
+    c_emin, c_emax = prettyfloat(minimum(resp.channel_bins_low)), prettyfloat(maximum(resp.channel_bins_high))
+    ranks, files = size(resp.matrix)
+    println(io, "Response Matrix ", Crayons.Crayon(foreground = :cyan), "($ranks x $files)", Crayons.Crayon(reset = true), " channels:")
+    descr = """  . Chn. E (min/max)    : ($c_emin, $c_emax)
+      . Domain E (min/max)  : ($emin, $emax)
     """
     print(io, descr)
 end
@@ -88,7 +87,7 @@ function drop_channels!(response::ResponseMatrix, inds)
     deleteat!(response.channel_bins_low, inds)
     keep = collect(i for i = 1:size(response.matrix, 1) if i ∉ inds)
     response.matrix = response.matrix[keep, :]
-    response
+    length(inds)
 end
 
 struct AncillaryResponse{T}
@@ -100,7 +99,7 @@ end
 regroup!(resp::AncillaryResponse, grouping) = nothing # no op
 
 function _printinfo(io, resp::AncillaryResponse{T}) where {T}
-    emin, emax = minimum(resp.bins_low), maximum(resp.bins_high)
+    emin, emax = prettyfloat(minimum(resp.bins_low)), prettyfloat(maximum(resp.bins_high))
     descr = """Ancillary Response:
       . Channels            : $(length(resp.effective_area))
       . E (min/max)         : ($emin, $emax)
@@ -112,5 +111,9 @@ fold_ancillary(response::ResponseMatrix, ancillary::AncillaryResponse) =
     ancillary.effective_area' .* response.matrix
 
 fold_ancillary(response::ResponseMatrix, ::Missing) = response.matrix
+
+function Base.show(io::IO, ::MIME{Symbol("text/plain")}, @nospecialize(resp::AncillaryResponse{T})) where {T}
+    _printinfo(io, resp)
+end
 
 export ResponseMatrix

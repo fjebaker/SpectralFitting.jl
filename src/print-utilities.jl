@@ -1,5 +1,13 @@
 
-prettyfloat(f) = Printf.@sprintf("%#.5g", f)
+function prettyfloat(f)
+    if f == 0
+        "0.0"
+    elseif (f ≥ 1) && (f - trunc(Int, f) < 1e-8)
+        Printf.@sprintf("%.1f", f)
+    else
+        Printf.@sprintf("%#.5g", f)
+    end
+end
 
 function encapsulate(text)
     # drop everything after last new line

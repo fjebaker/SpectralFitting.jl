@@ -5,9 +5,9 @@
     Unknown
 end
 
-abstract type AbstractLayout end
-struct OneToOne <: AbstractLayout end
-struct ContiguouslyBinned <: AbstractLayout end
+abstract type AbstractDataLayout end
+struct OneToOne <: AbstractDataLayout end
+struct ContiguouslyBinned <: AbstractDataLayout end
 
 export OneToOne, ContiguouslyBinned
 
@@ -50,7 +50,7 @@ supports_one_to_one(::Type) = false
 supports_contiguosly_binned(x) = supports_contiguosly_binned(typeof(x))
 supports_one_to_one(x) = supports_one_to_one(typeof(x))
 
-supports(layout::AbstractLayout, x) = supports(layout, typeof(x))
+supports(layout::AbstractDataLayout, x) = supports(layout, typeof(x))
 supports(::ContiguouslyBinned, T::Type) = supports_contiguosly_binned(T)
 supports(::OneToOne, T::Type) = supports_one_to_one(T)
 
@@ -64,7 +64,7 @@ Fitting data is considered to have an *objective* and a *domain*. As
 the domain may be, for example, energy bins (high and low), or
 fourier frequencies (single value), the purpose of this abstraction
 is to provide some facility for translating between these representations
-for the models to fit with. This is done by checking that the [`AbstractLayout`](@ref)
+for the models to fit with. This is done by checking that the [`AbstractDataLayout`](@ref)
 of the model and data are compatible, or at least have compatible translations.
 
 Must implement a minimal set of accessor methods. These are paired with
@@ -73,7 +73,7 @@ Must implement a minimal set of accessor methods. These are paired with
 into the translation. Usage of these functions should be sparse in the interest of
 performance.
 
-The arrays returned by the `make_*` functions must correspond to the [`AbstractLayout`](@ref)
+The arrays returned by the `make_*` functions must correspond to the [`AbstractDataLayout`](@ref)
 specified by the caller.
 
 [`ContiguouslyBinned`](@ref) (domain should be `length(objective) + 1`, where the limits of the
@@ -87,7 +87,7 @@ specified by the caller.
 """
 abstract type AbstractDataset end
 
-function Base.show(io::IO, ::MIME"text/plain", data::AbstractDataset)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(data::AbstractDataset))
     buff = IOBuffer()
     _printinfo(buff, data)
     s = String(take!(buff))
@@ -99,15 +99,15 @@ end
     make_objective
 
 Returns the array used as the target for model fitting. The array must correspond to the data
-[`AbstractLayout`](@ref) specified by the `layout` parameter.
+[`AbstractDataLayout`](@ref) specified by the `layout` parameter.
 
 In as far as it can be guarunteed, the memory in the returned array will not be mutated by any fitting procedures.
 
 Domain for this objective should be returned by [`make_domain`](@ref).
 """
-make_objective(layout::AbstractLayout, dataset::AbstractDataset) =
+make_objective(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
-make_objective_variance(layout::AbstractLayout, dataset::AbstractDataset) =
+make_objective_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
@@ -115,17 +115,17 @@ make_objective_variance(layout::AbstractLayout, dataset::AbstractDataset) =
 
 Returns the array used as the domain for the modelling
 """
-make_domain(layout::AbstractLayout, dataset::AbstractDataset) =
+make_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
-make_domain_variance(layout::AbstractLayout, dataset::AbstractDataset) =
+make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
-function objective_transformer(layout::AbstractLayout, dataset::AbstractDataset)
+function objective_transformer(layout::AbstractDataLayout, dataset::AbstractDataset)
     @warn "Using default objective transformer!"
     _default_transformer(layout, dataset)
 end
 
-function _default_transformer(::AbstractLayout, dataset::AbstractDataset)
+function _default_transformer(::AbstractDataLayout, dataset::AbstractDataset)
     function _transformer!!(energy, flux)
         flux
     end
@@ -149,7 +149,7 @@ export make_domain,
 
 include("spectrum.jl")
 include("response.jl")
-include("spectral-dataset.jl")
+include("spectraldata.jl")
 
 # mission specifics
 include("xmm-newton.jl")

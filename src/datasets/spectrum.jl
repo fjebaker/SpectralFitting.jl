@@ -102,21 +102,23 @@ function drop_channels!(spectrum::Spectrum, indices)
     if !ismissing(spectrum.errors)
         deleteat!(spectrum.errors, indices)
     end
-    spectrum
+    length(indices)
 end
 
 _readable_boolean(b) = b ? "yes" : "no"
 
 function _printinfo(io, spectrum::Spectrum)
-    dmin, dmax = extrema(spectrum.data)
+    dmin, dmax = prettyfloat.(extrema(spectrum.data))
     is_grouped = isgrouped(spectrum) |> _readable_boolean
-    descr = """Spectrum
-      Telescope             : $(spectrum.telescope_name)[$(spectrum.instrument)]
+    num_bad = count(==(BAD_QUALITY), spectrum.quality)
+    has_bad = num_bad > 0 ? "yes ($num_bad)" : "no"
+    descr = """Spectrum: $(spectrum.telescope_name)[$(spectrum.instrument)]
       Units                 : $(spectrum.unit_string)
-      . Channels            : $(length(spectrum.channels))
       . Exposure time       : $(spectrum.exposure_time)
+      . Channels            : $(length(spectrum.channels))
       . Data (min/max)      : ($dmin, $dmax)
       . Grouped             : $is_grouped
+      . Bad channels        : $has_bad
     """
     print(io, descr)
 end

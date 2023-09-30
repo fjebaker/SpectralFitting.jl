@@ -22,7 +22,7 @@ function _pretty_print(res::FittingResult)
     "FittingResult:\n" * _pretty_print_result(res.config.cache.model, res.u, res.χ2)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", res::FittingResult)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::FittingResult))
     print(io, encapsulate(_pretty_print(res)))
 end
 
@@ -39,7 +39,7 @@ function Base.getindex(result::MultiFittingResult, i::Int)
     return (; model = model, u = u, χ2 = chi2)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::MultiFittingResult))
     total_χ2 = prettyfloat(sum(res.χ2s))
 
     buff = IOBuffer()
