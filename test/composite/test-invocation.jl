@@ -162,7 +162,7 @@ model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + Dummy
 flux = invokemodel(energy, model)
 @test all(flux .== 300)
 
-fluxes = zeros(Float64, (length(energy) - 1, flux_count(model)))
+fluxes = zeros(Float64, (length(energy) - 1, objective_cache_count(model)))
 flux = view(fluxes, :, 1)
 invokemodel!(fluxes, energy, model)
 @test all(flux .== 300)

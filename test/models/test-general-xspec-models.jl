@@ -5,7 +5,7 @@ using SpectralFitting
 model = XS_PhotoelectricAbsorption() * (XS_PowerLaw() + XS_KerrDisk())
 
 energy = collect(range(0.2, 8.0, 1000))
-fluxes = zeros(Float64, (length(energy) - 1, flux_count(model)))
+fluxes = zeros(Float64, (length(energy) - 1, objective_cache_count(model)))
 flux = view(fluxes, :, 1)
 
 # check model invokes okay
