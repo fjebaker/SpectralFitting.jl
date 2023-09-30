@@ -4,7 +4,7 @@ using SpectralFitting
 testdir = get(
     ENV,
     "SF_TEST_SUITE_DATA",
-    @__DIR__() * "/../../spectral-fitting-test-suite/sample-data",
+    @__DIR__() * "/../../../spectral-fitting-test-suite/sample-data",
 )
 @show testdir
 

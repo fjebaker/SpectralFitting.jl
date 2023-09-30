@@ -37,8 +37,8 @@ spec_xmm = OGIP.read_spectrum(xmm_spec_path, xmm_config)
 @inferred OGIP.read_spectrum(xmm_spec_path, xmm_config)
 spec_nustar = OGIP.read_spectrum(nustar_spec_path, nustar_config)
 
-@test spec_xmm.telescope == "XMM"
-@test spec_nustar.telescope == "NuSTAR"
+@test spec_xmm.telescope_name == "XMM"
+@test spec_nustar.telescope_name == "NuSTAR"
 
 # test reading background
 xmm_backgroud_path = joinpath(testdir, "xmm/pn_bg_spec.fits")
@@ -55,7 +55,6 @@ bg_nustar = OGIP.read_background(nustar_background_path, nustar_config)
 # test reading the associated paths
 xmm_paths = OGIP.read_paths_from_spectrum(xmm_spec_path)
 
-@test xmm_paths.spectrum == xmm_spec_path
-@test xmm_paths.response == xmm_rmf_path
-@test xmm_paths.background == xmm_backgroud_path
-@test xmm_paths.ancillary == xmm_arf_path
+@test xmm_paths[1]== xmm_backgroud_path
+@test xmm_paths[2]== xmm_rmf_path
+@test xmm_paths[3]== xmm_arf_path

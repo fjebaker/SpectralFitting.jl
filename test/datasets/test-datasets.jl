@@ -1,33 +1,8 @@
 using SpectralFitting, Test
 
-spectrum = Spectrum(
-    collect(1:10),
-    zeros(Int, 10),
-    ones(Int, 10),
-    collect(range(1.0, 0.0, 10)),
-    "counts",
-    2.0,
-    1.0,
-    1.0,
-    SpectralFitting.ErrorStatistics.Poisson,
-    collect(range(1.0, 0.0, 10)) ./ 100,
-    0.0,
-    "test-telescope",
-    "test-name",
-)
+include("../dummies.jl")
 
-matrix = SpectralFitting.sparse(Matrix(1.0 * SpectralFitting.I, 10, 10))
-energies = collect(range(0, 15.0, 11))
-response = ResponseMatrix(
-    matrix,
-    spectrum.channels,
-    energies[1:end-1],
-    energies[2:end],
-    energies[1:end-1],
-    energies[2:end],
-)
-
-data = SpectralData(spectrum, response)
+data = make_dummy_dataset(collect(range(1.0, 0.0, 10)), collect(range(0, 15.0, 11)))
 
 @test make_objective(ContiguouslyBinned(), data) == [
     1.0,
@@ -42,10 +17,10 @@ data = SpectralData(spectrum, response)
     0.0,
 ]
 @test make_domain(ContiguouslyBinned(), data) ==
-      [1.5, 0.0, 1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5]
+      [0.0, 1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]
 @test make_objective_variance(ContiguouslyBinned(), data) == data.spectrum.errors .^ 2
 
-normalize!(spectrum)
+normalize!(data)
 
 @test make_objective(ContiguouslyBinned(), data) == [
     0.5,
@@ -60,5 +35,5 @@ normalize!(spectrum)
     0.0,
 ]
 @test make_domain(ContiguouslyBinned(), data) ==
-      [1.5, 0.0, 1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5]
+      [0.0, 1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]
 @test make_objective_variance(ContiguouslyBinned(), data) == data.spectrum.errors .^ 2

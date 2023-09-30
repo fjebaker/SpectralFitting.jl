@@ -115,8 +115,8 @@ free_params = [2.0, 2.0, 2.0]
 out_flux = invokemodel(energy, cm, free_params)
 @test all(out_flux .== 140.0)
 
-flux = zeros(Float64, length(energy) - 1)
-fluxes = (flux, deepcopy(flux))
+fluxes = zeros(Float64, (length(energy) - 1, 2))
+flux = view(fluxes, :, 1)
 invokemodel!(fluxes, energy, cm, free_params)
 @test all(flux .== 140.0)
 
@@ -145,8 +145,8 @@ flux = invokemodel(energy, cm)
 @test all(flux .== 160.0)
 
 # inplace variant
-flux = zeros(Float64, length(energy) - 1)
-fluxes = (flux, deepcopy(flux))
+fluxes = zeros(Float64, (length(energy) - 1, 2))
+flux = view(fluxes, :, 1)
 invokemodel!(fluxes, energy, cm)
 @test all(flux .== 160.0)
 
@@ -162,8 +162,8 @@ model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + Dummy
 flux = invokemodel(energy, model)
 @test all(flux .== 300)
 
-flux = zeros(Float64, length(energy) - 1)
-fluxes = (flux, deepcopy(flux), deepcopy(flux))
+fluxes = zeros(Float64, (length(energy) - 1, flux_count(model)))
+flux = view(fluxes, :, 1)
 invokemodel!(fluxes, energy, model)
 @test all(flux .== 300)
 

@@ -61,7 +61,8 @@ invokemodel!(flux, energy, model)
 
 # composite
 model = XS_PowerLaw() + XS_PowerLaw()
-fluxes = (flux, deepcopy(flux))
+fluxes = hcat(flux, copy(flux))
+flux = view(fluxes, :, 1)
 invokemodel!(fluxes, energy, model)
 @test all(.!isnan.(flux))
 @test all(.!isinf.(flux))
