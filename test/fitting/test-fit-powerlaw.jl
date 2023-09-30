@@ -4,7 +4,7 @@ using SpectralFitting
 include("../dummies.jl")
 
 # generate some fake powerlaw data
-dummy_data = make_dummy_dataset((E) -> (E^(-3.0)); units = "count / s")
+dummy_data = make_dummy_dataset((E) -> (E^(-3.0)); units = "count / s keV")
 
 # test that both julia and xspec implementations can fit simple
 model = PowerLaw()
@@ -22,7 +22,7 @@ result = fit(prob, LevenbergMarquadt())
 @test result.u ≈ [12.06629478087094, 3.080992500319396] atol = 1e-4
 
 # composite power law
-dummy_data = make_dummy_dataset((E) -> (E^(-3.0) + E^(-1)); units = "count / s")
+dummy_data = make_dummy_dataset((E) -> (E^(-3.0) + E^(-1)); units = "count / s keV")
 
 # julia implementation
 model = PowerLaw() + PowerLaw(a = FitParam(1.0))

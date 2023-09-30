@@ -6,7 +6,7 @@ include("../dummies.jl")
 
 # generate some fake powerlaw data with three components
 dummy_data =
-    make_dummy_dataset((E) -> (E^(-0.1) + E^(-3.0) + E^(-1.0)); units = "count / s")
+    make_dummy_dataset((E) -> (E^(-0.1) + E^(-3.0) + E^(-1.0)); units = "count / s keV")
 
 # model with two components
 model = PowerLaw(K = FitParam(10.0)) + PowerLaw(K = FitParam(10.0))
