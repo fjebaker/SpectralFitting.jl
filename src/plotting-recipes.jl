@@ -1,6 +1,21 @@
 using RecipesBase
 
 @recipe function _plotting_func(
+    dataset::InjectiveData;
+    data_layout = OneToOne(),
+)
+    seriestype --> :scatter
+    markersize --> 1.0
+    markershape --> :none
+    markerstrokecolor --> :auto
+    yerr -> dataset.codomain_variance
+    xerr -> dataset.domain_variance
+    label --> make_label(dataset)
+    minorgrid --> true
+    dataset.domain, dataset.codomain
+end
+
+@recipe function _plotting_func(
     dataset::AbstractDataset;
     data_layout = ContiguouslyBinned(),
 )
@@ -44,11 +59,14 @@ end
     @views (d.x[1:end-1], d.y)
 end
 
+plotting_domain(dataset::AbstractDataset) = spectrum_energy(dataset)
+plotting_domain(dataset::InjectiveData) = dataset.domain
+
 @recipe function _plotting_func(dataset::AbstractDataset, result::FittingResult)
     label --> "fit"
     seriestype --> :stepmid
     y = _f_objective(result.config)(result.config.domain, result.u)
-    x = spectrum_energy(dataset)
+    x = plotting_domain(dataset)
     x, y
 end
 

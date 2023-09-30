@@ -15,7 +15,7 @@ export AbstractSpectralModel,
     has_closure_params,
     invokemodel,
     invokemodel!,
-    flux_count,
+    objective_cache_count,
     modelparameters,
     freeparameters,
     frozenparameters,
@@ -186,13 +186,13 @@ invokemodel(energy, model, p0)
 ```
 """
 function invokemodel(e, m::AbstractSpectralModel)
-    flux = make_flux(m, e)
+    flux = construct_objective_cache(m, e)
     invokemodel!(flux, e, m)
     flux
 end
 function invokemodel(e, m::AbstractSpectralModel, free_params)
     model = remake_with_free(m, free_params)
-    flux = make_flux(eltype(free_params), m, e)
+    flux = construct_objective_cache(eltype(free_params), m, e)
     invokemodel!(flux, e, model)
     flux
 end
@@ -207,8 +207,8 @@ given by `model`, optionally overriding the free and/or frozen parameter values.
 may be a vector or tuple with element type [`FitParam`](@ref) or `Number`.
 
 The number of fluxes to allocate for a model may change if using any [`CompositeModel`](@ref)
-as the `model`. It is generally recommended to use [`flux_count`](@ref) to ensure the correct number
-of flux arrays are allocated with [`make_fluxes`](@ref) when using composite models.
+as the `model`. It is generally recommended to use [`objective_cache_count`](@ref) to ensure the correct number
+of flux arrays are allocated with [`construct_objective_cache`](@ref) when using composite models.
 
 Single spectral model components should use [`make_flux`](@ref) instead.
 

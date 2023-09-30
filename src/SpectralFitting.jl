@@ -52,10 +52,11 @@ include("meta-models/table-models.jl")
 include("poisson.jl")
 
 include("datasets/ogip.jl")
-include("datasets/binning.jl")
 include("datasets/datasets.jl")
+include("datasets/binning.jl")
 include("datasets/grouping.jl")
 include("datasets/simple-dataset.jl")
+include("datasets/injectivedata.jl")
 
 include("model-data-io.jl")
 

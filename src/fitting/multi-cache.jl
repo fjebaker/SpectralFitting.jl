@@ -68,6 +68,7 @@ function FittingConfig(prob::FittingProblem)
     i::Int = 1
     caches = map(prob.model.m) do m
         c = SpectralCache(
+            layout,
             m,
             domains[i],
             objectives[i],

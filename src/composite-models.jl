@@ -102,32 +102,32 @@ end
 
 # invocation wrappers
 function invokemodel!(f, e, model::CompositeModel)
-    @assert size(f, 2) == flux_count(model) "Too few flux arrays allocated for this model."
+    @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
     generated_model_call!(f, e, model, model_parameters_tuple(model))
 end
 function invokemodel!(f, e, model::CompositeModel, free_params, frozen_params)
-    @assert size(f, 2) == flux_count(model) "Too few flux arrays allocated for this model."
+    @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
     generated_model_call!(f, e, model, free_params, frozen_params)
 end
 function invokemodel!(f, e, model::CompositeModel, free_params)
-    @assert size(f, 2) == flux_count(model) "Too few flux arrays allocated for this model."
+    @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
     frozen_params = convert.(eltype(free_params), frozenparameters(model))
     invokemodel!(f, e, model, free_params, frozen_params)
 end
 
 function invokemodel(e, m::CompositeModel)
-    fluxes = make_fluxes(m, e)
+    fluxes = construct_objective_cache(m, e)
     invokemodel!(fluxes, e, m)
     view(fluxes, :, 1)
 end
 function invokemodel(e, m::CompositeModel, free_params)
     if eltype(free_params) <: Number
         # for compatability with AD
-        fluxes = make_fluxes(eltype(free_params), m, e)
+        fluxes = construct_objective_cache(eltype(free_params), m, e)
         invokemodel!(fluxes, e, m, free_params)
     else
         p0 = get_value.(free_params)
-        fluxes = make_fluxes(eltype(p0), m, e)
+        fluxes = construct_objective_cache(eltype(p0), m, e)
         invokemodel!(fluxes, e, m, p0)
     end
     view(fluxes, :, 1)

@@ -64,7 +64,7 @@ frozen_parameter_symbols(::CompositeModel) =
     throw("This inspection method is for base models only.")
 
 """
-    flux_count(model::AbstractSpectralModel)
+    objective_cache_count(model::AbstractSpectralModel)
 
 Returns the number of flux arrays the model needs when using [`invokemodel!`](@ref).
 
@@ -72,10 +72,10 @@ Returns the number of flux arrays the model needs when using [`invokemodel!`](@r
 
 ```julia
 model = XS_PhotoelectricAbsorption() * XS_PowerLaw()
-flux_count(model)
+objective_cache_count(model)
 ```
 """
-@inline @generated function flux_count(model::AbstractSpectralModel)
+@inline @generated function objective_cache_count(model::AbstractSpectralModel)
     FunctionGeneration.generated_maximum_flux_count(model)
 end
 

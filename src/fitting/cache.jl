@@ -9,8 +9,8 @@ struct SpectralCache{M,O,T,TransformerType} <: AbstractFittingCache
     model_output::O
     calculated_objective::T
     transfomer!!::TransformerType
-    function SpectralCache(model::M, domain, objective, transformer::XfmT) where {M,XfmT}
-        model_output = DiffCache(make_fluxes(model, domain))
+    function SpectralCache(layout::AbstractDataLayout, model::M, domain, objective, transformer::XfmT) where {M,XfmT}
+        model_output = DiffCache(construct_objective_cache(layout, model, domain))
         calc_obj = similar(objective)
         calc_obj .= 0
         calc_obj_cache = DiffCache(calc_obj)
@@ -71,7 +71,7 @@ function FittingConfig(model::AbstractSpectralModel, dataset::AbstractDataset)
     objective = make_objective(layout, dataset)
     variance = make_objective_variance(layout, dataset)
     params = freeparameters(model)
-    cache = SpectralCache(model, domain, objective, objective_transformer(layout, dataset))
+    cache = SpectralCache(layout, model, domain, objective, objective_transformer(layout, dataset))
     FittingConfig(implementation(model), cache, params, domain, objective, variance)
 end
 

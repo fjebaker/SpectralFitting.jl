@@ -107,7 +107,7 @@ end
 
 _readable_boolean(b) = b ? "yes" : "no"
 
-function _printinfo(io, spectrum::Spectrum)
+function _printinfo(io::IO, spectrum::Spectrum)
     dmin, dmax = prettyfloat.(extrema(spectrum.data))
     is_grouped = isgrouped(spectrum) |> _readable_boolean
     num_bad = count(==(BAD_QUALITY), spectrum.quality)

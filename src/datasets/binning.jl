@@ -1,4 +1,4 @@
-export rebin_flux, make_flux, make_fluxes, domain_vector, regroup!
+export rebin_flux, make_flux, construct_objective_cache, domain_vector, regroup!
 
 function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
@@ -56,10 +56,19 @@ make_flux(T::Type, m::AbstractSpectralModel, e::AbstractVector) =
     make_flux(T, length(e) + Δoutput_length(m))
 make_flux(T::Type, n::Int) = zeros(T, n)
 
-make_fluxes(model::AbstractSpectralModel, domain::AbstractVector{T}) where {T} =
-    make_fluxes(T, model, domain)
-function make_fluxes(T, model::AbstractSpectralModel, domain)
-    zeros(T, (length(domain) - 1, flux_count(model)))
+construct_objective_cache(model::AbstractSpectralModel, domain::AbstractVector) = construct_objective_cache(preferred_support(model), model, domain)
+construct_objective_cache(T::Type, model::AbstractSpectralModel, domain::AbstractVector) = construct_objective_cache(preferred_support(model), T, model, domain)
+construct_objective_cache(layout::AbstractDataLayout, model::AbstractSpectralModel, domain::AbstractVector{T}) where {T} =
+    construct_objective_cache(layout, T, model, domain)
+function construct_objective_cache(layout::AbstractDataLayout, T::Type, model::AbstractSpectralModel, domain)
+    N = if layout isa OneToOne
+        length(domain)
+    elseif layout isa ContiguouslyBinned
+        length(domain) - 1
+    else
+        error("No domain construction for $(layout) defined.")
+    end
+    zeros(T, (N, objective_cache_count(model)))
 end
 
 function augmented_energy_channels(channels, other_channels, bins_low, bins_high)

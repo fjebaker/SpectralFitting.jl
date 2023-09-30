@@ -14,7 +14,7 @@ mutable struct GenerationAggregate{NumType}
     infos::Vector{ModelInfo}
     closure_params::Vector{Symbol}
     models::Vector{Type}
-    flux_count::Int
+    objective_cache_count::Int
     maximum_flux_count::Int
 end
 
@@ -26,15 +26,15 @@ push_statement!(g::GenerationAggregate, s::Expr) = push!(g.statements, s)
 push_model!(g::GenerationAggregate, t::Type) = push!(g.models, t)
 
 function set_flux!(g::GenerationAggregate, f)
-    g.flux_count = f
-    if g.flux_count > g.maximum_flux_count
-        g.maximum_flux_count = g.flux_count
+    g.objective_cache_count = f
+    if g.objective_cache_count > g.maximum_flux_count
+        g.maximum_flux_count = g.objective_cache_count
     end
-    g.flux_count
+    g.objective_cache_count
 end
 
-inc_flux!(g::GenerationAggregate) = set_flux!(g, g.flux_count + 1)
-dec_flux!(g::GenerationAggregate) = set_flux!(g, g.flux_count - 1)
+inc_flux!(g::GenerationAggregate) = set_flux!(g, g.objective_cache_count + 1)
+dec_flux!(g::GenerationAggregate) = set_flux!(g, g.objective_cache_count - 1)
 
 get_flux_symbol(i::Int) = Symbol(:flux, i)
 
@@ -88,7 +88,7 @@ function _addinfoinvoke!(
     if !(modelkind(model) === Convolutional)
         inc_flux!(ga)
     end
-    flux = get_flux_symbol(ga.flux_count)
+    flux = get_flux_symbol(ga.objective_cache_count)
     # get and append model info
     info = getinfo(model; lens = lens)
     push!(ga.infos, info)
@@ -134,9 +134,9 @@ function _addinfoinvoke!(ga::GenerationAggregate, model::Type{<:CompositeModel},
 end
 
 function add_flux_resolution!(ga::GenerationAggregate, op::Symbol)
-    fr = get_flux_symbol(ga.flux_count)
+    fr = get_flux_symbol(ga.objective_cache_count)
     dec_flux!(ga)
-    fl = get_flux_symbol(ga.flux_count)
+    fl = get_flux_symbol(ga.objective_cache_count)
     expr = Expr(:call, op, fl, fr)
     push_statement!(ga, :(@.($fl = $expr)))
 end

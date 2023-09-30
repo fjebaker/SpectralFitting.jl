@@ -11,12 +11,23 @@ struct ContiguouslyBinned <: AbstractDataLayout end
 
 export OneToOne, ContiguouslyBinned
 
+const DEFAULT_SUPPORT_ORDERING = (ContiguouslyBinned(), OneToOne())
+
+function preferred_support(x)
+    for layout in DEFAULT_SUPPORT_ORDERING
+        if supports(layout, x)
+            return layout
+        end
+    end
+    error("No prefered support for $(typeof(x))")
+end
+
 # used to check what to default to
 # todo: check if can be compile time eval'd else expand for loop or @generated
 function common_support(x, y)
     # order of preference is important
     # can normally trivially fallback from one-to-one to contiguous bins to regular bins
-    for layout in (ContiguouslyBinned(), OneToOne())
+    for layout in DEFAULT_SUPPORT_ORDERING
         if supports(layout, x) && supports(layout, y)
             return layout
         end
@@ -94,6 +105,10 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(data::AbstractDatas
     print(io, encapsulate(s))
 end
 
+function Base.show(io::IO, @nospecialize(data::AbstractDataset))
+    print(io, "$(Base.typename(typeof(data)).name)[$(make_label(data))]")
+end
+
 
 """
     make_objective
@@ -122,18 +137,20 @@ make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
 
 function objective_transformer(layout::AbstractDataLayout, dataset::AbstractDataset)
     @warn "Using default objective transformer!"
-    _default_transformer(layout, dataset)
+    _DEFAULT_TRANSFORMER()
 end
 
-function _default_transformer(::AbstractDataLayout, dataset::AbstractDataset)
-    function _transformer!!(energy, flux)
-        flux
+function _DEFAULT_TRANSFORMER()
+    function _transformer!!(domain, objective)
+        objective
     end
-    function _transformer!!(output, energy, flux)
-        @. output = flux
+    function _transformer!!(output, domain, objective)
+        @. output = objective
     end
     _transformer!!
 end
+
+make_label(d::AbstractDataset) = "$(Base.typename(typeof(d)).name)"
 
 """
 Must support the same API, but may also have some query methods for specific internals.

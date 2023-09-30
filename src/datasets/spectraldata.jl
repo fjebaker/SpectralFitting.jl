@@ -140,7 +140,6 @@ end
 
 spectrum_energy(dataset::SpectralData) =
     @views dataset.channel_to_energy[1:end-1][dataset.data_mask]
-make_label(dataset::SpectralData) = "data"
 
 function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     grp::typeof(grouping) = if safety_copy
