@@ -119,4 +119,36 @@ function _printinfo(io::IO, spectrum::Spectrum)
     print(io, descr)
 end
 
+function subtract_background!(spectrum::Spectrum, background::Spectrum)
+    # should all already be rates
+    # errors added in quadrature
+    # TODO: this needs fixing to propagate errors properly
+    data_variance = spectrum.errors .^ 2
+    background_variance = background.errors .^ 2
+    _subtract_background!(
+        spectrum.errors,
+        data_variance,
+        background_variance,
+        spectrum.area_scale,
+        background.area_scale,
+        spectrum.background_scale,
+        background.background_scale,
+    )
+    @. spectrum.errors = √abs(spectrum.errors)
+    _subtract_background!(
+        spectrum.data,
+        spectrum.data,
+        background.data,
+        spectrum.area_scale,
+        background.area_scale,
+        spectrum.background_scale,
+        background.background_scale,
+    )
+    spectrum
+end
+
+_subtract_background!(output, spec, back, aD, aB, bD, bB) =
+    @. output = (spec / aD) - (bD / bB) * (back / aB)
+
+
 export Spectrum

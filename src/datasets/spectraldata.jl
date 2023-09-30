@@ -202,24 +202,13 @@ function normalize!(dataset::SpectralData)
     dataset
 end
 
+function subtract_background!(dataset::SpectralData)
+    subtract_background!(dataset.spectrum, dataset.background)
+    dataset.background = missing
+    dataset
+end
+
 # internal methods
-
-function _subtract_background(dataset::SpectralData)
-    # should all already be rates
-    # errors added in quadrature
-    # TODO: this needs fixing to propagate errors properly
-    data_variance = @views dataset.spectrum.errors[dataset.data_mask] .^ 2
-    background_variance = @views dataset.background.errors[dataset.data_mask] .^ 2
-    _subtract_background(data_variance, background_variance, dataset)
-end
-
-function _subtract_background(data_variance, background_variance, dataset)
-    aD = dataset.spectrum.area_scale
-    bD = dataset.spectrum.background_scale
-    aB = dataset.background.area_scale
-    bB = dataset.background.background_scale
-    @. (data_variance / aD) - (bD / bB) * (background_variance / aB)
-end
 
 function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPConfig)
     spec = OGIP.read_spectrum(paths.spectrum, config)
@@ -318,6 +307,8 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.spectrum_energy(getproperty(t, $(field)))
         SpectralFitting.bin_widths(t::$(T)) =
             SpectralFitting.bin_widths(getproperty(t, $(field)))
+        SpectralFitting.subtract_background!(t::$(T), args...) =
+            SpectralFitting.subtract_background!(getproperty(t, $(field)), args...)
     end |> esc
 end
 
@@ -408,4 +399,9 @@ function _printinfo(io, data::SpectralData{T}) where {T}
 end
 
 export SpectralData,
-    restrict_domain!, mask_energies!, drop_bad_channels!, drop_channels!, normalize!
+    restrict_domain!,
+    mask_energies!,
+    drop_bad_channels!,
+    drop_channels!,
+    normalize!,
+    subtract_background!

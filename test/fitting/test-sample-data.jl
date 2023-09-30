@@ -30,14 +30,6 @@ result = fit(prob, LevenbergMarquadt())
 @test result.χ2 ≈ 484.88 atol = 0.1
 @test result.u ≈ [8.9215e-05, 6.5673, 0.010446, 1.8422, 0.13760] rtol = 1e-3
 
-# todo: with background subtraction
-# subtract_background!(data1)
-# prob = FittingProblem(model, data1)
-# result = fit(prob, LevenbergMarquadt())
-# # these have been checked and are the same as XSPEC
-# @test result.χ2 ≈ 496.09 atol = 0.1
-# @test result.u ≈ [9.181e-5, 6.55961, 0.0104753, 1.848017, 0.139510] rtol = 1e-3
-
 data2 = NuStarData(joinpath(testdir, "nustar/nu60001047002A01_sr_grp_simple.pha"))
 prepare_data!(data2, 2.0, 14.0)
 
@@ -53,7 +45,6 @@ result = fit(prob, LevenbergMarquadt())
     0.33187746370113763,
 ] rtol = 1e-3
 
-
 # test joint
 prob = FittingProblem(model => data1, model => data2)
 result = fit(prob, LevenbergMarquadt())
@@ -67,3 +58,13 @@ result = fit(prob, LevenbergMarquadt())
 
 @test result[1].χ2 ≈ 485.35 atol = 0.1
 @test result[2].χ2 ≈ 203.19 atol = 0.1
+
+# todo: with background subtraction
+data1_nobkg = deepcopy(data1)
+subtract_background!(data1_nobkg)
+
+prob = FittingProblem(model, data1_nobkg)
+result = fit(prob, LevenbergMarquadt())
+# these have been checked and are the same as XSPEC
+@test result.χ2 ≈ 496.6315394006663 atol = 0.1
+@test result.u ≈ [9.2113e-05, 6.5597, 0.010478, 1.8483, 0.13960] rtol = 1e-3
