@@ -83,6 +83,7 @@ end
         @testset "datasets" begin
             include("datasets/test-ogip.jl")
             include("datasets/test-grouping.jl")
+            include("datasets/test-binning.jl")
             include("datasets/test-datasets.jl")
         end
     else

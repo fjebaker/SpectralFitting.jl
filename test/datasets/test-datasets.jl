@@ -16,7 +16,7 @@ data = make_dummy_dataset(collect(range(1.0, 0.0, 10)), collect(range(0, 15.0, 1
     0.1111111111111111,
     0.0,
 ]
-@test make_domain(ContiguouslyBinned(), data) ==
+@test make_model_domain(ContiguouslyBinned(), data) ==
       [0.0, 1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]
 @test make_objective_variance(ContiguouslyBinned(), data) == data.spectrum.errors .^ 2
 
@@ -34,6 +34,6 @@ normalize!(data)
     0.05555555555555555,
     0.0,
 ]
-@test make_domain(ContiguouslyBinned(), data) ==
+@test make_model_domain(ContiguouslyBinned(), data) ==
       [0.0, 1.5, 3.0, 4.5, 6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0]
 @test make_objective_variance(ContiguouslyBinned(), data) == data.spectrum.errors .^ 2

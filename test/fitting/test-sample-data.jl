@@ -68,3 +68,22 @@ result = fit(prob, LevenbergMarquadt())
 # these have been checked and are the same as XSPEC
 @test result.χ2 ≈ 496.6315394006663 atol = 0.1
 @test result.u ≈ [9.2113e-05, 6.5597, 0.010478, 1.8483, 0.13960] rtol = 1e-3
+
+# try different domain entirely
+set_domain!(data1, collect(range(0.01, 20.0, 1000)))
+
+model = PhotoelectricAbsorption() * XS_PowerLaw() + XS_Laor()
+
+# construct the model and data problem
+prob = FittingProblem(model, data1)
+
+result = fit(prob, LevenbergMarquadt())
+# these have been checked and are the same as XSPEC
+@test result.χ2 ≈ 466.92 atol = 0.1
+@test result.u ≈ [
+    9.098183992394181e-5,
+    6.574126894811102,
+    0.01052894049667675,
+    1.8472152777352222,
+    0.13435297425331832,
+] rtol = 1e-3
