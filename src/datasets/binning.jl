@@ -1,4 +1,4 @@
-export rebin_flux, make_flux, construct_objective_cache, domain_vector, regroup!
+export rebin_flux, construct_objective_cache, regroup!
 
 function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
     downsample_rebin(
@@ -50,11 +50,6 @@ function downsample_rebin(input, current_bins, target_bins_high)
     end
     output
 end
-
-make_flux(m::AbstractSpectralModel, e::AbstractVector) = make_flux(eltype(e), m, e)
-make_flux(T::Type, m::AbstractSpectralModel, e::AbstractVector) =
-    make_flux(T, length(e) + Δoutput_length(m))
-make_flux(T::Type, n::Int) = zeros(T, n)
 
 construct_objective_cache(model::AbstractSpectralModel, domain::AbstractVector) = construct_objective_cache(preferred_support(model), model, domain)
 construct_objective_cache(T::Type, model::AbstractSpectralModel, domain::AbstractVector) = construct_objective_cache(preferred_support(model), T, model, domain)

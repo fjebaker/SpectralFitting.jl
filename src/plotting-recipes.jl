@@ -41,24 +41,6 @@ end
     (x, rate)
 end
 
-@recipe function _plotting_func(d::SimpleDataset)
-    seriestype --> :scatter
-    xscale --> :log10
-    yscale --> :log10
-    markerstrokewidth --> 0
-    xlabel --> "x ($(d.x_units))"
-    ylabel --> "y ($(d.y_units))"
-    label --> d.name
-    if !isnothing(d.x_err)
-        @views xerr --> d.x_err[1:end-1]
-    end
-    if !isnothing(d.y_err)
-        yerr --> d.y_err
-    end
-    minorgrid --> true
-    @views (d.x[1:end-1], d.y)
-end
-
 plotting_domain(dataset::AbstractDataset) = spectrum_energy(dataset)
 plotting_domain(dataset::InjectiveData) = dataset.domain
 

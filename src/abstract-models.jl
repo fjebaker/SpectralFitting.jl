@@ -186,13 +186,13 @@ invokemodel(energy, model, p0)
 ```
 """
 function invokemodel(e, m::AbstractSpectralModel)
-    flux = construct_objective_cache(m, e)
+    flux = construct_objective_cache(m, e) |> vec
     invokemodel!(flux, e, m)
     flux
 end
 function invokemodel(e, m::AbstractSpectralModel, free_params)
     model = remake_with_free(m, free_params)
-    flux = construct_objective_cache(eltype(free_params), m, e)
+    flux = construct_objective_cache(eltype(free_params), m, e) |> vec
     invokemodel!(flux, e, model)
     flux
 end
