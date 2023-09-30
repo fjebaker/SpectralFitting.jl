@@ -82,6 +82,8 @@ end
     if has_test_dir
         @testset "datasets" begin
             include("datasets/test-ogip.jl")
+            include("datasets/test-grouping.jl")
+            include("datasets/test-datasets.jl")
         end
     else
         @warn "Skipping dataset tests."
@@ -89,6 +91,7 @@ end
 end
 
 @testset "fitting" verbose = true begin
+    include("fitting/test-fit-simple-dataset.jl")
     @testset "powerlaws" begin
         include("fitting/test-fit-powerlaw.jl")
     end
