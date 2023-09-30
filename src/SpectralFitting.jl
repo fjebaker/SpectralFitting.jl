@@ -34,6 +34,8 @@ struct NoMission <: AbstractMission end
 
 # unitful units
 include("units.jl")
+SpectralUnits.@reexport using .SpectralUnits
+
 include("print-utilities.jl")
 
 include("fitparam.jl")

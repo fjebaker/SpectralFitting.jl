@@ -32,11 +32,19 @@ struct MultiFittingResult{T,K,C} <: AbstractFittingResult
     config::C
 end
 
+struct MultiFittingSlice{C,V,U,T}
+    cache::C
+    domain::V
+    u::U
+    χ2::T
+end
+
 function Base.getindex(result::MultiFittingResult, i::Int)
-    model = result.config.cache.caches[i].model
+    cache = result.config.cache.caches[i]
     u = result.us[i]
     chi2 = result.χ2s[i]
-    return (; model = model, u = u, χ2 = chi2)
+    s, e = _get_range(result.config.cache.domain_mapping, i)
+    MultiFittingSlice(cache, result.config.domain[s:e], u, chi2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::MultiFittingResult))
@@ -46,8 +54,8 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::MultiFittingRe
     println(buff, "MultiFittingResult:")
     print(buff, " ")
     for i = 1:length(res.us)
-        model, u, chi2 = res[i]
-        b = _pretty_print_result(model, u, chi2)
+        slice = res[i]
+        b = _pretty_print_result(slice.cache.model, slice.u, slice.χ2)
         r = indent(b, 1)
         print(buff, r)
     end

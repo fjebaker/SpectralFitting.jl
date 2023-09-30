@@ -1,6 +1,7 @@
 module OGIP
 
 import SpectralFitting
+import SpectralFitting: SpectralUnits
 using FITSIO
 using SparseArrays
 
@@ -241,10 +242,10 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
             ones(Int, size(channels))
         end
 
-        units, values::Vector{T} = if "RATE" ∈ column_names
-            "count / s", convert.(T, read(fits[2], "RATE"))
+        units::SpectralUnits.RateOrCount, values::Vector{T} = if "RATE" ∈ column_names
+            SpectralUnits._rate(), convert.(T, read(fits[2], "RATE"))
         else
-            "counts", convert.(T, read(fits[2], "COUNTS"))
+            SpectralUnits._counts(), convert.(T, read(fits[2], "COUNTS"))
         end
 
         stat, _errors = if "STAT_ERR" ∈ column_names

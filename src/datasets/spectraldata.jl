@@ -5,6 +5,16 @@ struct SpectralDataPaths
     ancillary::Union{Missing,String}
 end
 
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(paths::SpectralDataPaths))
+    descr = """SpectralFilePaths:
+      . Spectrum       : $(paths.spectrum)
+      . Response       : $(paths.response)
+      . Background     : $(paths.background)
+      . Ancillary      : $(paths.ancillary)
+    """
+    print(io, descr)
+end
+
 function SpectralDataPaths(; spectrum = "", background = "", response = "", ancillary = "")
     SpectralDataPaths(
         spectrum == "" ? missing : spectrum,
@@ -69,17 +79,19 @@ end
 
 supports_contiguosly_binned(::Type{<:SpectralData}) = true
 
-function make_objective(layout::AbstractDataLayout, dataset::SpectralData)
-    if dataset.spectrum.unit_string != "count / s keV"
-        @warn "Spectrum is currently still in $(dataset.spectrum.unit_string). Most models fit in rate (count / s keV). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
+function check_units_warning(units)
+    if units != u"counts / (s * keV)"
+        @warn "Data is currently still in $(units). Most models fit in rate (count / (s * keV)). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
     end
+end
+
+function make_objective(layout::AbstractDataLayout, dataset::SpectralData)
+    check_units_warning(dataset.spectrum.units)
     make_objective(layout, dataset.spectrum)[dataset.data_mask]
 end
 
 function make_objective_variance(layout::AbstractDataLayout, dataset::SpectralData)
-    if dataset.spectrum.unit_string != "count / s keV"
-        @warn "Spectrum is currently still in $(dataset.spectrum.unit_string). Most models fit in rate (count / s keV). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
-    end
+    check_units_warning(dataset.spectrum.units)
     make_objective_variance(layout, dataset.spectrum)[dataset.data_mask]
 end
 
@@ -174,17 +186,17 @@ regroup!(dataset::SpectralData) = regroup!(dataset, dataset.spectrum.grouping)
 function normalize!(dataset::SpectralData)
     ΔE = bin_widths(dataset)
     normalize!(dataset.spectrum)
-    if dataset.spectrum.unit_string != "count / s keV"
+    if !(dataset.spectrum.units == u"counts / (s * keV)")
         @. dataset.spectrum.data /= ΔE
         @. dataset.spectrum.errors /= ΔE
-        dataset.spectrum.unit_string = "count / s keV"
+        dataset.spectrum.units = u"counts / (s * keV)"
     end
     if has_background(dataset)
         normalize!(dataset.background)
-        if dataset.background.unit_string != "count / s keV"
+        if !(dataset.background.units == u"counts / (s * keV)")
             @. dataset.background.data /= ΔE
             @. dataset.background.errors /= ΔE
-            dataset.background.unit_string = "count / s keV"
+            dataset.background.units = u"counts / (s * keV)"
         end
     end
     dataset
@@ -231,14 +243,18 @@ function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPC
     end
 
     # convert everything to rates
-    if spec.unit_string == "counts"
-        spec.unit_string = "count / s"
+    if spec.units == u"counts"
+        spec.units = u"counts / s"
         @. spec.data /= spec.exposure_time
         if !ismissing(spec.errors)
             @. spec.errors /= spec.exposure_time
         end
-        if !ismissing(back) && back.unit_string == "counts"
-            @. back.data /= back.exposure_time
+    end
+    if !ismissing(back) && back.units == u"counts"
+        back.units = u"counts / s"
+        @. back.data /= back.exposure_time
+        if !ismissing(back.errors)
+            @. back.errors /= back.exposure_time
         end
     end
     SpectralData(spec, resp; background = back, ancillary = ancillary)

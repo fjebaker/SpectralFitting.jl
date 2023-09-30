@@ -49,6 +49,14 @@ plotting_domain(dataset::InjectiveData) = dataset.domain
     x, y
 end
 
+@recipe function _plotting_func(dataset::AbstractDataset, result::MultiFittingSlice)
+    label --> "fit"
+    seriestype --> :stepmid
+    y = _invoke_and_transform!(result.cache, result.domain, result.u)
+    x = plotting_domain(dataset)
+    x, y
+end
+
 # ratio plots
 @userplot RatioPlot
 @recipe function _plotting_func(

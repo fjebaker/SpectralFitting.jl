@@ -5,7 +5,7 @@ mutable struct Spectrum{T} <: AbstractDataset
 
     # this could be counts or flux
     data::Vector{T}
-    unit_string::String
+    units::SpectralUnits.RateOrCount
 
     exposure_time::T
     background_scale::T
@@ -20,10 +20,10 @@ mutable struct Spectrum{T} <: AbstractDataset
 end
 
 function normalize!(spectrum::Spectrum)
-    if spectrum.unit_string == "counts"
+    if spectrum.units == u"counts"
         @. spectrum.data /= spectrum.exposure_time
         @. spectrum.errors /= spectrum.exposure_time
-        spectrum.unit_string = "count / s"
+        spectrum.units = u"counts/ s"
     end
     spectrum
 end
@@ -31,16 +31,12 @@ end
 supports_contiguosly_binned(::Type{<:Spectrum}) = true
 
 function make_objective(::ContiguouslyBinned, dataset::Spectrum)
-    if dataset.unit_string == "counts"
-        @warn "Spectrum is currently still in counts. Most models fit in rate (count / s). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
-    end
+    check_units_warning(dataset.units)
     dataset.data
 end
 
 function make_objective_variance(::ContiguouslyBinned, dataset::Spectrum)
-    if dataset.unit_string == "counts"
-        @warn "Spectrum is currently still in counts. Most models fit in rate (count / s). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
-    end
+    check_units_warning(dataset.units)
     @. dataset.errors^2
 end
 
@@ -65,15 +61,15 @@ function regroup!(spectrum::Spectrum{T}, grouping) where {T}
         regroup_quality_vector!(spectrum.quality, grp)
         if !ismissing(spectrum.errors)
             vs = spectrum.data[grp[1]]
-            if spectrum.unit_string == "counts"
+            if spectrum.units == u"counts"
                 spectrum.errors[grp[1]] = count_error(vs, 1.0)
-            elseif spectrum.unit_string == "count / s"
+            elseif spectrum.units == u"counts / s"
                 vs = vs * spectrum.exposure_time
                 es = count_error(vs, 1.0)
                 spectrum.errors[grp[1]] = es / spectrum.exposure_time
             else
                 error(
-                    "No method for grouping errors with given spectral units ($(spectrum.unit_string)).",
+                    "No method for grouping errors with given spectral units ($(spectrum.units)).",
                 )
             end
         end
@@ -113,7 +109,7 @@ function _printinfo(io::IO, spectrum::Spectrum)
     num_bad = count(==(BAD_QUALITY), spectrum.quality)
     has_bad = num_bad > 0 ? "yes ($num_bad)" : "no"
     descr = """Spectrum: $(spectrum.telescope_name)[$(spectrum.instrument)]
-      Units                 : $(spectrum.unit_string)
+      Units                 : $(spectrum.units)
       . Exposure time       : $(spectrum.exposure_time)
       . Channels            : $(length(spectrum.channels))
       . Data (min/max)      : ($dmin, $dmax)
