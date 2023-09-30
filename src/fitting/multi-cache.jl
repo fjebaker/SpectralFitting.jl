@@ -1,5 +1,5 @@
-struct MultiModelCache{K,N,CacheType,ParameterMappingType} <: AbstractFittingCache
-    caches::NTuple{N,CacheType}
+struct MultiModelCache{K,N,CacheTypes<:Tuple,ParameterMappingType} <: AbstractFittingCache
+    caches::CacheTypes
     all_outputs::K
     domain_mapping::NTuple{N,Int}
     objective_mapping::NTuple{N,Int}

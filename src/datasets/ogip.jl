@@ -242,7 +242,7 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
         end
 
         units, values::Vector{T} = if "RATE" ∈ column_names
-            "rate", convert.(T, read(fits[2], "RATE"))
+            "count / s", convert.(T, read(fits[2], "RATE"))
         else
             "counts", convert.(T, read(fits[2], "COUNTS"))
         end

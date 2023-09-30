@@ -1,24 +1,30 @@
 using RecipesBase
 
-# @recipe function _plotting_func(d::SpectralDataset)
-#     seriestype --> :scatter
-#     markersize --> 0.5
-#     markershape --> :none
-#     (rate, rateerror) = (get_rate(d), get_rate_variance(d))
-#     yerr --> rateerror
-#     xerr --> get_bin_widths(d) ./ 2
-#     markerstrokecolor --> :auto
-#     xscale --> :log10
-#     yscale --> :log10
-#     yticks --> ([0.01, 0.1, 1, 10, 100], [0.01, 0.1, 1, 10, 100])
-#     xticks --> ([1e-1, 1, 2, 5, 10, 20, 50, 100], [1e-1, 1, 2, 5, 10, 20, 50, 100])
-#     xlabel --> "Energy (keV)"
-#     ylabel --> "counts s⁻¹ keV⁻¹"
-#     label --> observation_id(d)
-#     minorgrid --> true
-#     x = ((d.bins_low.+d.bins_high)./2)[d.mask]
-#     (x, rate)
-# end
+@recipe function _plotting_func(
+    dataset::AbstractDataset;
+    data_layout = ContiguouslyBinned(),
+)
+    seriestype --> :scatter
+    markersize --> 0.5
+    markershape --> :none
+    (rate, rateerror) = (
+        make_objective(data_layout, dataset),
+        make_objective_variance(data_layout, dataset),
+    )
+    yerr --> rateerror
+    xerr --> bin_widths(dataset) ./ 2
+    markerstrokecolor --> :auto
+    xscale --> :log10
+    yscale --> :log10
+    yticks --> ([0.01, 0.1, 1, 10, 100], [0.01, 0.1, 1, 10, 100])
+    xticks --> ([1e-1, 1, 2, 5, 10, 20, 50, 100], [1e-1, 1, 2, 5, 10, 20, 50, 100])
+    xlabel --> "Energy (keV)"
+    ylabel --> "counts s⁻¹ keV⁻¹"
+    label --> make_label(dataset)
+    minorgrid --> true
+    x = spectrum_energy(dataset)
+    (x, rate)
+end
 
 @recipe function _plotting_func(d::SimpleDataset)
     seriestype --> :scatter
@@ -38,11 +44,12 @@ using RecipesBase
     @views (d.x[1:end-1], d.y)
 end
 
-@recipe function _plotting_func(x::AbstractVector, r::FittingResult)
+@recipe function _plotting_func(dataset::AbstractDataset, result::FittingResult)
     label --> "fit"
     seriestype --> :stepmid
-    y = r.folded_invoke(r.x, r.u)
-    @views x[1:lastindex(y)], y
+    y = _f_objective(result.config)(result.config.domain, result.u)
+    x = spectrum_energy(dataset)
+    x, y
 end
 
 # ratio plots

@@ -27,6 +27,8 @@ function XMMData(device::AbstractXmmNewtonDevice, spec_path; T::Type = Float64, 
     XMMData(device, data, paths, obs_id, exposure_id, object)
 end
 
+make_label(data::XMMData) = data.observation_id
+
 @_forward_SpectralData_api XMMData.data
 
 function Base.show(io::IO, data::XMMData{T}) where {T}

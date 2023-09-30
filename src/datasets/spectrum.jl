@@ -23,7 +23,7 @@ function normalize!(spectrum::Spectrum)
     if spectrum.unit_string == "counts"
         @. spectrum.data /= spectrum.exposure_time
         @. spectrum.errors /= spectrum.exposure_time
-        spectrum.unit_string = "rate"
+        spectrum.unit_string = "count / s"
     end
     spectrum
 end
@@ -63,8 +63,19 @@ function regroup!(spectrum::Spectrum{T}, grouping) where {T}
         spectrum.channels[grp[1]] = spectrum.channels[grp[2]]
         regroup_vector!(spectrum.data, grp)
         regroup_quality_vector!(spectrum.quality, grp)
-        if !isnothing(spectrum.errors)
-            spectrum.errors[grp[1]] = count_error(spectrum.data[grp[1]], one(T))
+        if !ismissing(spectrum.errors)
+            vs = spectrum.data[grp[1]]
+            if spectrum.unit_string == "counts"
+                spectrum.errors[grp[1]] = count_error(vs, 1.0)
+            elseif spectrum.unit_string == "count / s"
+                vs = vs * spectrum.exposure_time
+                es = count_error(vs, 1.0)
+                spectrum.errors[grp[1]] = es / spectrum.exposure_time
+            else
+                error(
+                    "No method for grouping errors with given spectral units ($(spectrum.unit_string)).",
+                )
+            end
         end
     end
 

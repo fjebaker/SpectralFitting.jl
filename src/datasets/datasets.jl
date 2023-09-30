@@ -120,8 +120,20 @@ make_domain(layout::AbstractLayout, dataset::AbstractDataset) =
 make_domain_variance(layout::AbstractLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
-objective_transformer(layout::AbstractLayout, dataset::AbstractDataset) =
-    error("Not implemented for $(layout) and $(typeof(dataset))")
+function objective_transformer(layout::AbstractLayout, dataset::AbstractDataset)
+    @warn "Using default objective transformer!"
+    _default_transformer(layout, dataset)
+end
+
+function _default_transformer(::AbstractLayout, dataset::AbstractDataset)
+    function _transformer!!(energy, flux)
+        flux
+    end
+    function _transformer!!(output, energy, flux)
+        @. output = flux
+    end
+    _transformer!!
+end
 
 """
 Must support the same API, but may also have some query methods for specific internals.

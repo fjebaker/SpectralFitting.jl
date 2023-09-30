@@ -70,15 +70,15 @@ end
 supports_contiguosly_binned(::Type{<:SpectralData}) = true
 
 function make_objective(layout::AbstractLayout, dataset::SpectralData)
-    if dataset.spectrum.unit_string == "counts"
-        @warn "Spectrum is currently still in counts. Most models fit in rate (count / s). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
+    if dataset.spectrum.unit_string != "count / s keV"
+        @warn "Spectrum is currently still in $(dataset.spectrum.unit_string). Most models fit in rate (count / s keV). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
     end
     make_objective(layout, dataset.spectrum)[dataset.data_mask]
 end
 
 function make_objective_variance(layout::AbstractLayout, dataset::SpectralData)
-    if dataset.spectrum.unit_string == "counts"
-        @warn "Spectrum is currently still in counts. Most models fit in rate (count / s). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
+    if dataset.spectrum.unit_string != "count / s keV"
+        @warn "Spectrum is currently still in $(dataset.spectrum.unit_string). Most models fit in rate (count / s keV). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
     end
     make_objective_variance(layout, dataset.spectrum)[dataset.data_mask]
 end
@@ -88,6 +88,8 @@ make_domain(::ContiguouslyBinned, dataset::SpectralData) =
 
 restrict_domain!(dataset::SpectralData, low, high) =
     restrict_domain!(dataset, i -> high > i > low)
+mask_energies!(dataset::SpectralData, low, high) =
+    mask_energies!(dataset, i -> high > i > low)
 
 function mask_energies!(dataset::SpectralData, condition)
     J = @. !condition(dataset.channel_to_energy)
@@ -97,20 +99,14 @@ end
 
 function restrict_domain!(dataset::SpectralData, condition)
     mask_energies!(dataset, condition)
-    I = @. !condition(dataset.domain)
-    dataset.domain_mask[I] .= false
+    # I = @. !condition(dataset.domain)
+    # dataset.domain_mask[I] .= false
     dataset
 end
 
 function objective_transformer(::ContiguouslyBinned, dataset::SpectralData)
-    R = fold_ancillary(dataset.response, dataset.ancillary)[
-        dataset.data_mask,
-        dataset.domain_mask,
-    ][
-        :,
-        1:end-1,
-    ]
-    ΔE = bin_widths(dataset)[dataset.data_mask]
+    R = fold_ancillary(dataset.response, dataset.ancillary)[dataset.data_mask, :]
+    ΔE = bin_widths(dataset)
     function _transformer!!(energy, flux)
         flux = R * flux
         @. flux = flux / ΔE
@@ -122,7 +118,7 @@ function objective_transformer(::ContiguouslyBinned, dataset::SpectralData)
     _transformer!!
 end
 
-bin_widths(dataset::SpectralData) = diff(dataset.channel_to_energy)
+bin_widths(dataset::SpectralData) = diff(dataset.channel_to_energy)[dataset.data_mask]
 has_background(dataset::SpectralData) = !ismissing(dataset.background)
 has_ancillary(dataset::SpectralData) = !ismissing(dataset.ancillary)
 
@@ -141,6 +137,10 @@ function drop_channels!(dataset::SpectralData, indices)
     deleteat!(dataset.channel_to_energy, indices)
     dataset
 end
+
+spectrum_energy(dataset::SpectralData) =
+    @views dataset.channel_to_energy[1:end-1][dataset.data_mask]
+make_label(dataset::SpectralData) = "data"
 
 function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     grp::typeof(grouping) = if safety_copy
@@ -173,9 +173,20 @@ end
 regroup!(dataset::SpectralData) = regroup!(dataset, dataset.spectrum.grouping)
 
 function normalize!(dataset::SpectralData)
+    ΔE = bin_widths(dataset)
     normalize!(dataset.spectrum)
+    if dataset.spectrum.unit_string != "count / s keV"
+        @. dataset.spectrum.data /= ΔE
+        @. dataset.spectrum.errors /= ΔE
+        dataset.spectrum.unit_string = "count / s keV"
+    end
     if has_background(dataset)
         normalize!(dataset.background)
+        if dataset.background.unit_string != "count / s keV"
+            @. dataset.background.data /= ΔE
+            @. dataset.background.errors /= ΔE
+            dataset.background.unit_string = "count / s keV"
+        end
     end
     dataset
 end
@@ -222,6 +233,7 @@ function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPC
 
     # convert everything to rates
     if spec.unit_string == "counts"
+        spec.unit_string = "count / s"
         @. spec.data /= spec.exposure_time
         if !ismissing(spec.errors)
             @. spec.errors /= spec.exposure_time
@@ -277,12 +289,18 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.regroup!(getproperty(t, $(field)), args...)
         SpectralFitting.restrict_domain!(t::$(T), args...) =
             SpectralFitting.restrict_domain!(getproperty(t, $(field)), args...)
+        SpectralFitting.mask_energies!(t::$(T), args...) =
+            SpectralFitting.mask_energies!(getproperty(t, $(field)), args...)
         SpectralFitting.drop_channels!(t::$(T), args...) =
             SpectralFitting.drop_channels!(getproperty(t, $(field)), args...)
         SpectralFitting.drop_bad_channels!(t::$(T)) =
             SpectralFitting.drop_bad_channels!(getproperty(t, $(field)))
         SpectralFitting.normalize!(t::$(T)) =
             SpectralFitting.normalize!(getproperty(t, $(field)))
+        SpectralFitting.spectrum_energy(t::$(T)) =
+            SpectralFitting.spectrum_energy(getproperty(t, $(field)))
+        SpectralFitting.bin_widths(t::$(T)) =
+            SpectralFitting.bin_widths(getproperty(t, $(field)))
     end |> esc
 end
 
@@ -321,4 +339,5 @@ function _printinfo(io, data::SpectralData{T}) where {T}
     end
 end
 
-export SpectralData, restrict_domain!, drop_bad_channels!, drop_channels!, normalize!
+export SpectralData,
+    restrict_domain!, mask_energies!, drop_bad_channels!, drop_channels!, normalize!

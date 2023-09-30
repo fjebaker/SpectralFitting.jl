@@ -10,7 +10,7 @@ end
 
 function _pretty_print_result(model, u, chi2)
     ppx2 = prettyfloat(chi2)
-    ppu = join((prettyfloat(i) for i in u), ",")
+    ppu = join((prettyfloat(i) for i in u), ", ")
     """
       Model: $(model)
       . u     : [$(ppu)]
@@ -32,6 +32,13 @@ struct MultiFittingResult{T,K,C} <: AbstractFittingResult
     config::C
 end
 
+function Base.getindex(result::MultiFittingResult, i::Int)
+    model = result.config.cache.caches[i].model
+    u = result.us[i]
+    chi2 = result.χ2s[i]
+    return (; model = model, u = u, χ2 = chi2)
+end
+
 function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
     total_χ2 = prettyfloat(sum(res.χ2s))
 
@@ -39,9 +46,7 @@ function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
     println(buff, "MultiFittingResult:")
     print(buff, " ")
     for i = 1:length(res.us)
-        model = res.config.cache.caches[i].model
-        u = res.us[i]
-        chi2 = res.χ2s[i]
+        model, u, chi2 = res[i]
         b = _pretty_print_result(model, u, chi2)
         r = indent(b, 1)
         print(buff, r)
