@@ -1,9 +1,6 @@
 using RecipesBase
 
-@recipe function _plotting_func(
-    dataset::InjectiveData;
-    data_layout = OneToOne(),
-)
+@recipe function _plotting_func(dataset::InjectiveData; data_layout = OneToOne())
     seriestype --> :scatter
     markersize --> 1.0
     markershape --> :none

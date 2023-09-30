@@ -55,6 +55,6 @@ bg_nustar = OGIP.read_background(nustar_background_path, nustar_config)
 # test reading the associated paths
 xmm_paths = OGIP.read_paths_from_spectrum(xmm_spec_path)
 
-@test xmm_paths[1]== xmm_backgroud_path
-@test xmm_paths[2]== xmm_rmf_path
-@test xmm_paths[3]== xmm_arf_path
+@test xmm_paths[1] == xmm_backgroud_path
+@test xmm_paths[2] == xmm_rmf_path
+@test xmm_paths[3] == xmm_arf_path

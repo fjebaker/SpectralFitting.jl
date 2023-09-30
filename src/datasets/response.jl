@@ -64,7 +64,11 @@ function build_response_matrix!(
     end
 end
 
-function Base.show(io::IO, ::MIME{Symbol("text/plain")}, @nospecialize(rm::ResponseMatrix{T})) where {T}
+function Base.show(
+    io::IO,
+    ::MIME{Symbol("text/plain")},
+    @nospecialize(rm::ResponseMatrix{T})
+) where {T}
     nchans = length(rm.channels)
     println(io, "ResponseMatrix with $nchans channels:")
     Base.print_array(io, rm.matrix)
@@ -72,9 +76,17 @@ end
 
 function _printinfo(io, resp::ResponseMatrix{T}) where {T}
     emin, emax = prettyfloat(minimum(resp.bins_low)), prettyfloat(maximum(resp.bins_high))
-    c_emin, c_emax = prettyfloat(minimum(resp.channel_bins_low)), prettyfloat(maximum(resp.channel_bins_high))
+    c_emin, c_emax = prettyfloat(minimum(resp.channel_bins_low)),
+    prettyfloat(maximum(resp.channel_bins_high))
     ranks, files = size(resp.matrix)
-    println(io, "Response Matrix ", Crayons.Crayon(foreground = :cyan), "($ranks x $files)", Crayons.Crayon(reset = true), " channels:")
+    println(
+        io,
+        "Response Matrix ",
+        Crayons.Crayon(foreground = :cyan),
+        "($ranks x $files)",
+        Crayons.Crayon(reset = true),
+        " channels:",
+    )
     descr = """  . Chn. E (min/max)    : ($c_emin, $c_emax)
       . Domain E (min/max)  : ($emin, $emax)
     """
@@ -112,7 +124,11 @@ fold_ancillary(response::ResponseMatrix, ancillary::AncillaryResponse) =
 
 fold_ancillary(response::ResponseMatrix, ::Missing) = response.matrix
 
-function Base.show(io::IO, ::MIME{Symbol("text/plain")}, @nospecialize(resp::AncillaryResponse{T})) where {T}
+function Base.show(
+    io::IO,
+    ::MIME{Symbol("text/plain")},
+    @nospecialize(resp::AncillaryResponse{T})
+) where {T}
     _printinfo(io, resp)
 end
 

@@ -15,7 +15,7 @@ end
 
 # path to the data directory
 data1 =
-    SpectralFitting.XMMData(
+    SpectralFitting.XmmData(
         SpectralFitting.XmmEPIC(),
         joinpath(testdir, "xmm/pn_spec_grp.fits"),
     ) |> _prepare_data

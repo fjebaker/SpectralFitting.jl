@@ -51,11 +51,21 @@ function downsample_rebin(input, current_bins, target_bins_high)
     output
 end
 
-construct_objective_cache(model::AbstractSpectralModel, domain::AbstractVector) = construct_objective_cache(preferred_support(model), model, domain)
-construct_objective_cache(T::Type, model::AbstractSpectralModel, domain::AbstractVector) = construct_objective_cache(preferred_support(model), T, model, domain)
-construct_objective_cache(layout::AbstractDataLayout, model::AbstractSpectralModel, domain::AbstractVector{T}) where {T} =
-    construct_objective_cache(layout, T, model, domain)
-function construct_objective_cache(layout::AbstractDataLayout, T::Type, model::AbstractSpectralModel, domain)
+construct_objective_cache(model::AbstractSpectralModel, domain::AbstractVector) =
+    construct_objective_cache(preferred_support(model), model, domain)
+construct_objective_cache(T::Type, model::AbstractSpectralModel, domain::AbstractVector) =
+    construct_objective_cache(preferred_support(model), T, model, domain)
+construct_objective_cache(
+    layout::AbstractDataLayout,
+    model::AbstractSpectralModel,
+    domain::AbstractVector{T},
+) where {T} = construct_objective_cache(layout, T, model, domain)
+function construct_objective_cache(
+    layout::AbstractDataLayout,
+    T::Type,
+    model::AbstractSpectralModel,
+    domain,
+)
     N = if layout isa OneToOne
         length(domain)
     elseif layout isa ContiguouslyBinned

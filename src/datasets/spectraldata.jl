@@ -274,8 +274,10 @@ macro _forward_SpectralData_api(args)
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
         ) = SpectralFitting.make_domain_variance(layout, getproperty(t, $(field)))
-        SpectralFitting.make_objective(layout::SpectralFitting.AbstractDataLayout, t::$(T)) =
-            SpectralFitting.make_objective(layout, getproperty(t, $(field)))
+        SpectralFitting.make_objective(
+            layout::SpectralFitting.AbstractDataLayout,
+            t::$(T),
+        ) = SpectralFitting.make_objective(layout, getproperty(t, $(field)))
         SpectralFitting.make_objective_variance(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
@@ -305,15 +307,26 @@ end
 
 # printing utilities
 
-function Base.show(io::IO, @nospecialize(data::SpectralData)) 
+function Base.show(io::IO, @nospecialize(data::SpectralData))
     print(io, "SpectralData[$(data.spectrum.telescope_name)]")
 end
 
 function _printinfo(io, data::SpectralData{T}) where {T}
     domain = @views data.domain
-    ce_min, ce_max = @views prettyfloat.(extrema(data.channel_to_energy[1:end-1][data.data_mask]))
+    ce_min, ce_max =
+        @views prettyfloat.(extrema(data.channel_to_energy[1:end-1][data.data_mask]))
     dom_min, dom_max = @views prettyfloat.(extrema(domain))
-    @views println(io, Crayons.Crayon(foreground = :cyan), "SpectralData", Crayons.Crayon(reset = true), " with ", Crayons.Crayon(foreground = :cyan), length(data.channel_to_energy[1:end-1][data.data_mask]) - 1, Crayons.Crayon(reset = true), " active channels:")
+    @views println(
+        io,
+        Crayons.Crayon(foreground = :cyan),
+        "SpectralData",
+        Crayons.Crayon(reset = true),
+        " with ",
+        Crayons.Crayon(foreground = :cyan),
+        length(data.channel_to_energy[1:end-1][data.data_mask]) - 1,
+        Crayons.Crayon(reset = true),
+        " active channels:",
+    )
     descr = """  . Chn. E (min/max)    : ($ce_min, $ce_max)
       . Masked channels     : $(count(==(false), data.data_mask)) / $(length(data.data_mask))
       . Model domain size   : $(length(domain))
@@ -321,24 +334,60 @@ function _printinfo(io, data::SpectralData{T}) where {T}
     """
     print(io, descr)
 
-    print(io, Crayons.Crayon(foreground = :cyan), "Primary Spectrum:", Crayons.Crayon(reset = true), "\n ")
+    print(
+        io,
+        Crayons.Crayon(foreground = :cyan),
+        "Primary Spectrum:",
+        Crayons.Crayon(reset = true),
+        "\n ",
+    )
     _printinfo(io, data.spectrum)
 
-    print(io, Crayons.Crayon(foreground = :cyan), "Response:", Crayons.Crayon(reset = true), "\n ")
+    print(
+        io,
+        Crayons.Crayon(foreground = :cyan),
+        "Response:",
+        Crayons.Crayon(reset = true),
+        "\n ",
+    )
     _printinfo(io, data.response)
 
     if has_background(data)
-        print(io, Crayons.Crayon(foreground = :cyan), "Background: ", Crayons.Crayon(reset = true), "\n ")
+        print(
+            io,
+            Crayons.Crayon(foreground = :cyan),
+            "Background: ",
+            Crayons.Crayon(reset = true),
+            "\n ",
+        )
         _printinfo(io, data.background)
     else
-        print(io, Crayons.Crayon(foreground = :dark_gray), "Background: missing", Crayons.Crayon(reset = true), "\n")
+        print(
+            io,
+            Crayons.Crayon(foreground = :dark_gray),
+            "Background: missing",
+            Crayons.Crayon(reset = true),
+            "\n",
+        )
     end
 
     if has_ancillary(data)
-        print(io, Crayons.Crayon(foreground = :cyan), "Ancillary:", Crayons.Crayon(reset = true), "\n ")
+        print(
+            io,
+            Crayons.Crayon(foreground = :cyan),
+            "Ancillary:",
+            Crayons.Crayon(reset = true),
+            "\n ",
+        )
         _printinfo(io, data.ancillary)
     else
-        print(io, Crayons.Crayon(foreground = :dark_gray), "Ancillary: missing", Crayons.Crayon(reset = true), "\n")
+        print(
+            io,
+            Crayons.Crayon(foreground = :dark_gray),
+            "Ancillary: missing",
+            Crayons.Crayon(reset = true),
+            "\n",
+        )
     end
 end
 
