@@ -15,7 +15,7 @@ function make_dummy_dataset(
     flux,
     energy;
     exposure_time = 2.0,
-    units = "counts",
+    units = u"counts",
     error_fraction = 0.1,
 )
     bins_low = energy[1:end-1]
