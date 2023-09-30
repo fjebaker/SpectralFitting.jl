@@ -93,7 +93,7 @@ specified by the caller.
 - [`make_objective_variance`](@ref)
 - [`make_objective`](@ref)
 - [`make_domain_variance`](@ref)
-- [`make_domain`](@ref)
+- [`make_model_domain`](@ref)
 
 """
 abstract type AbstractDataset end
@@ -118,7 +118,7 @@ Returns the array used as the target for model fitting. The array must correspon
 
 In as far as it can be guarunteed, the memory in the returned array will not be mutated by any fitting procedures.
 
-Domain for this objective should be returned by [`make_domain`](@ref).
+Domain for this objective should be returned by [`make_model_domain`](@ref).
 """
 make_objective(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
@@ -126,11 +126,11 @@ make_objective_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    make_domain
+    make_model_domain
 
 Returns the array used as the domain for the modelling
 """
-make_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
+make_model_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
@@ -157,7 +157,7 @@ Must support the same API, but may also have some query methods for specific int
 """
 abstract type AbstractMultiDataset <: AbstractDataset end
 
-export make_domain,
+export make_model_domain,
     make_domain_variance,
     make_objective,
     make_objective_variance,

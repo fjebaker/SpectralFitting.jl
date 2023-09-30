@@ -20,7 +20,7 @@ end
 supports_contiguosly_binned(::Type{<:InjectiveData}) = true
 supports_one_to_one(::Type{<:InjectiveData}) = true
 
-function make_domain(::ContiguouslyBinned, dataset::InjectiveData)
+function make_model_domain(::ContiguouslyBinned, dataset::InjectiveData)
     # need to expand the domain by one
     Δ = sum(diff(dataset.domain)) / (length(dataset.domain) - 1)
     domain = copy(dataset.domain)
@@ -29,7 +29,7 @@ function make_domain(::ContiguouslyBinned, dataset::InjectiveData)
 end
 make_objective(::ContiguouslyBinned, dataset::InjectiveData) = dataset.codomain
 
-make_domain(::OneToOne, dataset::InjectiveData) = dataset.domain
+make_model_domain(::OneToOne, dataset::InjectiveData) = dataset.domain
 make_objective(::OneToOne, dataset::InjectiveData) = dataset.codomain
 
 function make_objective_variance(

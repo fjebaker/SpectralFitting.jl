@@ -47,7 +47,6 @@ mutable struct SpectralData{T} <: AbstractDataset
     domain::Vector{T} # domain fitted in models
 
     data_mask::BitVector
-    domain_mask::BitVector
 end
 
 # constructor
@@ -64,17 +63,7 @@ function SpectralData(
     domain = _make_domain_vector(spectrum, response)
     energy = _make_energy_vector(spectrum, response)
     data_mask = BitVector(fill(true, size(spectrum.data)))
-    domain_mask = BitVector(fill(true, size(domain)))
-    SpectralData(
-        spectrum,
-        response,
-        background,
-        ancillary,
-        energy,
-        domain,
-        data_mask,
-        domain_mask,
-    )
+    SpectralData(spectrum, response, background, ancillary, energy, domain, data_mask)
 end
 
 supports_contiguosly_binned(::Type{<:SpectralData}) = true
@@ -95,8 +84,7 @@ function make_objective_variance(layout::AbstractDataLayout, dataset::SpectralDa
     make_objective_variance(layout, dataset.spectrum)[dataset.data_mask]
 end
 
-make_domain(::ContiguouslyBinned, dataset::SpectralData) =
-    dataset.domain[dataset.domain_mask]
+make_model_domain(::ContiguouslyBinned, dataset::SpectralData) = dataset.domain
 
 restrict_domain!(dataset::SpectralData, low, high) =
     restrict_domain!(dataset, i -> high > i > low)
@@ -111,20 +99,25 @@ end
 
 function restrict_domain!(dataset::SpectralData, condition)
     mask_energies!(dataset, condition)
-    # I = @. !condition(dataset.domain)
-    # dataset.domain_mask[I] .= false
     dataset
 end
 
-function objective_transformer(::ContiguouslyBinned, dataset::SpectralData)
+function objective_transformer(
+    layout::ContiguouslyBinned,
+    dataset::SpectralData{T},
+) where {T}
     R = fold_ancillary(dataset.response, dataset.ancillary)[dataset.data_mask, :]
     ΔE = bin_widths(dataset)
+    E = response_energy(dataset.response)
+    cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
     function _transformer!!(energy, flux)
-        flux = R * flux
-        @. flux = flux / ΔE
+        f = rebin_if_different_domains!(get_tmp(cache, flux), E, energy, flux)
+        f = R * f
+        @. f = f / ΔE
     end
     function _transformer!!(output, energy, flux)
-        mul!(output, R, flux)
+        f = rebin_if_different_domains!(get_tmp(cache, flux), E, energy, flux)
+        mul!(output, R, f)
         @. output = output / ΔE
     end
     _transformer!!
@@ -203,12 +196,28 @@ function normalize!(dataset::SpectralData)
 end
 
 function subtract_background!(dataset::SpectralData)
+    if !has_background(dataset)
+        error("No background to subtract. Did you already subtract the background?")
+    end
     subtract_background!(dataset.spectrum, dataset.background)
     dataset.background = missing
     dataset
 end
 
+function set_domain!(dataset::SpectralData, domain)
+    dataset.domain = domain
+end
+
 # internal methods
+
+function rebin_if_different_domains!(output, data_domain, model_domain, input)
+    if length(data_domain) == length(model_domain)
+        @. output = input
+    else
+        interpolated_rebin!(output, data_domain, input, model_domain)
+    end
+    output
+end
 
 function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPConfig)
     spec = OGIP.read_spectrum(paths.spectrum, config)
@@ -273,8 +282,10 @@ macro _forward_SpectralData_api(args)
     T, field = args.args
     quote
         SpectralFitting.supports_contiguosly_binned(t::Type{<:$(T)}) = true
-        SpectralFitting.make_domain(layout::SpectralFitting.AbstractDataLayout, t::$(T)) =
-            SpectralFitting.make_domain(layout, getproperty(t, $(field)))
+        SpectralFitting.make_model_domain(
+            layout::SpectralFitting.AbstractDataLayout,
+            t::$(T),
+        ) = SpectralFitting.make_model_domain(layout, getproperty(t, $(field)))
         SpectralFitting.make_domain_variance(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
@@ -309,6 +320,8 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.bin_widths(getproperty(t, $(field)))
         SpectralFitting.subtract_background!(t::$(T), args...) =
             SpectralFitting.subtract_background!(getproperty(t, $(field)), args...)
+        SpectralFitting.set_domain!(t::$(T), args...) =
+            SpectralFitting.set_domain!(getproperty(t, $(field)), args...)
     end |> esc
 end
 
@@ -404,4 +417,5 @@ export SpectralData,
     drop_bad_channels!,
     drop_channels!,
     normalize!,
-    subtract_background!
+    subtract_background!,
+    set_domain!

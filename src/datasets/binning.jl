@@ -1,122 +1,33 @@
 export rebin_flux, construct_objective_cache, regroup!
 
-function rebin_flux(flux, current_energy, dest_energy_bins::AbstractVector)
-    downsample_rebin(
-        flux,
-        current_energy,
-        #@view(dest_energy_bins[1:end-1]),
-        @view(dest_energy_bins[2:end])
-    )
-end
-function downsample_rebin(input, current_bins, target_bins_high)
-    output = zeros(eltype(input), length(target_bins_high))
-    downsample_rebin!(output, input, current_bins, target_bins_high)
+function interpolated_rebin(target_bins, input, current_bins)
+    output = zeros(eltype(input), length(target_bins_high) - 1)
+    interpolated_rebin!(output, target_bins, input, current_bins)
 end
 
-
-"""
-```
-             [--i------] 
-|   |   |   |   |   |   |   |   |   |  current
-   |         |         |         |     target
-             j
-```
-"""
-function _downsample_rebin!(output, target, input, current)
+function interpolated_rebin!(output, target, input, current)
     @assert length(output) == length(target) - 1
     @assert length(input) == length(current) - 1
 
     # ensure everything is zeroed
     @. output = 0
 
-    i_start = searchsortedfirst(current, target[1])
-
-    ω_start = _straddle_ratio(target[1], current, i_start)
-    output[1] += (1 - ω_start) * input[i_start - 1]
-
-    # track slices
-    start::Int = i_start
-    stop::Int = i_start
-    
-    # loop over each output bin
-    # h is the high of the bin in target
-    for (j, h) in @views enumerate(target[2:end])
-        # find the first
-        i = @views searchsortedfirst(current[start:end], h) + (start - 1)
-        if i > lastindex(current) + 1
-            break # edge case
-        end
-        stop = i
-
-        ω = _straddle_ratio(h, current, stop)
-        output[j] += @views sum(input[start:stop-2]) + ω * input[stop-1]
-        # carry over 
-        if j < lastindex(output)
-            output[j+1] += (1 - ω) * input[stop-1]
-        end
-
-        start = stop
-    end
-end
-
-"""
-```
-                      Δ
-|              |---------------|    
- |        |          | h
-               [-----] τ
-```
-"""
-function _straddle_ratio(h, current, stop)
-    Δ = current[stop] - current[stop - 1] # current width
-    τ = h - current[stop - 1]
-    τ / Δ
-end
-
-function downsample_rebin!(output, input, current_bins, target_bins)
-    # ensure we are down-sampling, and not up-sampling
-    if (length(current_bins) ≤ length(target_bins))
-        throw(
-            "Rebinning must down-sample to fewer destination bins than source bins. Use interpolation methods for up-sampling.",
-        )
+    # convert from counts to density
+    for i in eachindex(input)
+        input[i] /= current[i+1] - current[i]
     end
 
-    @assert length(output) == length(target_bins) - 1
-    @assert length(input) == length(current_bins) - 1
+    # use DataInterpolations cus no allocation :D 
+    interp = @views DataInterpolations.LinearInterpolation(input, current[1:end-1])
+    for i in eachindex(output)
+        bin_high, bin_low = target[i+1], target[i]
+        Δ = bin_high - bin_low
+        output[i] = Δ * interp(bin_low)
+    end
 
-    N = length(target_bins)
-
-    # handle lower edge
-    i_start = findfirst(>(first(target_bins)), current_bins)
-    view_current_bins = @view current_bins[i_start:end]
-
-    # find first dest energy that is greater than first src energy
-    i = findfirst(>(first(view_current_bins)), target_bins)
-    # view into target bins of interest
-    trunc_bin_high = @view(target_bins[i:end])
-
-    start = stop = 1
-    for (fi, Ehigh) in zip(i:N, trunc_bin_high)
-        # find lower and upper limit index
-        stop = findnext(>(Ehigh), view_current_bins, stop)
-        # break if no energy is higher
-        isnothing(stop) && break
-
-        # sum the ones that are between immediately
-        output[fi] += @views sum(input[start:stop-2])
-
-        # deal with edge bin by calculating overlap
-        ΔE = view_current_bins[stop] - view_current_bins[stop-1]
-        # amount of the bin in the current dest bin
-        δE = Ehigh - view_current_bins[stop-1]
-        ratio = (δE / ΔE)
-        output[fi] += ratio * input[stop-1]
-
-        # if not at end of input array, carry over the rest
-        if fi < N
-            output[fi+1] += (1 - ratio) * input[stop-1]
-        end
-        start = stop
+    # restore like a good mannered citizen
+    for i in eachindex(input)
+        input[i] *= current[i+1] - current[i]
     end
     output
 end

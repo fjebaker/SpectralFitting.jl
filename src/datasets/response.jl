@@ -8,6 +8,13 @@ mutable struct ResponseMatrix{T}
     bins_high::Vector{T}
 end
 
+function response_energy(resp::ResponseMatrix{T}) where {T}
+    E = zeros(T, length(resp.bins_low) + 1)
+    E[1:end-1] .= resp.bins_low
+    E[end] = resp.bins_high[end]
+    E
+end
+
 function regroup!(resp::ResponseMatrix{T}, grouping) where {T}
     itt = GroupingIterator(grouping)
     new_matrix = zeros(T, size(resp.matrix))

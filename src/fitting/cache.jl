@@ -73,7 +73,7 @@ end
 
 function FittingConfig(model::AbstractSpectralModel, dataset::AbstractDataset)
     layout = common_support(model, dataset)
-    domain = make_domain(layout, dataset)
+    domain = make_model_domain(layout, dataset)
     objective = make_objective(layout, dataset)
     variance = make_objective_variance(layout, dataset)
     params = freeparameters(model)

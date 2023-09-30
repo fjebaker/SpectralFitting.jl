@@ -40,7 +40,7 @@ function make_objective_variance(::ContiguouslyBinned, dataset::Spectrum)
     @. dataset.errors^2
 end
 
-function make_domain(::ContiguouslyBinned, dataset::Spectrum)
+function make_model_domain(::ContiguouslyBinned, dataset::Spectrum)
     @warn "Spectrum doesn't know the energy values by default. Domain is channels. Proceed only if you know what you are doing."
     dataset.channels
 end

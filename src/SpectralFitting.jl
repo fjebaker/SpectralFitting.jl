@@ -16,6 +16,7 @@ using Surrogates
 using LinearAlgebra
 using FileIO
 using Interpolations
+import DataInterpolations
 using SpecialFunctions
 using PreallocationTools
 using EnumX
