@@ -1,4 +1,4 @@
-export rebin_flux, construct_objective_cache, regroup!
+export construct_objective_cache, regroup!, interpolated_rebin!, interpolated_rebin
 
 function interpolated_rebin(target_bins, input, current_bins)
     output = zeros(eltype(input), length(target_bins_high) - 1)
