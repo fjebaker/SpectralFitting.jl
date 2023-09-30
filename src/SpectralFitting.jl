@@ -16,7 +16,9 @@ using Surrogates
 using LinearAlgebra
 using FileIO
 using Interpolations
+import DataInterpolations
 using SpecialFunctions
+using PreallocationTools
 using EnumX
 
 import Crayons
@@ -27,8 +29,14 @@ import Optimization
 
 using DocStringExtensions
 
+# for future use: mission specific parsing
+abstract type AbstractMission end
+struct NoMission <: AbstractMission end
+
 # unitful units
 include("units.jl")
+SpectralUnits.@reexport using .SpectralUnits
+
 include("print-utilities.jl")
 
 include("fitparam.jl")
@@ -46,20 +54,19 @@ include("meta-models/table-models.jl")
 
 include("poisson.jl")
 
-include("datasets/types.jl")
 include("datasets/ogip.jl")
-include("datasets/spectral-datasets.jl")
-include("datasets/response-matrix.jl")
-include("datasets/binning-utilities.jl")
-include("datasets/missions/abstract-mission.jl")
-include("datasets/simple-dataset.jl")
+include("datasets/datasets.jl")
+include("datasets/binning.jl")
+include("datasets/grouping.jl")
+include("datasets/injectivedata.jl")
 
 include("model-data-io.jl")
 
-
 # include fitting api
-include("fitting/problem.jl")
 include("fitting/result.jl")
+include("fitting/cache.jl")
+include("fitting/problem.jl")
+include("fitting/multi-cache.jl")
 include("fitting/methods.jl")
 include("fitting/statistics.jl")
 

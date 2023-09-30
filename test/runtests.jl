@@ -4,7 +4,7 @@ using SpectralFitting
 testdir = get(
     ENV,
     "SF_TEST_SUITE_DATA",
-    @__DIR__() * "/../../spectral-fitting-test-suite/sample-data",
+    @__DIR__() * "/../../../spectral-fitting-test-suite/sample-data",
 )
 @show testdir
 
@@ -82,6 +82,9 @@ end
     if has_test_dir
         @testset "datasets" begin
             include("datasets/test-ogip.jl")
+            include("datasets/test-grouping.jl")
+            include("datasets/test-binning.jl")
+            include("datasets/test-datasets.jl")
         end
     else
         @warn "Skipping dataset tests."
@@ -89,6 +92,8 @@ end
 end
 
 @testset "fitting" verbose = true begin
+    include("fitting/test-fit-simple-dataset.jl")
+    include("fitting/test-cache.jl")
     @testset "powerlaws" begin
         include("fitting/test-fit-powerlaw.jl")
     end

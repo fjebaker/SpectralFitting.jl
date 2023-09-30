@@ -2,74 +2,63 @@ export FittingResult, MultiFittingResult, AbstractFittingResult
 
 abstract type AbstractFittingResult end
 
-struct FittingResult{T,M,E,F} <: AbstractFittingResult
-    u::Vector{T}
+struct FittingResult{T,K,C} <: AbstractFittingResult
     χ2::T
-    model::M
-    x::E
-    folded_invoke::F
+    u::K
+    config::C
 end
 
-function _pretty_print(res::FittingResult)
-    chi2 = prettyfloat(res.χ2)
-    us = join((prettyfloat(i) for i in res.u), ", ")
-    """FittingResult:
-        Model: $(res.model)
-        . u     : [$(us)]
-        . χ²    : $(chi2) 
+function _pretty_print_result(model, u, chi2)
+    ppx2 = prettyfloat(chi2)
+    ppu = join((prettyfloat(i) for i in u), ", ")
+    """
+      Model: $(model)
+      . u     : [$(ppu)]
+      . χ²    : $(ppx2) 
     """
 end
 
-function Base.show(io::IO, ::MIME"text/plain", res::FittingResult)
+function _pretty_print(res::FittingResult)
+    "FittingResult:\n" * _pretty_print_result(res.config.cache.model, res.u, res.χ2)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::FittingResult))
     print(io, encapsulate(_pretty_print(res)))
 end
 
-function bundle_result(u, model, f, x, y, variance)
-    chi2 = measure(ChiSquared(), y, f(x, u), variance)
-    FittingResult(u, chi2, model, x, f)
+struct MultiFittingResult{T,K,C} <: AbstractFittingResult
+    χ2s::Vector{T}
+    us::K
+    config::C
 end
 
-struct MultiFittingResult{F} <: AbstractFittingResult
-    results::F
-    MultiFittingResult(result::Tuple) = new{typeof(result)}(result)
+struct MultiFittingSlice{C,V,U,T}
+    cache::C
+    domain::V
+    u::U
+    χ2::T
 end
 
-function Base.show(io::IO, ::MIME"text/plain", res::MultiFittingResult)
-    total_χ2 = prettyfloat(sum(i -> i.χ2, res.results))
+function Base.getindex(result::MultiFittingResult, i::Int)
+    cache = result.config.cache.caches[i]
+    u = result.us[i]
+    chi2 = result.χ2s[i]
+    s, e = _get_range(result.config.cache.domain_mapping, i)
+    MultiFittingSlice(cache, result.config.domain[s:e], u, chi2)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::MultiFittingResult))
+    total_χ2 = prettyfloat(sum(res.χ2s))
 
     buff = IOBuffer()
     println(buff, "MultiFittingResult:")
     print(buff, " ")
-    for result in res.results
-        b = _pretty_print(result) * "\n"
+    for i = 1:length(res.us)
+        slice = res[i]
+        b = _pretty_print_result(slice.cache.model, slice.u, slice.χ2)
         r = indent(b, 1)
-        # drop last new line
-
         print(buff, r)
     end
     text = String(take!(buff))
     print(io, encapsulate(text) * "Σχ² = $(total_χ2)")
-end
-
-function bundle_multiresult(parameters, m::MultiModel, X, Y, V, state)
-    parameter_indices = state.parameter_indices
-    n_energy = state.i_x
-    n_output = state.i_out
-    results = map((1:state.n_models...,)) do i
-        model = m.m[i]
-        f = state.funcs[i]
-        # don't view here as we want a copy for the output
-        u = parameters[parameter_indices[i]]
-
-        start_x = i == 1 ? 1 : n_energy[i-1] + 1
-        end_x = n_energy[i]
-        x = X[start_x:end_x]
-
-        start_y = i == 1 ? 1 : n_output[i-1] + 1
-        end_y = n_output[i]
-        y = Y[start_y:end_y]
-        variance = V[start_y:end_y]
-        bundle_result(u, model, f, x, y, variance)
-    end
-    MultiFittingResult(results)
 end

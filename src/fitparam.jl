@@ -66,12 +66,12 @@ function print_info(io::IO, f::FitParam)
     print(io, v, " ± ", e, " ∈ [", lb, ", ", ub, "]")
 end
 
-function Base.show(io::IO, f::FitParam)
+function Base.show(io::IO, @nospecialize(f::FitParam))
     s = Printf.@sprintf "(%.3g ± %.3g)" get_value(f) get_error(f)
     print(io, s)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", f::FitParam)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(f::FitParam))
     print_info(io, f)
 end
 

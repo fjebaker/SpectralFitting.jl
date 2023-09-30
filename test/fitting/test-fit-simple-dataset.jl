@@ -1,30 +1,46 @@
-using Test
-using SpectralFitting
+using SpectralFitting, Test
 
-struct DummySimplePowerLaw{T,F} <: AbstractSpectralModel{T,Additive}
+struct DummySimpleLinear{T,F} <: AbstractSpectralModel{T,Additive}
     K::T
-    m::T
+    c::T
 end
-function DummySimplePowerLaw(; K = FitParam(1.0), m = FitParam(1.0))
-    DummySimplePowerLaw{typeof(K),SpectralFitting.FreeParameters{(:K, :m)}}(K, m)
+function DummySimpleLinear(; K = FitParam(1.0), c = FitParam(1.0))
+    DummySimpleLinear{typeof(K),SpectralFitting.FreeParameters{(:K, :c)}}(K, c)
 end
-function SpectralFitting.invoke!(out, x, model::DummySimplePowerLaw)
-    @. out = x + model.m
+function SpectralFitting.invoke!(out, x, model::DummySimpleLinear)
+    @. out = x + (model.c / model.K)
 end
-SpectralFitting.Δoutput_length(::Type{<:DummySimplePowerLaw}) = 0
+SpectralFitting.supports_contiguosly_binned(::Type{<:DummySimpleLinear}) = false
+SpectralFitting.supports_one_to_one(::Type{<:DummySimpleLinear}) = true
 
-# generate a powerlaw simple data
-x = collect(range(1.0, 10.0, 18))
-y = @. 13.12 * x + 42
-data = SimpleDataset("example", x, y)
+x = collect(range(1.0, 10.0, 101))
+y = @. 13.12 * x + 102
 
-model = DummySimplePowerLaw()
+# first we try with one to one support
+data = InjectiveData(x, y)
+model = DummySimpleLinear()
 
-prob = FittingProblem(model, data)
+@test SpectralFitting.preferred_support(model) isa SpectralFitting.OneToOne
+@test size(SpectralFitting.construct_objective_cache(model, x)) == (101, 1)
 
-res = fit(prob, LevenbergMarquadt())
-@test res.u[1] ≈ 13.12 atol = 0.1
-@test res.u[2] ≈ 3.201 atol = 0.1
+@test SpectralFitting.common_support(model, data) isa SpectralFitting.OneToOne
 
-# test error constructors
-data = SimpleDataset("example", x, y, x_err = 0.1 .* x, y_err = 0.1 * y)
+# no erors
+invokemodel(x, model)
+
+prob = FittingProblem(model => data)
+
+result = fit(prob, LevenbergMarquadt())
+@test result.u ≈ [13.12, 102.0]
+
+# now we try something with contiguous bins
+y = @. x^-6
+data = InjectiveData(x, y)
+model = PowerLaw()
+
+@test SpectralFitting.common_support(model, data) isa SpectralFitting.ContiguouslyBinned
+
+prob = FittingProblem(model => data)
+
+result = fit(prob, LevenbergMarquadt())
+@test result.u[2] ≈ 6.1 atol = 0.1

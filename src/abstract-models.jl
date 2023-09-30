@@ -15,7 +15,7 @@ export AbstractSpectralModel,
     has_closure_params,
     invokemodel,
     invokemodel!,
-    flux_count,
+    objective_cache_count,
     modelparameters,
     freeparameters,
     frozenparameters,
@@ -33,6 +33,8 @@ The parametric type parameter `T` is the number type of the model and `K` define
 abstract type AbstractSpectralModel{T,K} end
 numbertype(::AbstractSpectralModel{T}) where {T<:Number} = T
 numbertype(::AbstractSpectralModel{FitParam{T}}) where {T<:Number} = T
+
+supports_contiguosly_binned(::Type{<:AbstractSpectralModel}) = true
 
 """
     abstract type AbstractSpectralModelKind
@@ -184,13 +186,13 @@ invokemodel(energy, model, p0)
 ```
 """
 function invokemodel(e, m::AbstractSpectralModel)
-    flux = make_flux(m, e)
+    flux = construct_objective_cache(m, e) |> vec
     invokemodel!(flux, e, m)
     flux
 end
 function invokemodel(e, m::AbstractSpectralModel, free_params)
     model = remake_with_free(m, free_params)
-    flux = make_flux(eltype(free_params), m, e)
+    flux = construct_objective_cache(eltype(free_params), m, e) |> vec
     invokemodel!(flux, e, model)
     flux
 end
@@ -205,8 +207,8 @@ given by `model`, optionally overriding the free and/or frozen parameter values.
 may be a vector or tuple with element type [`FitParam`](@ref) or `Number`.
 
 The number of fluxes to allocate for a model may change if using any [`CompositeModel`](@ref)
-as the `model`. It is generally recommended to use [`flux_count`](@ref) to ensure the correct number
-of flux arrays are allocated with [`make_fluxes`](@ref) when using composite models.
+as the `model`. It is generally recommended to use [`objective_cache_count`](@ref) to ensure the correct number
+of flux arrays are allocated with [`construct_objective_cache`](@ref) when using composite models.
 
 Single spectral model components should use [`make_flux`](@ref) instead.
 
@@ -225,30 +227,37 @@ invokemodel!(flux, energy, model, p0)
 @inline function invokemodel!(f, e, m::AbstractSpectralModel, free_params)
     # update only the free parameters
     model = remake_with_free(m, free_params)
-    invokemodel!(f, e, model)
+    invokemodel!(view(f, :, 1), e, model)
 end
-@inline function invokemodel!(f, e, m::AbstractSpectralModel)
+@inline function invokemodel!(f, e, m::AbstractSpectralModel{<:FitParam})
     # need to extract the parameter values
     model = remake_with_number_type(m)
-    invokemodel!(f, e, model)
+    invokemodel!(view(f, :, 1), e, model)
 end
-invokemodel!(f, e, m::AbstractSpectralModel{<:Number,K}) where {K} =
-    invokemodel!(f, e, K(), m)
-
-@inline function invokemodel!(flux, energy, ::Additive, model::AbstractSpectralModel)
-    invoke!(flux, energy, model)
+invokemodel!(
+    f::AbstractVector,
+    e::AbstractVector,
+    m::AbstractSpectralModel{<:Number,K},
+) where {K} = invokemodel!(f, e, K(), m)
+@inline function invokemodel!(
+    output::AbstractVector,
+    domain::AbstractVector,
+    ::Additive,
+    model::AbstractSpectralModel,
+)
+    invoke!(output, domain, model)
     # perform additive normalisation
-    flux .*= model.K
-    flux
+    @. output *= model.K
+    output
 end
 @inline function invokemodel!(
-    flux,
-    energy,
+    output::AbstractVector,
+    domain::AbstractVector,
     ::AbstractSpectralModelKind,
     model::AbstractSpectralModel,
 )
-    invoke!(flux, energy, model)
-    flux
+    invoke!(output, domain, model)
+    output
 end
 
 # printing
@@ -266,16 +275,19 @@ function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", model::AbstractSpectralModel)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(model::AbstractSpectralModel))
     buff = IOBuffer()
     _printinfo(buff, model)
     s = String(take!(buff))
     print(io, encapsulate(s))
 end
 
-modelparameters(model::AbstractSpectralModel) = [model_parameters_tuple(model)...]
-freeparameters(model::AbstractSpectralModel) = [free_parameters_tuple(model)...]
-frozenparameters(model::AbstractSpectralModel) = [frozen_parameters_tuple(model)...]
+modelparameters(model::AbstractSpectralModel{T}) where {T} =
+    T[model_parameters_tuple(model)...]
+freeparameters(model::AbstractSpectralModel{T}) where {T} =
+    T[free_parameters_tuple(model)...]
+frozenparameters(model::AbstractSpectralModel{T}) where {T} =
+    T[frozen_parameters_tuple(model)...]
 
 # todo: this function could be cleaned up with some generated hackery 
 function remake_with_number_type(model::AbstractSpectralModel{P}, T::Type) where {P}

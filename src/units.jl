@@ -24,9 +24,12 @@ function infer_units(s::Symbol)
     end
 end
 
-export counts
-
 const _counts = typeof(u"counts")
+const _counts_kev = typeof(u"counts / keV")
 const _rate = typeof(u"counts / s")
+const _rate_kev = typeof(u"counts / (s * keV)")
+const RateOrCount = Union{<:_counts,<:_rate,<:_counts_kev,<:_rate_kev}
+
+export counts
 
 end # module

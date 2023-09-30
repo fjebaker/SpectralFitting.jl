@@ -1,12 +1,30 @@
 using RecipesBase
 
-@recipe function _plotting_func(d::SpectralDataset)
+@recipe function _plotting_func(dataset::InjectiveData; data_layout = OneToOne())
+    seriestype --> :scatter
+    markersize --> 1.0
+    markershape --> :none
+    markerstrokecolor --> :auto
+    yerr -> dataset.codomain_variance
+    xerr -> dataset.domain_variance
+    label --> make_label(dataset)
+    minorgrid --> true
+    dataset.domain, dataset.codomain
+end
+
+@recipe function _plotting_func(
+    dataset::AbstractDataset;
+    data_layout = ContiguouslyBinned(),
+)
     seriestype --> :scatter
     markersize --> 0.5
     markershape --> :none
-    (rate, rateerror) = (get_rate(d), get_rate_variance(d))
+    (rate, rateerror) = (
+        make_objective(data_layout, dataset),
+        make_objective_variance(data_layout, dataset),
+    )
     yerr --> rateerror
-    xerr --> get_bin_widths(d) ./ 2
+    xerr --> bin_widths(dataset) ./ 2
     markerstrokecolor --> :auto
     xscale --> :log10
     yscale --> :log10
@@ -14,35 +32,29 @@ using RecipesBase
     xticks --> ([1e-1, 1, 2, 5, 10, 20, 50, 100], [1e-1, 1, 2, 5, 10, 20, 50, 100])
     xlabel --> "Energy (keV)"
     ylabel --> "counts s⁻¹ keV⁻¹"
-    label --> observation_id(d)
+    label --> make_label(dataset)
     minorgrid --> true
-    x = ((d.bins_low.+d.bins_high)./2)[d.mask]
+    x = spectrum_energy(dataset)
     (x, rate)
 end
 
-@recipe function _plotting_func(d::SimpleDataset)
-    seriestype --> :scatter
-    xscale --> :log10
-    yscale --> :log10
-    markerstrokewidth --> 0
-    xlabel --> "x ($(d.x_units))"
-    ylabel --> "y ($(d.y_units))"
-    label --> d.name
-    if !isnothing(d.x_err)
-        @views xerr --> d.x_err[1:end-1]
-    end
-    if !isnothing(d.y_err)
-        yerr --> d.y_err
-    end
-    minorgrid --> true
-    @views (d.x[1:end-1], d.y)
-end
+plotting_domain(dataset::AbstractDataset) = spectrum_energy(dataset)
+plotting_domain(dataset::InjectiveData) = dataset.domain
 
-@recipe function _plotting_func(x::AbstractVector, r::FittingResult)
+@recipe function _plotting_func(dataset::AbstractDataset, result::FittingResult)
     label --> "fit"
     seriestype --> :stepmid
-    y = r.folded_invoke(r.x, r.u)
-    @views x[1:lastindex(y)], y
+    y = _f_objective(result.config)(result.config.domain, result.u)
+    x = plotting_domain(dataset)
+    x, y
+end
+
+@recipe function _plotting_func(dataset::AbstractDataset, result::MultiFittingSlice)
+    label --> "fit"
+    seriestype --> :stepmid
+    y = _invoke_and_transform!(result.cache, result.domain, result.u)
+    x = plotting_domain(dataset)
+    x, y
 end
 
 # ratio plots

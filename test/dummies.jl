@@ -1,52 +1,56 @@
 using SparseArrays
 
 # dummy datasets
-function make_dummy_dataset(shape_function; energy = collect(range(0.2, 10.0, 101)))
+function make_dummy_dataset(
+    shape_function;
+    energy = collect(range(0.2, 10.0, 101)),
+    kwargs...,
+)
+    # calculate flux from shape function
+    flux = shape_function.(energy[1:end-1])
+    make_dummy_dataset(flux, energy; kwargs...)
+end
+
+function make_dummy_dataset(
+    flux,
+    energy;
+    exposure_time = 2.0,
+    units = u"counts",
+    error_fraction = 0.1,
+)
     bins_low = energy[1:end-1]
     bins_high = energy[2:end]
-    # calculate flux from shape function
-    flux = shape_function.(bins_low)
+    N = length(flux)
 
-    σ = 0.1 .* flux
-    units = SpectralFitting.infer_units(:rate)
-    meta = SpectralFitting.BasicMetadata("mem", "mem", "telescope", "instrument")
-    channels = collect(1:length(flux))
-    # diagonal response matrix
-    rmf = SpectralFitting.ResponseMatrix(
-        SparseArrays.spdiagm(ones(1:length(flux))),
+    channels = collect(1:N)
+
+    spectrum = Spectrum(
         channels,
-        eltype(bins_low).(channels[1:end-1]),
-        eltype(bins_low).(channels[2:end]),
-        bins_low,
-        bins_high,
-    )
-    spec = SpectralFitting.Spectrum(
-        channels,
-        zeros(Int64, size(flux)), # quality
-        zeros(Int64, size(flux)), # grouping
+        zeros(Int, N),
+        ones(Int, N),
         flux,
-        "rate",
-        1.0, # exposure time
+        units,
+        exposure_time,
         1.0, # background scale
         1.0, # area scale
         SpectralFitting.ErrorStatistics.Unknown,
-        σ,
+        error_fraction .* flux,
         0.0,
-        "sample telescope",
-        "sample instrument",
+        "test-telescope",
+        "test-name",
     )
 
-    SpectralDataset(
-        units,
-        meta,
+    matrix = SpectralFitting.sparse(Matrix(1.0 * SpectralFitting.I, N, N))
+    response = ResponseMatrix(
+        matrix,
+        spectrum.channels,
+        eltype(bins_low).(channels),
+        eltype(bins_low).(push!(channels[2:end], N + 1)),
         bins_low,
         bins_high,
-        spec,
-        missing,
-        rmf,
-        missing,
-        BitVector([true for _ in flux]),
     )
+
+    SpectralData(spectrum, response)
 end
 
 # standard julia models for testing

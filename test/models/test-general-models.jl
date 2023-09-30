@@ -12,8 +12,8 @@ include("../utils.jl")
     model = PhotoelectricAbsorption() * (PowerLaw() + BlackBody())
 
     energy = collect(range(0.2, 8.0, 1000))
-    flux = zeros(Float64, length(energy) - 1)
-    fluxes = (flux, deepcopy(flux))
+    fluxes = zeros(Float64, (length(energy) - 1, objective_cache_count(model)))
+    flux = view(fluxes, :, 1)
 
     # check model invokes okay
     invokemodel!(fluxes, energy, model)
