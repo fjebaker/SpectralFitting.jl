@@ -33,6 +33,8 @@ using DocStringExtensions
 abstract type AbstractMission end
 struct NoMission <: AbstractMission end
 
+abstract type AbstractStatistic end
+
 # unitful units
 include("units.jl")
 SpectralUnits.@reexport using .SpectralUnits
