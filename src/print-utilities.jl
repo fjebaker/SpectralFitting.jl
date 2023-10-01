@@ -2,6 +2,8 @@
 function prettyfloat(f)
     if f == 0
         "0.0"
+    elseif f == Inf
+        "Inf"
     elseif (f ≥ 1) && (f - trunc(Int, f) < 1e-8)
         Printf.@sprintf("%.1f", f)
     else
