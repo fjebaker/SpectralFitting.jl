@@ -50,27 +50,6 @@ function normalise_rows!(matrix)
     end
 end
 
-function build_response_matrix!(
-    R,
-    f_chan::Matrix,
-    n_chan::Matrix,
-    matrix_rows::Vector,
-    first_channel,
-)
-    for (i, (F, N)) in enumerate(zip(eachcol(f_chan), eachcol(n_chan)))
-        M = matrix_rows
-        index = 1
-        for (first, len) in zip(F, N)
-            if len == 0
-                break
-            end
-            first -= first_channel
-            @views R[first+1:first+len, i] .= M[index:index+len-1]
-            index += len
-        end
-    end
-end
-
 function Base.show(
     io::IO,
     ::MIME{Symbol("text/plain")},

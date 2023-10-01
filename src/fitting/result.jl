@@ -49,6 +49,9 @@ struct FittingResult{T,K,C} <: AbstractFittingResult
     config::C
 end
 
+measure(stat::AbstractStatistic, slice::FittingResult, args...) =
+    measure(stat, slice[1], args...)
+
 function invoke_result(result::FittingResult, u)
     @assert length(u) == length(result.u)
     _invoke_and_transform!(result.config.cache, result.config.domain, u)

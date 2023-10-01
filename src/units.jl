@@ -14,16 +14,6 @@ function __init__()
     merge!(Unitful.promotion, localpromotion)
 end
 
-function infer_units(s::Symbol)
-    if s == :rate
-        u"counts / s"
-    elseif s == :counts
-        u"counts"
-    else
-        error("Unknown units $s.")
-    end
-end
-
 const _counts = typeof(u"counts")
 const _counts_kev = typeof(u"counts / keV")
 const _rate = typeof(u"counts / s")
