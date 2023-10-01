@@ -95,6 +95,7 @@ end
     include("fitting/test-fit-simple-dataset.jl")
     include("fitting/test-cache.jl")
     include("fitting/test-binding.jl")
+    include("fitting/test-results.jl")
 
     @testset "powerlaws" begin
         include("fitting/test-fit-powerlaw.jl")
