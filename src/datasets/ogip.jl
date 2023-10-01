@@ -300,7 +300,7 @@ end
 function read_filename(header, entry, parent, exts...)
     data_directory = Base.dirname(parent)
     parent_name = basename(parent)
-    if haskey(header, entry) 
+    if haskey(header, entry)
         path::String = strip(header[entry])
         name = find_file(data_directory, path, parent_name, exts)
         if !ismissing(name)
@@ -313,8 +313,8 @@ end
 function find_file(dir, name, parent, extensions)
     if length(name) == 0
         return missing
-    elseif match(r"%match%", name) !== nothing 
-        base = splitext(parent)[1] 
+    elseif match(r"%match%", name) !== nothing
+        base = splitext(parent)[1]
         for ext in extensions
             testfile = joinpath(dir, base * ext)
             if isfile(testfile)

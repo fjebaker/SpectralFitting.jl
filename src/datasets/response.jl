@@ -105,10 +105,22 @@ function _printinfo(io, resp::AncillaryResponse{T}) where {T}
     print(io, descr)
 end
 
-fold_ancillary(response::ResponseMatrix, ancillary::AncillaryResponse) =
-    ancillary.effective_area' .* response.matrix
+function fold_ancillary(
+    channels::AbstractVector{<:Int},
+    response::ResponseMatrix,
+    ancillary::AncillaryResponse,
+)
+    @views ancillary.effective_area' .* response.matrix[channels, :]
+end
 
-fold_ancillary(response::ResponseMatrix, ::Missing) = response.matrix
+function fold_ancillary(
+    channels::AbstractVector{<:Int},
+    response::ResponseMatrix,
+    ::Missing,
+)
+    @views response.matrix[channels, :]
+end
+
 
 function Base.show(
     io::IO,

@@ -15,13 +15,13 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(paths::SpectralData
     print(io, descr)
 end
 
-function SpectralDataPaths(; spectrum = missing, background = missing, response = missing, ancillary = missing)
-    SpectralDataPaths(
-        spectrum,
-        background,
-        response,
-        ancillary,
-    )
+function SpectralDataPaths(;
+    spectrum = missing,
+    background = missing,
+    response = missing,
+    ancillary = missing,
+)
+    SpectralDataPaths(spectrum, background, response, ancillary)
 end
 
 function SpectralDataPaths(spec_path)
@@ -64,7 +64,16 @@ function SpectralData(
     domain = _make_domain_vector(spectrum, response)
     energy_low, energy_high = _make_energy_vector(spectrum, response)
     data_mask = BitVector(fill(true, size(spectrum.data)))
-    SpectralData(spectrum, response, background, ancillary, energy_low, energy_high, domain, data_mask)
+    SpectralData(
+        spectrum,
+        response,
+        background,
+        ancillary,
+        energy_low,
+        energy_high,
+        domain,
+        data_mask,
+    )
 end
 
 supports_contiguosly_binned(::Type{<:SpectralData}) = true
@@ -107,7 +116,10 @@ function objective_transformer(
     layout::ContiguouslyBinned,
     dataset::SpectralData{T},
 ) where {T}
-    R = fold_ancillary(dataset.response, dataset.ancillary)[dataset.data_mask, :]
+    R = fold_ancillary(dataset.spectrum.channels, dataset.response, dataset.ancillary)[
+        dataset.data_mask,
+        :,
+    ]
     ΔE = bin_widths(dataset)
     E = response_energy(dataset.response)
     cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
@@ -124,7 +136,8 @@ function objective_transformer(
     _transformer!!
 end
 
-bin_widths(dataset::SpectralData) = (dataset.energy_high .- dataset.energy_low)[dataset.data_mask]
+bin_widths(dataset::SpectralData) =
+    (dataset.energy_high.-dataset.energy_low)[dataset.data_mask]
 has_background(dataset::SpectralData) = !ismissing(dataset.background)
 has_ancillary(dataset::SpectralData) = !ismissing(dataset.ancillary)
 
@@ -140,7 +153,6 @@ end
 
 function drop_channels!(dataset::SpectralData, indices)
     drop_channels!(dataset.spectrum, indices)
-    drop_channels!(dataset.response, indices)
     if has_background(dataset)
         drop_channels!(dataset.background, indices)
     end
@@ -151,7 +163,7 @@ function drop_channels!(dataset::SpectralData, indices)
 end
 
 spectrum_energy(dataset::SpectralData) =
-    ((dataset.energy_low .+ dataset.energy_high) ./ 2)[dataset.data_mask]
+    ((dataset.energy_low.+dataset.energy_high)./2)[dataset.data_mask]
 
 function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     grp::typeof(grouping) = if safety_copy
@@ -298,47 +310,47 @@ macro _forward_SpectralData_api(args)
         SpectralFitting.make_model_domain(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
-        ) = SpectralFitting.make_model_domain(layout, getproperty(t, $(field)))
+        ) = SpectralFitting.make_model_domain(layout, getfield(t, $(field)))
         SpectralFitting.make_domain_variance(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
-        ) = SpectralFitting.make_domain_variance(layout, getproperty(t, $(field)))
+        ) = SpectralFitting.make_domain_variance(layout, getfield(t, $(field)))
         SpectralFitting.make_objective(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
-        ) = SpectralFitting.make_objective(layout, getproperty(t, $(field)))
+        ) = SpectralFitting.make_objective(layout, getfield(t, $(field)))
         SpectralFitting.make_objective_variance(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
-        ) = SpectralFitting.make_objective_variance(layout, getproperty(t, $(field)))
+        ) = SpectralFitting.make_objective_variance(layout, getfield(t, $(field)))
         SpectralFitting.objective_transformer(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
-        ) = SpectralFitting.objective_transformer(layout, getproperty(t, $(field)))
+        ) = SpectralFitting.objective_transformer(layout, getfield(t, $(field)))
         SpectralFitting.regroup!(t::$(T), args...) =
-            SpectralFitting.regroup!(getproperty(t, $(field)), args...)
+            SpectralFitting.regroup!(getfield(t, $(field)), args...)
         SpectralFitting.restrict_domain!(t::$(T), args...) =
-            SpectralFitting.restrict_domain!(getproperty(t, $(field)), args...)
+            SpectralFitting.restrict_domain!(getfield(t, $(field)), args...)
         SpectralFitting.mask_energies!(t::$(T), args...) =
-            SpectralFitting.mask_energies!(getproperty(t, $(field)), args...)
+            SpectralFitting.mask_energies!(getfield(t, $(field)), args...)
         SpectralFitting.drop_channels!(t::$(T), args...) =
-            SpectralFitting.drop_channels!(getproperty(t, $(field)), args...)
+            SpectralFitting.drop_channels!(getfield(t, $(field)), args...)
         SpectralFitting.drop_bad_channels!(t::$(T)) =
-            SpectralFitting.drop_bad_channels!(getproperty(t, $(field)))
+            SpectralFitting.drop_bad_channels!(getfield(t, $(field)))
         SpectralFitting.drop_negative_channels!(t::$(T)) =
-            SpectralFitting.drop_negative_channels!(getproperty(t, $(field)))
+            SpectralFitting.drop_negative_channels!(getfield(t, $(field)))
         SpectralFitting.normalize!(t::$(T)) =
-            SpectralFitting.normalize!(getproperty(t, $(field)))
+            SpectralFitting.normalize!(getfield(t, $(field)))
         SpectralFitting.objective_units(t::$(T)) =
-            SpectralFitting.objective_units(getproperty(t, $(field)))
+            SpectralFitting.objective_units(getfield(t, $(field)))
         SpectralFitting.spectrum_energy(t::$(T)) =
-            SpectralFitting.spectrum_energy(getproperty(t, $(field)))
+            SpectralFitting.spectrum_energy(getfield(t, $(field)))
         SpectralFitting.bin_widths(t::$(T)) =
-            SpectralFitting.bin_widths(getproperty(t, $(field)))
+            SpectralFitting.bin_widths(getfield(t, $(field)))
         SpectralFitting.subtract_background!(t::$(T), args...) =
-            SpectralFitting.subtract_background!(getproperty(t, $(field)), args...)
+            SpectralFitting.subtract_background!(getfield(t, $(field)), args...)
         SpectralFitting.set_domain!(t::$(T), args...) =
-            SpectralFitting.set_domain!(getproperty(t, $(field)), args...)
+            SpectralFitting.set_domain!(getfield(t, $(field)), args...)
     end |> esc
 end
 

@@ -53,7 +53,9 @@ plotting_domain(dataset::InjectiveData) = dataset.domain
     y = _f_objective(result.config)(result.config.domain, result.u)
     x = plotting_domain(dataset)
     if length(y) != length(x)
-        error("Domain mismatch. Are you sure you're plotting the result with the right dataset?")
+        error(
+            "Domain mismatch. Are you sure you're plotting the result with the right dataset?",
+        )
     end
     x, y
 end
@@ -84,7 +86,7 @@ end
 
     data = r.args[1]
     x = plotting_domain(data)
-    result= r.args[2] isa FittingResult ? r.args[2][1] : r.args[2]
+    result = r.args[2] isa FittingResult ? r.args[2][1] : r.args[2]
     y = invoke_result(result, result.u)
 
     y_ratio = @. result.objective / y

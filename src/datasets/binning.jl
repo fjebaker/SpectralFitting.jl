@@ -67,7 +67,9 @@ function augmented_energy_channels(channels, other_channels, bins_low, bins_high
     for (i, c) in enumerate(channels)
         index = findnext(==(c), other_channels, i)
         if isnothing(index)
-            error("Failed to find channel in response corresponding to channel $c in spectrum.")
+            error(
+                "Failed to find channel in response corresponding to channel $c in spectrum.",
+            )
         end
         if index > lastindex(bins_low)
             break
