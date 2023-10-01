@@ -169,5 +169,6 @@ include("response.jl")
 include("spectraldata.jl")
 
 # mission specifics
+include("ogipdataset.jl")
 include("xmm-newton.jl")
 include("nustart.jl")

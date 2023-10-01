@@ -333,3 +333,11 @@ end # module
 
 using .OGIP
 export OGIP, StandardOGIPConfig
+
+function read_fits_header(path; hdu = 2)
+    OGIP._read_fits_and_close(path) do f
+        FITSIO.read_header(f[hdu])
+    end
+end
+
+export read_fits_header
