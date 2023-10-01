@@ -56,10 +56,10 @@ const BAD_QUALITY = 1
 const GOOD_QUALITY = 0
 function regroup_quality_vector!(quality::Vector{Int}, grouping::Tuple{Int,Int,Int})
     qs = @views quality[grouping[2]:grouping[3]]
-    if any(==(BAD_QUALITY), qs)
-        quality[grouping[1]] = BAD_QUALITY
-    else
+    if all(==(GOOD_QUALITY), qs)
         quality[grouping[1]] = GOOD_QUALITY
+    else
+        quality[grouping[1]] = BAD_QUALITY
     end
 end
 

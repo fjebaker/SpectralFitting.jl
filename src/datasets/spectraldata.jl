@@ -128,7 +128,12 @@ has_background(dataset::SpectralData) = !ismissing(dataset.background)
 has_ancillary(dataset::SpectralData) = !ismissing(dataset.ancillary)
 
 function drop_bad_channels!(dataset::SpectralData)
-    indices = findall(==(BAD_QUALITY), dataset.spectrum.quality)
+    indices = findall(!=(GOOD_QUALITY), dataset.spectrum.quality)
+    drop_channels!(dataset, indices)
+end
+
+function drop_negative_channels!(dataset::SpectralData)
+    indices = findall(<(0), dataset.spectrum.data)
     drop_channels!(dataset, indices)
 end
 

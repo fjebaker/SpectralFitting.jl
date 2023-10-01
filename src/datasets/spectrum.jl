@@ -110,7 +110,7 @@ _readable_boolean(b) = b ? "yes" : "no"
 function _printinfo(io::IO, spectrum::Spectrum)
     dmin, dmax = prettyfloat.(extrema(spectrum.data))
     is_grouped = isgrouped(spectrum) |> _readable_boolean
-    num_bad = count(==(BAD_QUALITY), spectrum.quality)
+    num_bad = count(!=(GOOD_QUALITY), spectrum.quality)
     has_bad = num_bad > 0 ? "yes ($num_bad)" : "no"
     descr = """Spectrum: $(spectrum.telescope_name)[$(spectrum.instrument)]
       Units                 : $(spectrum.units)
