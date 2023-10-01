@@ -27,9 +27,3 @@ info = SpectralFitting.FunctionGeneration.getinfo(typeof(model))
 for (i, check) in zip(info, ([:K, :a, :b], [:a, :b]))
     @test i.symbols == check
 end
-for (i, check) in zip(info, ([:K, :a], [:a]))
-    @test i.free == check
-end
-for (i, check) in zip(info, ([:b], [:b]))
-    @test i.frozen == check
-end

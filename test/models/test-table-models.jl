@@ -11,11 +11,6 @@ model = DummyMultiplicativeTableModel()
 # ensure the symbols are being parsed correctly
 all_symbols = SpectralFitting.all_parameter_symbols(model)
 @test all_symbols == (:a, :b)
-free_symbols = SpectralFitting.free_parameter_symbols(model)
-@test free_symbols == (:a,)
-frozen_symbols = SpectralFitting.frozen_parameter_symbols(model)
-@test frozen_symbols == (:b,)
-
 
 # can we invoke the table models alright
 energy = collect(range(0.1, 100.0, 100))
@@ -33,10 +28,6 @@ model = DummyAdditiveTableModel()
 
 all_symbols = SpectralFitting.all_parameter_symbols(model)
 @test all_symbols == (:K, :a, :b)
-free_symbols = SpectralFitting.free_parameter_symbols(model)
-@test free_symbols == (:K, :a)
-frozen_symbols = SpectralFitting.frozen_parameter_symbols(model)
-@test frozen_symbols == (:b,)
 
 out_flux = invokemodel(energy, model)
 @test all(out_flux .== 3.0)

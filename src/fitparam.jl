@@ -1,8 +1,3 @@
-"""
-Utility structure for tracking which parameters are free or frozen.
-"""
-struct FreeParameters{V} end
-
 function fit_param_default_error(val)
     # 10 % error
     round(abs(0.1 * val), sigdigits = 1)

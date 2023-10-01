@@ -48,6 +48,7 @@ end
     end
     @testset "fit-params" begin
         include("parameters/test-fit-params.jl")
+        include("parameters/test-free-frozen.jl")
     end
 end
 

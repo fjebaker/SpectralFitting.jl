@@ -1,11 +1,11 @@
 using SpectralFitting, Test
 
-struct DummySimpleLinear{T,F} <: AbstractSpectralModel{T,Additive}
+struct DummySimpleLinear{T} <: AbstractSpectralModel{T,Additive}
     K::T
     c::T
 end
 function DummySimpleLinear(; K = FitParam(1.0), c = FitParam(1.0))
-    DummySimpleLinear{typeof(K),SpectralFitting.FreeParameters{(:K, :c)}}(K, c)
+    DummySimpleLinear(K, c)
 end
 function SpectralFitting.invoke!(out, x, model::DummySimpleLinear)
     @. out = x + (model.c / model.K)

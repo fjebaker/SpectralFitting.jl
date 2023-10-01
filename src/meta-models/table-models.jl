@@ -14,9 +14,7 @@ function remake_with_number_type(model::AbstractTableModel{FitParam{T}}) where {
     M = typeof(model).name.wrapper
     params = modelparameters(model)
     new_params = convert.(T, params)
-    M{typeof(model.table),T,modelkind(typeof(model))}(model.table, new_params...)
+    M{typeof(model.table),T}(model.table, new_params...)
 end
-
-# todo: use subtypes to ensure everything is correct in the model definitions
 
 export AbstractTableModel

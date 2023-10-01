@@ -17,8 +17,6 @@ export AbstractSpectralModel,
     invokemodel!,
     objective_cache_count,
     modelparameters,
-    freeparameters,
-    frozenparameters,
     updateparameters!,
     make_parameter_cache
 

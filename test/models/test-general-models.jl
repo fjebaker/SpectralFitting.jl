@@ -19,13 +19,6 @@ include("../utils.jl")
     invokemodel!(fluxes, energy, model)
     @test all(.!isnan.(flux))
     @test all(.!isinf.(flux))
-
-    # check free parameters can be modified externally
-    check_flux = deepcopy(flux)
-    params = convert.(Float64, freeparameters(model))
-    invokemodel!(fluxes, energy, model, params)
-    # there should be no difference
-    @test isapprox.(check_flux, flux) |> all
 end
 
 model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + DummyAdditive())

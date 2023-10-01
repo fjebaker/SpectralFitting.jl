@@ -121,7 +121,7 @@ If the callsite is not specified, the user must implement [`_unsafe_ffi_invoke!`
 # Examples
 
 ```julia
-@xspecmodel :C_powerlaw struct XS_PowerLaw{T,F} <: AbstractSpectralModel{T, Additive}
+@xspecmodel :C_powerlaw struct XS_PowerLaw{T} <: AbstractSpectralModel{T, Additive}
     "Normalisation."
     K::T
     "Photon index."
@@ -130,7 +130,7 @@ end
 
 # constructor has default values
 function XS_PowerLaw(; K = FitParam(1.0), a = FitParam(1.0))
-    XS_PowerLaw{typeof(K), SpectralFitting.FreeParameters{(:K, :a)}}(K, a)
+    XS_PowerLaw{typeof(K)}(K, a)
 end
 ```
 
