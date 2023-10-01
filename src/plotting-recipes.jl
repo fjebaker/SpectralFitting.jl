@@ -26,16 +26,22 @@ end
     yerr --> rateerror
     xerr --> bin_widths(dataset) ./ 2
     markerstrokecolor --> :auto
-    xscale --> :log10
-    yscale --> :log10
-    yticks --> ([0.01, 0.1, 1, 10, 100], [0.01, 0.1, 1, 10, 100])
-    xticks --> ([1e-1, 1, 2, 5, 10, 20, 50, 100], [1e-1, 1, 2, 5, 10, 20, 50, 100])
+    if all(>(0), rate)
+        yticks --> ([0.01, 0.1, 1, 10, 100], [0.01, 0.1, 1, 10, 100])
+        yscale --> :log10
+    end
+    if all(>(0), rate)
+        xticks --> ([1e-1, 1, 2, 5, 10, 20, 50, 100], [1e-1, 1, 2, 5, 10, 20, 50, 100])
+        xscale --> :log10
+    end
     xlabel --> "Energy (keV)"
-    ylabel --> "counts s⁻¹ keV⁻¹"
+    ylabel --> objective_units(dataset)
     label --> make_label(dataset)
     minorgrid --> true
     x = spectrum_energy(dataset)
-    (x, rate)
+
+    I = @. !isinf(x) && !isinf(rate)
+    @views (x[I], rate[I])
 end
 
 plotting_domain(dataset::AbstractDataset) = spectrum_energy(dataset)
@@ -46,13 +52,16 @@ plotting_domain(dataset::InjectiveData) = dataset.domain
     seriestype --> :stepmid
     y = _f_objective(result.config)(result.config.domain, result.u)
     x = plotting_domain(dataset)
+    if length(y) != length(x)
+        error("Domain mismatch. Are you sure you're plotting the result with the right dataset?")
+    end
     x, y
 end
 
 @recipe function _plotting_func(dataset::AbstractDataset, result::FittingResultSlice)
     label --> "fit"
     seriestype --> :stepmid
-    y = evaluate_result(result, result.u)
+    y = invoke_result(result, result.u)
     x = plotting_domain(dataset)
     x, y
 end
@@ -66,28 +75,26 @@ end
     label = :auto,
 )
     if length(r.args) != 2 ||
-       !(typeof(r.args[1]) <: SpectralDataset) ||
-       !(typeof(r.args[2]) <: AbstractVector || typeof(r.args[2]) <: FittingResult)
+       !(typeof(r.args[1]) <: AbstractDataset) ||
+       !(typeof(r.args[2]) <: AbstractFittingResult)
         error(
-            "Ratio plots first argument must be `SpectralDataset` and second argument of type `AbstractVector`.",
+            "Ratio plots first argument must be `AbstractDataset` and second argument of type `AbstractFittingResult`.",
         )
     end
+
     data = r.args[1]
-    model_flux = if (typeof(r.args[2]) <: FittingResult)
-        result = r.args[2]
-        result.folded_invoke(result.x, result.u)
-    else
-        r.args[2]
-    end
-    energy = data.bins_low[data.mask]
-    fieldnames(typeof(r))
+    x = plotting_domain(data)
+    result= r.args[2] isa FittingResult ? r.args[2][1] : r.args[2]
+    y = invoke_result(result, result.u)
+
+    y_ratio = @. result.objective / y
 
     ylabel --> "Ratio [data / model]"
     xlabel --> "Energy (keV)"
     minorgrid --> true
 
     if (label == :auto)
-        label = observation_id(data)
+        label = make_label(data)
     end
 
     @series begin
@@ -95,19 +102,17 @@ end
         seriestype --> :hline
         label --> false
         color --> modelcolor
-        # energy, ones(length(energy))
         [1.0]
     end
 
-    ratio_flux = target_vector(data) ./ model_flux
     @series begin
         markerstrokecolor --> datacolor
         label --> label
         seriestype --> :scatter
         markershape --> :none
         markersize --> 0.5
-        yerror --> sqrt.(target_variance(data)) ./ model_flux
-        xerror --> get_bin_widths(data) ./ 2
-        energy, ratio_flux
+        yerror --> sqrt.(result.variance) ./ y
+        xerror --> bin_widths(data) ./ 2
+        x, y_ratio
     end
 end
