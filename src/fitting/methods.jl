@@ -1,4 +1,4 @@
-export AbstractFittingAlgorithm, LevenbergMarquadt, fit
+export AbstractFittingAlgorithm, LevenbergMarquadt, fit, fit!
 
 abstract type AbstractFittingAlgorithm end
 
@@ -106,4 +106,10 @@ function fit(
     opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.domain)
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
     finalize(config, sol.u; statistic = statistic)
+end
+
+function fit!(prob::FittingProblem, args...; kwargs...)
+    result = fit(prob, args...; kwargs...)
+    update_model!(prob.model, result)
+    result
 end
