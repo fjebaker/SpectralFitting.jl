@@ -33,6 +33,8 @@ using DocStringExtensions
 abstract type AbstractMission end
 struct NoMission <: AbstractMission end
 
+abstract type AbstractStatistic end
+
 # unitful units
 include("units.jl")
 SpectralUnits.@reexport using .SpectralUnits
@@ -40,6 +42,7 @@ SpectralUnits.@reexport using .SpectralUnits
 include("print-utilities.jl")
 
 include("fitparam.jl")
+include("param-cache.jl")
 include("abstract-models.jl")
 
 include("ccall-wrapper.jl")
@@ -66,6 +69,7 @@ include("model-data-io.jl")
 include("fitting/result.jl")
 include("fitting/cache.jl")
 include("fitting/problem.jl")
+include("fitting/binding.jl")
 include("fitting/multi-cache.jl")
 include("fitting/methods.jl")
 include("fitting/statistics.jl")

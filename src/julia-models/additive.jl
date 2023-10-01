@@ -33,14 +33,14 @@ invokemodel(energy, PowerLaw())
                          E (keV)
 ```
 """
-struct PowerLaw{T,F} <: AbstractSpectralModel{T,Additive}
+struct PowerLaw{T} <: AbstractSpectralModel{T,Additive}
     "Normalisation."
     K::T
     "Photon index."
     a::T
 end
 function PowerLaw(; K = FitParam(1.0), a = FitParam(2.0))
-    PowerLaw{typeof(K),FreeParameters{(:K, :a)}}(K, a)
+    PowerLaw(K, a)
 end
 @inline @fastmath function invoke!(flux, energy, model::PowerLaw)
     let a = model.a
@@ -93,14 +93,14 @@ invokemodel(energy, BlackBody())
                          E (keV)
 ```
 """
-struct BlackBody{T,F} <: AbstractSpectralModel{T,Additive}
+struct BlackBody{T} <: AbstractSpectralModel{T,Additive}
     "Normalisation."
     K::T
     "Temperature (keV)."
     kT::T
 end
 function BlackBody(; K = FitParam(1.0), kT = FitParam(3.0))
-    BlackBody{typeof(K),FreeParameters{(:K, :kT)}}(K, kT)
+    BlackBody{typeof(K)}(K, kT)
 end
 @inline function invoke!(flux, energy, model::BlackBody)
     let kT = model.kT

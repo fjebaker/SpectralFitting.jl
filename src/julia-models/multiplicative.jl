@@ -1,4 +1,4 @@
-struct PhotoelectricAbsorption{D,T,F} <: AbstractTableModel{T,Multiplicative}
+struct PhotoelectricAbsorption{D,T} <: AbstractTableModel{T,Multiplicative}
     table::D
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."
     ηH::T
@@ -8,7 +8,7 @@ function PhotoelectricAbsorption(ηH::T) where {T}
     E::Vector{Float64} = data[1]["E"]
     σ::Vector{Float64} = data[1]["σ"]
     table = linear_interpolation(E, σ, extrapolation_bc = Line())
-    PhotoelectricAbsorption{typeof(table),T,FreeParameters{(:ηH,)}}(table, ηH)
+    PhotoelectricAbsorption{typeof(table),T}(table, ηH)
 end
 PhotoelectricAbsorption(; ηH = FitParam(1.0)) = PhotoelectricAbsorption(ηH)
 register_model_data(PhotoelectricAbsorption, "cross_sections_phabs_angr.jld")

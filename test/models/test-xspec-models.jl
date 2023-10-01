@@ -10,8 +10,8 @@ ALL_XSPEC_MODELS = [
     XS_BremsStrahlung,
     XS_Laor,
     XS_DiskLine,
-    XS_KerrDisk,
-    XS_KyrLine,
+    XS_KerrDisk, # data file it needs is big
+    XS_KyrLine, # # data file it needs is huge
     XS_Gaussian,
     XS_PhotoelectricAbsorption,
     XS_WarmAbsorption,

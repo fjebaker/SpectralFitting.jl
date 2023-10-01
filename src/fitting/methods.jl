@@ -1,7 +1,6 @@
 export AbstractFittingAlgorithm, LevenbergMarquadt, fit
 
 abstract type AbstractFittingAlgorithm end
-abstract type AbstractStatistic end
 
 struct LevenbergMarquadt{T} <: AbstractFittingAlgorithm
     λ_inc::T

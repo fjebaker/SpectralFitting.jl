@@ -1,3 +1,4 @@
+
 measure(stat::AbstractStatistic, y, ŷ, σ²) = error("Implement missing for $(typeof(stat))")
 
 struct ChiSquared <: AbstractStatistic end
@@ -13,4 +14,4 @@ function _f_wrap_objective(stat::AbstractStatistic, config::FittingConfig)
     end
 end
 
-export ChiSquared, Cash
+export ChiSquared, Cash, measure

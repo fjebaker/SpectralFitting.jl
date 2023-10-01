@@ -1,5 +1,4 @@
-using Test
-using SpectralFitting
+using Test, SpectralFitting
 
 testdir = get(
     ENV,
@@ -48,6 +47,7 @@ end
     end
     @testset "fit-params" begin
         include("parameters/test-fit-params.jl")
+        include("parameters/test-free-frozen.jl")
     end
 end
 
@@ -94,6 +94,9 @@ end
 @testset "fitting" verbose = true begin
     include("fitting/test-fit-simple-dataset.jl")
     include("fitting/test-cache.jl")
+    include("fitting/test-binding.jl")
+    include("fitting/test-results.jl")
+
     @testset "powerlaws" begin
         include("fitting/test-fit-powerlaw.jl")
     end

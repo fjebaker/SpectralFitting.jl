@@ -27,9 +27,9 @@ out = @inferred SpectralFitting._destructure_for_printing(model)
 @test out == (
     "m1 * (a2 + a1)",
     (
-        a1 = (DummyAdditive(), ("K_1", "a_1", "b_1"), (true, true, false)),
-        a2 = (DummyAdditive(), ("K_2", "a_2", "b_2"), (true, true, false)),
-        m1 = (DummyMultiplicative(), ("a_3", "b_3"), (true, false)),
+        a1 = (DummyAdditive(), ("K_1", "a_1", "b_1")),
+        a2 = (DummyAdditive(), ("K_2", "a_2", "b_2")),
+        m1 = (DummyMultiplicative(), ("a_3", "b_3")),
     ),
 )
 # test the output string is correct
