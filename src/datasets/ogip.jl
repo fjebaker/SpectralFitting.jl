@@ -289,19 +289,44 @@ function read_paths_from_spectrum(path::String)
         read_header(fits[2])
     end
     # extract path information from header
-    data_directory = Base.dirname(path)
-    _read_entry(entry) =
-        if haskey(header, entry)
-            _path::String = header[entry]
-            joinpath(data_directory, _path)
-        else
-            nothing
-        end
 
-    response_path = _read_entry("RESPFILE")
-    ancillary_path = _read_entry("ANCRFILE")
-    background_path = _read_entry("BACKFILE")
+    possible_ext = splitext(path)[2]
+    response_path = read_filename(header, "RESPFILE", path, ".rmf", ".rsp")
+    ancillary_path = read_filename(header, "ANCRFILE", path, possible_ext)
+    background_path = read_filename(header, "BACKFILE", path, possible_ext)
     (background_path, response_path, ancillary_path)
+end
+
+function read_filename(header, entry, parent, exts...)
+    data_directory = Base.dirname(parent)
+    parent_name = basename(parent)
+    if haskey(header, entry) 
+        path::String = strip(header[entry])
+        name = find_file(data_directory, path, parent_name, exts)
+        if !ismissing(name)
+            return name
+        end
+    end
+    missing
+end
+
+function find_file(dir, name, parent, extensions)
+    if length(name) == 0
+        return missing
+    elseif match(r"%match%", name) !== nothing 
+        base = splitext(parent)[1] 
+        for ext in extensions
+            testfile = joinpath(dir, base * ext)
+            if isfile(testfile)
+                return testfile
+            end
+        end
+        @warn "Missing! Could not find file '%match%': tried $extensions"
+        return missing
+    elseif match(r"^none\b", name) !== nothing
+        return missing
+    end
+    joinpath(dir, name)
 end
 
 end # module

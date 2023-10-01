@@ -15,12 +15,12 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(paths::SpectralData
     print(io, descr)
 end
 
-function SpectralDataPaths(; spectrum = "", background = "", response = "", ancillary = "")
+function SpectralDataPaths(; spectrum = missing, background = missing, response = missing, ancillary = missing)
     SpectralDataPaths(
-        spectrum == "" ? missing : spectrum,
-        background == "" ? missing : background,
-        response == "" ? missing : response,
-        ancillary == "" ? missing : ancillary,
+        spectrum,
+        background,
+        response,
+        ancillary,
     )
 end
 
