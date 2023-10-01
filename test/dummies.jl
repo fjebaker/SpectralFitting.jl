@@ -33,7 +33,7 @@ function make_dummy_dataset(
         exposure_time,
         1.0, # background scale
         1.0, # area scale
-        SpectralFitting.ErrorStatistics.Unknown,
+        SpectralFitting.ErrorStatistics.Poisson,
         error_fraction .* flux,
         0.0,
         "test-telescope",
