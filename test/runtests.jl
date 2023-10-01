@@ -95,6 +95,8 @@ end
 @testset "fitting" verbose = true begin
     include("fitting/test-fit-simple-dataset.jl")
     include("fitting/test-cache.jl")
+    include("fitting/test-binding.jl")
+
     @testset "powerlaws" begin
         include("fitting/test-fit-powerlaw.jl")
     end

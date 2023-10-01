@@ -69,10 +69,13 @@ result = fit(prob, LevenbergMarquadt())
 @test result[2].χ2 ≈ 0.079 atol = 1e-3
 
 # and we can still bind
+prob = FittingProblem(
+    FittableMultiModel(model, model2),
+    FittableMultiDataset(dummy_data, dummy_data2),
+)
 bind!(prob, :K_1)
 
 result = fit(prob, LevenbergMarquadt())
 
-# todo: why are these failing ???
-# @test result[1].χ2 ≈ 2.8627679111508226 atol = 0.1
-# @test result[2].χ2 ≈ 0.2460801839134885 atol = 0.1
+@test result[1].χ2 ≈ 2.8627679111508226 atol = 0.1
+@test result[2].χ2 ≈ 0.2460801839134885 atol = 0.1
