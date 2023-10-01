@@ -30,7 +30,7 @@ function assemble_closures(ga::GenerationAggregate, model)
     closures = map(info_with_closures) do info
         cl = map(closure_parameter_symbols(info.type)) do s
             param = ga.closure_params[i+=1]
-            path = :(getproperty($(info.lens), $(Meta.quot(s))))
+            path = :(getfield($(info.lens), $(Meta.quot(s))))
             :($param = $(path))
         end
         [cl...]
@@ -83,30 +83,21 @@ function make_flux_unpack(N)
     unpacks
 end
 
-function generated_model_call!(fluxes, energy, model, free_params, frozen_params)
+function generated_model_call!(fluxes, energy, model, parameters)
     # propagate information about free parameters to allow for AD
-    ga = assemble_aggregate_info(model, eltype(free_params))
-    flux_unpack = make_flux_unpack(ga.maximum_flux_count)
-    p_assign = assemble_parameter_assignment(ga, model)
-    closures = assemble_closures(ga, model)
-    generate_call(flux_unpack, closures, p_assign, ga.statements)
-end
-function generated_model_call!(fluxes, energy, model, params)
-    # propagate information about free parameters to allow for AD
-    ga = assemble_aggregate_info(model, eltype(params))
+    ga = assemble_aggregate_info(model, eltype(parameters))
     flux_unpack = make_flux_unpack(ga.maximum_flux_count)
     i = 0
     p_assign = reduce(
         vcat,
         [
-            [:($(s) = params[$(i += 1)]) for s in info.generated_symbols] for
+            [:($(s) = parameters[$(i += 1)]) for s in info.generated_symbols] for
             info in ga.infos
         ],
     )
     closures = assemble_closures(ga, model)
     generate_call(flux_unpack, closures, p_assign, ga.statements)
 end
-
 
 function assemble_aggregate_info(model::Type{<:AbstractSpectralModel}, NumType)
     ga = FunctionGeneration.GenerationAggregate(NumType)
@@ -135,28 +126,20 @@ function model_parameters_tuple(model::Type{<:CompositeModel})
     reduce(vcat, map(i -> _parameter_lens(i, i.symbols), infos))
 end
 
-function free_parameters_tuple(model::Type{<:AbstractSpectralModel})
-    info = getinfo(model)
-    _parameter_lens(info, info.free)
-end
-function free_parameters_tuple(model::Type{<:CompositeModel})
-    infos = getinfo(model)
-    reduce(vcat, map(i -> _parameter_lens(i, i.free), infos))
-end
-
-function frozen_parameters_tuple(model::Type{<:AbstractSpectralModel})
-    info = getinfo(model)
-    _parameter_lens(info, info.frozen)
-end
-function frozen_parameters_tuple(model::Type{<:CompositeModel})
-    infos = getinfo(model)
-    reduce(vcat, map(i -> _parameter_lens(i, i.frozen), infos))
-end
-
 function _parameter_lens(info::ModelInfo, symbols)
     map(symbols) do s
         :(getproperty($(info.lens), $(Meta.quot(s))))
     end
+end
+
+function _construct_model_from_parameter_vector(
+    model::Type{<:AbstractSpectralModel},
+    parameters::Type{<:AbstractArray{T}},
+) where {T}
+    info = getinfo(model)
+    N = length(info.generated_symbols)
+    params = [:(parameters[$(i)]) for i = 1:N]
+    model_constructor(T, info, params)
 end
 
 end # module

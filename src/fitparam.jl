@@ -16,18 +16,23 @@ mutable struct FitParam{T}
     lower_limit::T
     upper_limit::T
 
+    frozen::Bool
+
     FitParam(
         val::T;
+        frozen = false,
         lower_limit = T(0.0),
         upper_limit = T(Inf),
         error = fit_param_default_error(val),
-    ) where {T} = new{T}(val, error, lower_limit, upper_limit)
+    ) where {T} = new{T}(val, error, lower_limit, upper_limit, frozen)
 end
 
 # interface
 set_value!(f::FitParam{T}, val::T) where {T} = f.value = val
 set_error!(f::FitParam{T}, val::T) where {T} = f.error = val
 get_value(f::FitParam) = f.value
+isfrozen(f::FitParam) = f.frozen
+isfree(f::FitParam) = !isfrozen(f)
 function set!(f::FitParam, o::FitParam)
     f.value = o.value
     f.lower_limit = o.lower_limit

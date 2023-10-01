@@ -29,12 +29,12 @@ function _invoke_and_transform!(cache::MultiModelCache, domain, params)
 end
 
 function _build_parameter_mapping(model::FittableMultiModel, bindings)
-    parameters = map(freeparameters, model.m)
+    parameters = map(_allocate_free_parameters, model.m)
     parameters_counts = _accumulated_indices(map(length, parameters))
 
     all_parameters = reduce(vcat, parameters)
 
-    parameter_mapping, remove = _assemble_parameter_indices(bindings, parameters_counts)
+    parameter_mapping, remove = _construct_bound_mapping(bindings, parameters_counts)
     # remove duplicate parameters that are bound
     deleteat!(all_parameters, remove)
 
@@ -73,6 +73,7 @@ function FittingConfig(prob::FittingProblem)
             domains[i],
             objectives[i],
             objective_transformer(layout, prob.data.d[i]),
+            param_diff_cache_size = length(parameters),
         )
         i += 1
         c

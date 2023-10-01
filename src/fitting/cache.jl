@@ -4,26 +4,31 @@ _invoke_and_transform!(cache::AbstractFittingCache, domain, params) =
     error("Not implemented for $(typeof(cache))")
 
 # one of these for each (mulit)model / data pair
-struct SpectralCache{M,O,T,TransformerType} <: AbstractFittingCache
+struct SpectralCache{M,O,T,P,TransformerType} <: AbstractFittingCache
     model::M
     model_output::O
     calculated_objective::T
+    parameter_cache::P
     transfomer!!::TransformerType
     function SpectralCache(
         layout::AbstractDataLayout,
         model::M,
         domain,
         objective,
-        transformer::XfmT,
+        transformer::XfmT;
+        param_diff_cache_size = nothing,
     ) where {M,XfmT}
         model_output = DiffCache(construct_objective_cache(layout, model, domain))
         calc_obj = similar(objective)
         calc_obj .= 0
         calc_obj_cache = DiffCache(calc_obj)
-        new{M,typeof(model_output),typeof(calc_obj_cache),XfmT}(
+        param_cache =
+            make_diff_parameter_cache(model; param_diff_cache_size = param_diff_cache_size)
+        new{M,typeof(model_output),typeof(calc_obj_cache),typeof(param_cache),XfmT}(
             model,
             model_output,
             calc_obj_cache,
+            param_cache,
             transformer,
         )
     end
@@ -44,9 +49,13 @@ function Base.show(
 end
 
 function _invoke_and_transform!(cache::SpectralCache, domain, params)
-    model_output = get_tmp(cache.model_output, params)
-    calc_obj = get_tmp(cache.calculated_objective, params)
-    output = invokemodel!(model_output, domain, cache.model, params)
+    # update the free parameters, and then get all of them
+    update_free_parameters!(cache.parameter_cache, params)
+    parameters = _get_parameters(cache.parameter_cache, params)
+    # use those new parameters to do the fitting
+    model_output = get_tmp(cache.model_output, parameters)
+    calc_obj = get_tmp(cache.calculated_objective, parameters)
+    output = invokemodel!(model_output, domain, cache.model, parameters)
     cache.transfomer!!(calc_obj, domain, output)
     calc_obj
 end
@@ -76,7 +85,7 @@ function FittingConfig(model::AbstractSpectralModel, dataset::AbstractDataset)
     domain = make_model_domain(layout, dataset)
     objective = make_objective(layout, dataset)
     variance = make_objective_variance(layout, dataset)
-    params = freeparameters(model)
+    params = _allocate_free_parameters(model)
     cache = SpectralCache(
         layout,
         model,

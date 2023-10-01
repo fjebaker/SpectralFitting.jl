@@ -33,14 +33,14 @@ invokemodel(energy, PowerLaw())
                          E (keV)
 ```
 """
-struct PowerLaw{T,F} <: AbstractSpectralModel{T,Additive}
+struct PowerLaw{T} <: AbstractSpectralModel{T,Additive}
     "Normalisation."
     K::T
     "Photon index."
     a::T
 end
 function PowerLaw(; K = FitParam(1.0), a = FitParam(2.0))
-    PowerLaw{typeof(K),FreeParameters{(:K, :a)}}(K, a)
+    PowerLaw(K, a)
 end
 @inline @fastmath function invoke!(flux, energy, model::PowerLaw)
     let a = model.a

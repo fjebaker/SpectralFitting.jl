@@ -3,9 +3,17 @@ struct FittableMultiDataset{D}
     FittableMultiDataset(data::Vararg{<:AbstractDataset}) = new{typeof(data)}(data)
 end
 
+function Base.getindex(multidata::FittableMultiDataset, i)
+    multidata.d[i]
+end
+
 struct FittableMultiModel{M}
     m::M
     FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
+end
+
+function Base.getindex(multimodel::FittableMultiModel, i)
+    multimodel.m[i]
 end
 
 function _multi_constructor_wrapper(
@@ -73,7 +81,7 @@ struct FittingProblem{M<:FittableMultiModel,D<:FittableMultiDataset,B}
     data::D
     bindings::B
     function FittingProblem(m::FittableMultiModel, d::FittableMultiDataset)
-        bindings = map(_ -> Int[], m.m)
+        bindings = Vector{Pair{Int,Int}}[]
         new{typeof(m),typeof(d),typeof(bindings)}(m, d, bindings)
     end
 end
@@ -96,11 +104,9 @@ end
 
 function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
     map(prob.model.m) do model
-        free_symbs =
-            model isa CompositeModel ? composite_free_parameter_symbols(model) :
-            free_parameter_symbols(model)
+        param_symbols = all_parameter_symbols(model)
         map(symbols) do s
-            i = findfirst(==(s), free_symbs)
+            i = findfirst(==(s), param_symbols)
             if isnothing(i)
                 @warn "Model contains no symbol `$(Meta.quot(s))`"
                 -1
@@ -111,7 +117,7 @@ function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
     end
 end
 
-function bind!(prob::FittingProblem, symbols...)
+function old_bind!(prob::FittingProblem, symbols...)
     indices = _get_binding_indices(prob, symbols...)
     for (i, I) in enumerate(indices)
         if any(==(-1), I)
@@ -127,6 +133,7 @@ function bind!(prob::FittingProblem, symbols...)
     end
     true
 end
+
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProblem))
     buff = IOBuffer()

@@ -1,36 +1,32 @@
-@inline @generated function generated_model_call!(fluxes, energy, model, params)
-    FunctionGeneration.generated_model_call!(fluxes, energy, model, params)
-end
 
-@inline @generated function generated_model_call!(
-    fluxes,
-    energy,
-    model,
-    free_params,
-    frozen_params,
-)
-    FunctionGeneration.generated_model_call!(
-        fluxes,
-        energy,
-        model,
-        free_params,
-        frozen_params,
-    )
+@inline @generated function generated_model_call!(fluxes, energy, model, parameters)
+    FunctionGeneration.generated_model_call!(fluxes, energy, model, parameters)
 end
 
 """
     all_parameter_symbols(model::AbstractSpectralModel)
 
 Returns a compile-time known tuple of all models symbols.
-This method is not defined for [`CompositeModel`](@ref). Prefer [`modelparameters`](@ref).
 """
 @inline @generated function all_parameter_symbols(model::AbstractSpectralModel)
     params = FunctionGeneration.all_parameter_symbols(model)
     :($(params))
 end
-all_parameter_symbols(::CompositeModel) =
-    throw("This inspection method is for base models only.")
 
+remake_with_parameters(model::AbstractSpectralModel, cache::ParameterCache) =
+    _unsafe_remake_with_parameters(model, cache.parameters)
+function remake_with_parameters(model::AbstractSpectralModel, params::AbstractArray)
+    @assert length(params) == parameter_count(model)
+    _unsafe_remake_with_parameters(model, params)
+end
+@inline @generated function _unsafe_remake_with_parameters(
+    model::AbstractSpectralModel,
+    parameters::AbstractArray,
+)
+    constructor =
+        FunctionGeneration._construct_model_from_parameter_vector(model, parameters)
+    :($(constructor))
+end
 
 """
     free_parameter_symbols(model::AbstractSpectralModel)
