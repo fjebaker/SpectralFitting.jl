@@ -66,3 +66,5 @@ function bind!(prob::FittingProblem, symbs::Vararg{Symbol})
         push!(prob.bindings, _sort_binding!(collect(binding)))
     end
 end
+
+export bind!

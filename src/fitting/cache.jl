@@ -49,14 +49,17 @@ function Base.show(
 end
 
 function _invoke_and_transform!(cache::SpectralCache, domain, params)
+    # read all caches
+    model_output = get_tmp(cache.model_output, params)
+    calc_obj = get_tmp(cache.calculated_objective, params)
+
     # update the free parameters, and then get all of them
     update_free_parameters!(cache.parameter_cache, params)
     parameters = _get_parameters(cache.parameter_cache, params)
-    # use those new parameters to do the fitting
-    model_output = get_tmp(cache.model_output, parameters)
-    calc_obj = get_tmp(cache.calculated_objective, parameters)
+
     output = invokemodel!(model_output, domain, cache.model, parameters)
     cache.transfomer!!(calc_obj, domain, output)
+
     calc_obj
 end
 

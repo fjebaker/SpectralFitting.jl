@@ -47,35 +47,6 @@ function _accumulated_indices(items)
     end
 end
 
-function _assemble_parameter_indices(bindings, n_params)
-    remove = Int[]
-    carry = Ref(0)
-    parameter_indices = map((1:length(n_params)...,)) do i
-        s = i == 1 ? 1 : n_params[i-1] + 1
-        e = n_params[i]
-        indices = collect(s:e)
-        # assign bindings for all but the first models parameters
-        if i > 1
-            b = bindings[i]
-            map(enumerate(indices)) do (j, index)
-                # remove and replace index
-                if j in b
-                    push!(remove, index)
-                    carry[] += 1
-                    j
-                else
-                    # subtract the number of indices we've replaced / removed
-                    index - carry[]
-                end
-            end
-        else
-            indices
-        end
-    end
-    parameter_indices, remove
-end
-
-
 struct FittingProblem{M<:FittableMultiModel,D<:FittableMultiDataset,B}
     model::M
     data::D
@@ -102,39 +73,6 @@ function data_count(prob::FittingProblem)
     return length(prob.data.d)
 end
 
-function _get_binding_indices(prob::FittingProblem, symbols::Vararg{Symbol})
-    map(prob.model.m) do model
-        param_symbols = all_parameter_symbols(model)
-        map(symbols) do s
-            i = findfirst(==(s), param_symbols)
-            if isnothing(i)
-                @warn "Model contains no symbol `$(Meta.quot(s))`"
-                -1
-            else
-                i
-            end
-        end
-    end
-end
-
-function old_bind!(prob::FittingProblem, symbols...)
-    indices = _get_binding_indices(prob, symbols...)
-    for (i, I) in enumerate(indices)
-        if any(==(-1), I)
-            j = findfirst(==(-1), I)
-            throw("Could not bind symbol `$(Meta.quot(symbols[j]))`")
-        end
-        for index in I
-            # avoid duplicating
-            if index ∉ prob.bindings[i]
-                push!(prob.bindings[i], index)
-            end
-        end
-    end
-    true
-end
-
-
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProblem))
     buff = IOBuffer()
     println(buff, "FittingProblem:")
@@ -149,4 +87,4 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProble
     print(io, encapsulate(String(take!(buff))))
 end
 
-export FittingProblem, bind!, FittableMultiModel, FittableMultiDataset
+export FittingProblem, FittableMultiModel, FittableMultiDataset
