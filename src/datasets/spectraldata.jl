@@ -43,7 +43,8 @@ mutable struct SpectralData{T} <: AbstractDataset
     # ancillary response is optionally, may also have already been folded into response
     ancillary::Union{Missing,AncillaryResponse{T}}
 
-    channel_to_energy::Vector{T} # energy translated from the response channels
+    energy_low::Vector{T} # energy translated from the response channels
+    energy_high::Vector{T} # energy translated from the response channels
     domain::Vector{T} # domain fitted in models
 
     data_mask::BitVector
@@ -61,9 +62,9 @@ function SpectralData(
     ancillary = missing,
 )
     domain = _make_domain_vector(spectrum, response)
-    energy = _make_energy_vector(spectrum, response)
+    energy_low, energy_high = _make_energy_vector(spectrum, response)
     data_mask = BitVector(fill(true, size(spectrum.data)))
-    SpectralData(spectrum, response, background, ancillary, energy, domain, data_mask)
+    SpectralData(spectrum, response, background, ancillary, energy_low, energy_high, domain, data_mask)
 end
 
 supports_contiguosly_binned(::Type{<:SpectralData}) = true
@@ -92,8 +93,8 @@ mask_energies!(dataset::SpectralData, low, high) =
     mask_energies!(dataset, i -> high > i > low)
 
 function mask_energies!(dataset::SpectralData, condition)
-    J = @. !condition(dataset.channel_to_energy)
-    dataset.data_mask[@views(J[1:end-1])] .= false
+    J = @. !condition(dataset.energy_low) && !condition(dataset.energy_high)
+    dataset.data_mask[J] .= false
     dataset
 end
 
@@ -123,7 +124,7 @@ function objective_transformer(
     _transformer!!
 end
 
-bin_widths(dataset::SpectralData) = diff(dataset.channel_to_energy)[dataset.data_mask]
+bin_widths(dataset::SpectralData) = (dataset.energy_high .- dataset.energy_low)[dataset.data_mask]
 has_background(dataset::SpectralData) = !ismissing(dataset.background)
 has_ancillary(dataset::SpectralData) = !ismissing(dataset.ancillary)
 
@@ -144,12 +145,13 @@ function drop_channels!(dataset::SpectralData, indices)
         drop_channels!(dataset.background, indices)
     end
     deleteat!(dataset.data_mask, indices)
-    deleteat!(dataset.channel_to_energy, indices)
+    deleteat!(dataset.energy_low, indices)
+    deleteat!(dataset.energy_high, indices)
     length(indices)
 end
 
 spectrum_energy(dataset::SpectralData) =
-    @views dataset.channel_to_energy[1:end-1][dataset.data_mask]
+    ((dataset.energy_low .+ dataset.energy_high) ./ 2)[dataset.data_mask]
 
 function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     grp::typeof(grouping) = if safety_copy
@@ -161,10 +163,10 @@ function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     itt = GroupingIterator(grp)
     last = first(itt)
     for i in itt
-        dataset.channel_to_energy[i[1]] = dataset.channel_to_energy[i[2]]
+        dataset.energy_low[i[1]] = dataset.energy_low[i[2]]
+        dataset.energy_high[i[1]] = dataset.energy_high[i[2]]
         last = i
     end
-    dataset.channel_to_energy[last[1]+1] = dataset.channel_to_energy[last[3]]
 
     if has_background(dataset)
         regroup!(dataset.background, grp)
@@ -173,7 +175,8 @@ function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     regroup!(dataset.spectrum, grp)
 
     resize!(dataset.data_mask, length(itt))
-    resize!(dataset.channel_to_energy, length(itt) + 1)
+    resize!(dataset.energy_low, length(itt))
+    resize!(dataset.energy_high, length(itt))
     # set everything to unmasked
     dataset.data_mask .= 1
     dataset
@@ -213,6 +216,8 @@ function set_domain!(dataset::SpectralData, domain)
     dataset.domain = domain
 end
 
+objective_units(data::SpectralData) = data.spectrum.units
+
 # internal methods
 
 function rebin_if_different_domains!(output, data_domain, model_domain, input)
@@ -229,19 +234,19 @@ function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPC
     back = if !ismissing(paths.background)
         OGIP.read_background(paths.background, config)
     else
-        @warn "No background file specified."
+        # @warn "No background file specified."
         missing
     end
     resp = if !ismissing(paths.response)
         OGIP.read_rmf(paths.response, config)
     else
-        @warn "No response file specified."
+        # @warn "No response file specified."
         missing
     end
     ancillary = if !ismissing(paths.ancillary)
         OGIP.read_ancillary_response(paths.ancillary, config)
     else
-        @warn "No ancillary file specified."
+        # @warn "No ancillary file specified."
         missing
     end
 
@@ -272,12 +277,15 @@ function _make_domain_vector(::Spectrum, resp::ResponseMatrix{T}) where {T}
 end
 
 function _make_energy_vector(spec::Spectrum, resp::ResponseMatrix{T}) where {T}
-    augmented_energy_channels(
+    full_domain = augmented_energy_channels(
         spec.channels,
         resp.channels,
         resp.channel_bins_low,
         resp.channel_bins_high,
     )
+    high = full_domain[2:end]
+    resize!(full_domain, length(high))
+    full_domain, high
 end
 
 macro _forward_SpectralData_api(args)
@@ -317,8 +325,12 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.drop_channels!(getproperty(t, $(field)), args...)
         SpectralFitting.drop_bad_channels!(t::$(T)) =
             SpectralFitting.drop_bad_channels!(getproperty(t, $(field)))
+        SpectralFitting.drop_negative_channels!(t::$(T)) =
+            SpectralFitting.drop_negative_channels!(getproperty(t, $(field)))
         SpectralFitting.normalize!(t::$(T)) =
             SpectralFitting.normalize!(getproperty(t, $(field)))
+        SpectralFitting.objective_units(t::$(T)) =
+            SpectralFitting.objective_units(getproperty(t, $(field)))
         SpectralFitting.spectrum_energy(t::$(T)) =
             SpectralFitting.spectrum_energy(getproperty(t, $(field)))
         SpectralFitting.bin_widths(t::$(T)) =
@@ -330,6 +342,7 @@ macro _forward_SpectralData_api(args)
     end |> esc
 end
 
+
 # printing utilities
 
 function Base.show(io::IO, @nospecialize(data::SpectralData))
@@ -338,8 +351,8 @@ end
 
 function _printinfo(io, data::SpectralData{T}) where {T}
     domain = @views data.domain
-    ce_min, ce_max =
-        @views prettyfloat.(extrema(data.channel_to_energy[1:end-1][data.data_mask]))
+    ce_min = @views prettyfloat.(minimum(data.energy_low[data.data_mask]))
+    ce_max = @views prettyfloat.(maximum(data.energy_high[data.data_mask]))
     dom_min, dom_max = @views prettyfloat.(extrema(domain))
     @views println(
         io,
@@ -348,7 +361,7 @@ function _printinfo(io, data::SpectralData{T}) where {T}
         Crayons.Crayon(reset = true),
         " with ",
         Crayons.Crayon(foreground = :cyan),
-        length(data.channel_to_energy[1:end-1][data.data_mask]) - 1,
+        length(data.energy_low[data.data_mask]) - 1,
         Crayons.Crayon(reset = true),
         " active channels:",
     )
@@ -420,6 +433,7 @@ export SpectralData,
     restrict_domain!,
     mask_energies!,
     drop_bad_channels!,
+    drop_negative_channels!,
     drop_channels!,
     normalize!,
     subtract_background!,
