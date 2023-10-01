@@ -15,8 +15,8 @@ function _construct_bound_mapping(bindings, parameter_count)
             parameter_mapping[b[1]][b[2]] = reference[2]
 
             # mark for removal: find the parameter index in the global array
-            N = length(parameter_mapping[b[1]])
-            index = N + b[2] - 1
+            N = sum(length(parameter_mapping[q]) for q = 1:b[1]-1)
+            index = N + b[2]
             push!(remove, index)
 
             # need to now shuffle all the indices greater than this one down by 1

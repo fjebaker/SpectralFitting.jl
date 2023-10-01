@@ -123,3 +123,5 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(config::FittingConf
     descr = "FittingConfig"
     print(io, descr)
 end
+
+export FittingConfig
