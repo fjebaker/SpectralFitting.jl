@@ -1,5 +1,4 @@
-using Test
-using SpectralFitting
+using Test, SpectralFitting
 
 testdir = get(
     ENV,
