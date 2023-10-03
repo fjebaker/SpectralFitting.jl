@@ -110,7 +110,7 @@ function fold_ancillary(
     response::ResponseMatrix,
     ancillary::AncillaryResponse,
 )
-    @views ancillary.effective_area' .* response.matrix[channels, :]
+    ancillary.effective_area' .* response.matrix[channels, :]
 end
 
 function fold_ancillary(
@@ -118,7 +118,7 @@ function fold_ancillary(
     response::ResponseMatrix,
     ::Missing,
 )
-    @views response.matrix[channels, :]
+    response.matrix[channels, :]
 end
 
 

@@ -116,10 +116,12 @@ function objective_transformer(
     layout::ContiguouslyBinned,
     dataset::SpectralData{T},
 ) where {T}
-    R = fold_ancillary(dataset.spectrum.channels, dataset.response, dataset.ancillary)[
-        dataset.data_mask,
-        :,
-    ]
+    R_folded = if has_ancillary(dataset)
+        sparse(fold_ancillary(dataset.spectrum.channels, dataset.response, dataset.ancillary))
+    else
+        dataset.response.matrix
+    end
+    R = R_folded[dataset.data_mask, :]
     ΔE = bin_widths(dataset)
     E = response_energy(dataset.response)
     cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
