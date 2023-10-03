@@ -121,25 +121,3 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::MultiFittingRe
     text = String(take!(buff))
     print(io, encapsulate(text) * "Σχ² = $(total_χ2)")
 end
-
-function update_model!(
-    model::AbstractSpectralModel,
-    result::Union{<:FittingResult,<:FittingResultSlice},
-)
-    for (i, f) in enumerate(_allocate_free_parameters(model))
-        set_value!(f, result.u[i])
-    end
-    model
-end
-
-function update_model!(
-    model::FittableMultiModel,
-    result::Union{<:FittingResult,<:FittingResultSlice},
-)
-    @assert length(model.m) == 1
-    update_model!(model.m[1], result)
-end
-
-function update_model!(multimodel::FittableMultiModel, result::MultiFittingResult)
-    error("TODO")
-end
