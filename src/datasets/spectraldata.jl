@@ -175,11 +175,9 @@ function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     end
 
     itt = GroupingIterator(grp)
-    last = first(itt)
     for i in itt
         dataset.energy_low[i[1]] = dataset.energy_low[i[2]]
-        dataset.energy_high[i[1]] = dataset.energy_high[i[2]]
-        last = i
+        dataset.energy_high[i[1]] = dataset.energy_high[i[3]]
     end
 
     if has_background(dataset)
