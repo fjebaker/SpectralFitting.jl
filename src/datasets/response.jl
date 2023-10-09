@@ -111,11 +111,6 @@ function fold_ancillary(response::ResponseMatrix, ancillary::AncillaryResponse)
     ancillary.effective_area' .* response.matrix
 end
 
-function fold_ancillary(response::ResponseMatrix, ::Missing)
-    response.matrix[channels, :]
-end
-
-
 function Base.show(
     io::IO,
     ::MIME{Symbol("text/plain")},
