@@ -60,7 +60,7 @@ function regroup!(spectrum::Spectrum{T}, grouping) where {T}
 
     itt = GroupingIterator(grouping)
     for grp in itt
-        spectrum.channels[grp[1]] = spectrum.channels[grp[2]]
+        spectrum.channels[grp[1]] = grp[1]
         regroup_vector!(spectrum.data, grp)
         regroup_quality_vector!(spectrum.quality, grp)
         if !ismissing(spectrum.errors)
@@ -122,6 +122,8 @@ function _printinfo(io::IO, spectrum::Spectrum)
     """
     print(io, descr)
 end
+
+error_statistic(spec::Spectrum) = spec.error_statistics
 
 function subtract_background!(spectrum::Spectrum, background::Spectrum)
     # should all already be rates

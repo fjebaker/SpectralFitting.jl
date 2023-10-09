@@ -102,7 +102,7 @@ mask_energies!(dataset::SpectralData, low, high) =
     mask_energies!(dataset, i -> high > i > low)
 
 function mask_energies!(dataset::SpectralData, condition)
-    J = @. !condition(dataset.energy_low) && !condition(dataset.energy_high)
+    J = @. !condition(dataset.energy_low) || !condition(dataset.energy_high)
     dataset.data_mask[J] .= false
     dataset
 end
@@ -116,10 +116,12 @@ function objective_transformer(
     layout::ContiguouslyBinned,
     dataset::SpectralData{T},
 ) where {T}
-    R = fold_ancillary(dataset.spectrum.channels, dataset.response, dataset.ancillary)[
-        dataset.data_mask,
-        :,
-    ]
+    R_folded = if has_ancillary(dataset)
+        sparse(fold_ancillary(dataset.response, dataset.ancillary))
+    else
+        dataset.response.matrix
+    end
+    R = R_folded[dataset.data_mask, :]
     ΔE = bin_widths(dataset)
     E = response_energy(dataset.response)
     cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
@@ -153,6 +155,7 @@ end
 
 function drop_channels!(dataset::SpectralData, indices)
     drop_channels!(dataset.spectrum, indices)
+    drop_channels!(dataset.response, indices)
     if has_background(dataset)
         drop_channels!(dataset.background, indices)
     end
@@ -173,11 +176,9 @@ function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     end
 
     itt = GroupingIterator(grp)
-    last = first(itt)
     for i in itt
         dataset.energy_low[i[1]] = dataset.energy_low[i[2]]
-        dataset.energy_high[i[1]] = dataset.energy_high[i[2]]
-        last = i
+        dataset.energy_high[i[1]] = dataset.energy_high[i[3]]
     end
 
     if has_background(dataset)
@@ -229,6 +230,8 @@ function set_domain!(dataset::SpectralData, domain)
 end
 
 objective_units(data::SpectralData) = data.spectrum.units
+
+error_statistic(data::SpectralData) = error_statistic(data.spectrum)
 
 # internal methods
 
@@ -351,6 +354,8 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.subtract_background!(getfield(t, $(field)), args...)
         SpectralFitting.set_domain!(t::$(T), args...) =
             SpectralFitting.set_domain!(getfield(t, $(field)), args...)
+        SpectralFitting.error_statistic(t::$(T)) =
+            SpectralFitting.error_statistic(getfield(t, $(field)))
     end |> esc
 end
 
