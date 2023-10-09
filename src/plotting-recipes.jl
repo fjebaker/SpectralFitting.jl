@@ -21,9 +21,14 @@ end
     markershape --> :none
     (rate, rateerror) = (
         make_objective(data_layout, dataset),
-        sqrt.(make_objective_variance(data_layout, dataset)),
+        make_objective_variance(data_layout, dataset),
     )
-    yerr --> rateerror
+    _yerr = if error_statistic(dataset) == ErrorStatistics.Poisson
+        sqrt.(rateerror)
+    else
+        rateerror
+    end
+    yerr --> _yerr
     xerr --> bin_widths(dataset) ./ 2
     markerstrokecolor --> :auto
     if all(>(0), rate)

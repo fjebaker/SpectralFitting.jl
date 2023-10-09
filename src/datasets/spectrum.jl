@@ -123,6 +123,8 @@ function _printinfo(io::IO, spectrum::Spectrum)
     print(io, descr)
 end
 
+error_statistic(spec::Spectrum) = spec.error_statistics
+
 function subtract_background!(spectrum::Spectrum, background::Spectrum)
     # should all already be rates
     # errors added in quadrature

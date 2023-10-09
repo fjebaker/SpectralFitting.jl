@@ -231,6 +231,8 @@ end
 
 objective_units(data::SpectralData) = data.spectrum.units
 
+error_statistic(data::SpectralData) = error_statistic(data.spectrum)
+
 # internal methods
 
 function rebin_if_different_domains!(output, data_domain, model_domain, input)
@@ -352,6 +354,8 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.subtract_background!(getfield(t, $(field)), args...)
         SpectralFitting.set_domain!(t::$(T), args...) =
             SpectralFitting.set_domain!(getfield(t, $(field)), args...)
+        SpectralFitting.error_statistic(t::$(T)) =
+            SpectralFitting.error_statistic(getfield(t, $(field)))
     end |> esc
 end
 

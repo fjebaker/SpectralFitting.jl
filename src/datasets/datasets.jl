@@ -152,6 +152,8 @@ end
 
 make_label(d::AbstractDataset) = "$(Base.typename(typeof(d)).name)"
 
+error_statistic(::AbstractDataset) = ErrorStatistics.Unknown
+
 """
 Must support the same API, but may also have some query methods for specific internals.
 """
