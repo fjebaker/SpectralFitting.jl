@@ -155,6 +155,7 @@ end
 
 function drop_channels!(dataset::SpectralData, indices)
     drop_channels!(dataset.spectrum, indices)
+    drop_channels!(dataset.response, indices)
     if has_background(dataset)
         drop_channels!(dataset.background, indices)
     end
