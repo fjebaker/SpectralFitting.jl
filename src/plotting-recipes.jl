@@ -21,7 +21,7 @@ end
     markershape --> :none
     (rate, rateerror) = (
         make_objective(data_layout, dataset),
-        make_objective_variance(data_layout, dataset),
+        sqrt.(make_objective_variance(data_layout, dataset)),
     )
     yerr --> rateerror
     xerr --> bin_widths(dataset) ./ 2
