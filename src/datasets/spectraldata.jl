@@ -117,7 +117,7 @@ function objective_transformer(
     dataset::SpectralData{T},
 ) where {T}
     R_folded = if has_ancillary(dataset)
-        sparse(fold_ancillary(dataset.spectrum.channels, dataset.response, dataset.ancillary))
+        sparse(fold_ancillary(dataset.response, dataset.ancillary))
     else
         dataset.response.matrix
     end

@@ -17,22 +17,24 @@ end
 
 function regroup!(resp::ResponseMatrix{T}, grouping) where {T}
     itt = GroupingIterator(grouping)
-    new_matrix = zeros(T, size(resp.matrix))
+    new_matrix = zeros(T, (length(itt), size(resp.matrix, 2)))
     for grp in itt
         slice = @views resp.matrix[grp[2]:grp[3], :]
         new_matrix[grp[1], :] .= sum(slice, dims = 1) |> vec
 
-        resp.channels[grp[1]] = resp.channels[grp[2]]
+        resp.channels[grp[1]] = grp[1] # resp.channels[grp[2]]
 
         resp.channel_bins_low[grp[1]] = resp.channel_bins_low[grp[2]]
-        resp.channel_bins_high[grp[1]] = resp.channel_bins_high[grp[2]]
+        resp.channel_bins_high[grp[1]] = resp.channel_bins_high[grp[3]]
     end
     resp.matrix = sparse(new_matrix)
     resize!(resp, length(itt))
 end
 
 function Base.resize!(response::ResponseMatrix, n)
-    response.matrix = response.matrix[1:n, :]
+    if size(response.matrix, 1) != n
+        response.matrix = response.matrix[1:n, :]
+    end
     resize!(response.channels, n)
     resize!(response.channel_bins_low, n)
     resize!(response.channel_bins_high, n)
@@ -105,19 +107,11 @@ function _printinfo(io, resp::AncillaryResponse{T}) where {T}
     print(io, descr)
 end
 
-function fold_ancillary(
-    channels::AbstractVector{<:Int},
-    response::ResponseMatrix,
-    ancillary::AncillaryResponse,
-)
-    ancillary.effective_area' .* response.matrix[channels, :]
+function fold_ancillary(response::ResponseMatrix, ancillary::AncillaryResponse)
+    ancillary.effective_area' .* response.matrix
 end
 
-function fold_ancillary(
-    channels::AbstractVector{<:Int},
-    response::ResponseMatrix,
-    ::Missing,
-)
+function fold_ancillary(response::ResponseMatrix, ::Missing)
     response.matrix[channels, :]
 end
 
