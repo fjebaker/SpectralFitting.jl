@@ -102,7 +102,7 @@ mask_energies!(dataset::SpectralData, low, high) =
     mask_energies!(dataset, i -> high > i > low)
 
 function mask_energies!(dataset::SpectralData, condition)
-    J = @. !condition(dataset.energy_low) && !condition(dataset.energy_high)
+    J = @. !condition(dataset.energy_low) || !condition(dataset.energy_high)
     dataset.data_mask[J] .= false
     dataset
 end
