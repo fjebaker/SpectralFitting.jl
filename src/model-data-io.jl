@@ -1,13 +1,57 @@
+import Libz
+
 const DEFAULT_DOWNLOAD_ROOT_URL::String = "https://www.star.bris.ac.uk/fergus/xspec/data/"
 MODEL_DATA_STORAGE_PATH = joinpath(LibXSPEC_jll.artifact_dir, "spectral", "modelData")
+
+@enum CompressionFormat::Int _CompressedGzip _NoCompression
+
+function _extension(fmt::CompressionFormat)
+    if fmt == _CompressedGzip
+        return ".gz"
+    elseif _NoCompression
+        return ""
+    else
+        error("Unknown compression format $(fmt)")
+    end
+end
 
 struct ModelDataInfo
     remote_path::String
     local_path::String
+    compression::CompressionFormat
+
+    function ModelDataInfo(r::String, l::String, compression::CompressionFormat)
+        if (compression != _NoCompression)
+            @assert _check_compression(r) != _NoCompression
+            @assert _check_compression(l) == _NoCompression
+        end
+        new(r, l, compression)
+    end
 end
+
+ModelDataInfo(remote::AbstractString, local_path::AbstractString) =
+    ModelDataInfo(remote, local_path, _check_compression(remote))
 
 _model_to_data_map = Dict{Symbol,Vector{ModelDataInfo}}()
 _model_available_memoize_cache = Dict{Symbol,Bool}()
+
+function _check_compression(path::AbstractString)
+    for f in (_CompressedGzip,)
+        if (endswith(path, _extension(f)))
+            return f
+        end
+    end
+    _NoCompression
+end
+
+function _trim_compression_filename(path::AbstractString)
+    format = _check_compression(path)
+    if (format != _NoCompression)
+        ext = _extension(format)
+        return path[1:end-length(ext)]
+    end
+    path
+end
 
 """
     SpectralFitting.download_all_model_data()
@@ -46,7 +90,7 @@ register_model_data(:XS_KyrLine, "KBHline01.fits")
 """
 function register_model_data(s, filenames::String...)
     model_data = map(filenames) do fname
-        ModelDataInfo(fname, fname)
+        ModelDataInfo(fname, _trim_compression_filename(fname))
     end
     register_model_data(_translate_model_name(s), model_data...)
 end
@@ -162,10 +206,22 @@ function download_model_data(s::Symbol; verbose = true, kwargs...)
             mkdir_if_not_exists(dirname(dest))
             _download_from_archive(src.remote_path, dest; kwargs...)
             _infolog("$(src.local_path) downloaded")
+            if (src.compression != _NoCompression)
+                _inflate_data(src.compression, dest)
+                _infolog("$(src.local_path) decompressed")
+            end
         end
     end
     _infolog("All requisite model data for $s downloaded.")
     return nothing
+end
+
+function _inflate_data(compression::CompressionFormat, dest)
+    if compression != _CompressedGzip
+        error("Unsupported compression for deflation: $(compression)")
+    end
+    content = read(dest) |> Libz.ZlibInflateInputStream
+    write(dest, content)
 end
 
 mkdir_if_not_exists(path) = !ispath(path) && mkdir(path)

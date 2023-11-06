@@ -89,6 +89,7 @@ end
     else
         @warn "Skipping dataset tests."
     end
+    include("io/test-remote-pathname-compression.jl")
 end
 
 @testset "fitting" verbose = true begin
