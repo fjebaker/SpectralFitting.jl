@@ -5,6 +5,7 @@ struct InjectiveData{V} <: AbstractDataset
     domain_variance::Union{Nothing,V}
     codomain_variance::Union{Nothing,V}
     name::String
+    data_mask::BitVector
 end
 
 function InjectiveData(
@@ -13,8 +14,9 @@ function InjectiveData(
     domain_variance = nothing,
     codomain_variance = nothing,
     name = "[no-name]",
+    data_mask = BitVector(fill(true, size(codomain)))
 )
-    InjectiveData(domain, codomain, domain_variance, codomain_variance, name)
+    InjectiveData(domain, codomain, domain_variance, codomain_variance, name, data_mask)
 end
 
 supports_contiguosly_binned(::Type{<:InjectiveData}) = true
@@ -27,20 +29,20 @@ function make_model_domain(::ContiguouslyBinned, dataset::InjectiveData)
     push!(domain, domain[end] + Δ)
     domain
 end
-make_objective(::ContiguouslyBinned, dataset::InjectiveData) = dataset.codomain
+make_objective(::ContiguouslyBinned, dataset::InjectiveData) = dataset.codomain[data_mask]
 
-make_model_domain(::OneToOne, dataset::InjectiveData) = dataset.domain
-make_objective(::OneToOne, dataset::InjectiveData) = dataset.codomain
+make_model_domain(::OneToOne, dataset::InjectiveData) = dataset.domain[data_mask]
+make_objective(::OneToOne, dataset::InjectiveData) = dataset.codomain[data_mask]
 
 function make_objective_variance(
     ::AbstractDataLayout,
     dataset::InjectiveData{V},
 )::V where {V}
     if !isnothing(dataset.domain_variance)
-        dataset.codomain_variance
+        dataset.codomain_variance[dataset.data_mask]
     else
         # todo: i dunno just something
-        1e-8 .* dataset.codomain
+        1e-8 .* dataset.codomain[dataset.data_mask]
     end
 end
 
