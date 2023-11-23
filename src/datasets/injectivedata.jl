@@ -38,7 +38,7 @@ function make_objective_variance(
     ::AbstractDataLayout,
     dataset::InjectiveData{V},
 )::V where {V}
-    if !isnothing(dataset.domain_variance)
+    if !isnothing(dataset.codomain_variance)
         dataset.codomain_variance[dataset.data_mask]
     else
         # todo: i dunno just something
