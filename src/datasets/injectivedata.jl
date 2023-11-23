@@ -29,7 +29,7 @@ function make_model_domain(::ContiguouslyBinned, dataset::InjectiveData)
     push!(domain, domain[end] + Δ)
     domain
 end
-make_objective(::ContiguouslyBinned, dataset::InjectiveData) = dataset.codomain[data_mask]
+make_objective(::ContiguouslyBinned, dataset::InjectiveData) = dataset.codomain[dataset.data_mask]
 
 make_model_domain(::OneToOne, dataset::InjectiveData) = dataset.domain[data_mask]
 make_objective(::OneToOne, dataset::InjectiveData) = dataset.codomain[data_mask]
