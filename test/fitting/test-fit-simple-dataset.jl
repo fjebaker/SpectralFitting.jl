@@ -47,11 +47,11 @@ result = fit(prob, LevenbergMarquadt())
 
 # fitting a contiguously binned dataset with some masked bins
 x = 10 .^ collect(range(-1, 2, 10))
-y = energy_grid .^ -2.0
+y = x .^ -2.0
 y_err = 0.1 .* int_f_E
 # introduce some bogus data points to ignore
 int_f_E[2:5] .= 2.0
-data = InjectiveData(energy_grid, int_f_E, codomain_variance=int_f_E_var)
+data = InjectiveData(x, int_f_E, codomain_variance=int_f_E_var)
 # mask out the bogus data points
 data.data_mask[2:5] .= false
 model = XS_PowerLaw(K=FitParam(1.0E-5), a=FitParam(2.0))
