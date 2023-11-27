@@ -466,14 +466,33 @@ $(FIELDS)
 # Example
 
 ```julia
+using UnicodePlots
 energy = 10 .^collect(range(-8.0, 8.0, 100))
-invokemodel(energy, XS_Jet())
+m = invokemodel(energy, XS_Jet())
+lineplot(energy[1:end-1],m,xscale=:log10,yscale=:log10,xlim=(1e-8,1e8),ylim=(1e-8,1e8),xlabel="Energy (keV)",ylabel="Flux",title="XS_Jet",canvas=DotCanvas)
 ```
 
 ```
-                      XS_Jet
-need to put nice plot here!
-                         E (keV)
+                        XS_Jet                   
+        ┌────────────────────────────────────────┐ 
+10⁸     │                                        │ 
+        │                                        │ 
+        │                                        │ 
+        │                                        │ 
+        │  :':..                                 │ 
+        │ .'   ''.                               │ 
+        │:        ':.                            │ 
+Flux    │'          ':                           │ 
+        │             '.                         │ 
+        │              :                         │ 
+        │               ''.....                  │ 
+        │                     '''''..            │ 
+        │                            ':..        │ 
+        │                               ':.      │ 
+10⁻⁸    │                                 ''.    │ 
+        └────────────────────────────────────────┘ 
+        10⁻⁸                                 10⁸  
+                        Energy (keV)                
 ```
 """
 @xspecmodel :C_jet struct XS_Jet{T} <: AbstractSpectralModel{T,Additive}
