@@ -458,6 +458,98 @@ function XS_Gaussian(;
     XS_Gaussian(K, E, σ)
 end
 
+"""
+    XS_Jet(K, mass, Dco, log_mdot, thetaobs, BulkG, phi, zdiss, B, logPrel, gmin_inj, gbreak, gmax, s1, s2, z)
+
+$(FIELDS)
+
+# Example
+
+```julia
+using UnicodePlots
+energy = 10 .^collect(range(-8.0, 8.0, 100))
+m = invokemodel(energy, XS_Jet())
+lineplot(energy[1:end-1],m,xscale=:log10,yscale=:log10,xlim=(1e-8,1e8),ylim=(1e-8,1e8),xlabel="Energy (keV)",ylabel="Flux",title="XS_Jet",canvas=DotCanvas)
+```
+
+```
+                        XS_Jet                   
+        ┌────────────────────────────────────────┐ 
+10⁸     │                                        │ 
+        │                                        │ 
+        │                                        │ 
+        │                                        │ 
+        │  :':..                                 │ 
+        │ .'   ''.                               │ 
+        │:        ':.                            │ 
+Flux    │'          ':                           │ 
+        │             '.                         │ 
+        │              :                         │ 
+        │               ''.....                  │ 
+        │                     '''''..            │ 
+        │                            ':..        │ 
+        │                               ':.      │ 
+10⁻⁸    │                                 ''.    │ 
+        └────────────────────────────────────────┘ 
+        10⁻⁸                                 10⁸  
+                        Energy (keV)                
+```
+"""
+@xspecmodel :C_jet struct XS_Jet{T} <: AbstractSpectralModel{T,Additive}
+    "MUST BE FIXED AT UNITY as the jet spectrum normalisation is set by the relativisitic particle power."
+    K::T
+    "Black hole mass in solar masses."
+    mass::T
+    "Comoving (proper) distance in Mpc."
+    Dco::T
+    "log(L/L_Edd."
+    log_mdor::T
+    "Inclination angle (deg)."
+    thetabos::T
+    "Bulk lorentz factor of the jet."
+    BulkG::T
+    "Angular size scale (radians) of the jet acceleration region as seen from the black hole."
+    phi::T
+    "Vertical distance from the black hole of the jet dissipation region (r_g)."
+    zdiss::T
+    "Magnetic field in the jet (Gauss)."
+    B::T
+    "Log of the power injected in relativisitic particles (ergs/s)."
+    logPrel::T
+    "Minimum lorentz factor of the injected electrons."
+    gmin_inj::T
+    "Lorentz factor of the break in injected electron distribution."
+    gbreak::T
+    "Maximum lorentz factor."
+    gmax::T
+    "Injected index of the electron distribution below the break."
+    s1::T
+    "Injected index of the electron distribution above the break."
+    s2::T
+    "Cosmological redshift corresponding to the comoving distance used above."
+    z::T
+end
+function XS_Jet(;
+        K = FitParam(1.0, frozen=true, lower_limit=1.0, upper_limit=1.0, error=0.01),
+        mass = FitParam(1.0e9, frozen=true, lower_limit=1.0, upper_limit=1.0e10, error=1.0e7),
+        Dco = FitParam(3350.6, frozen=true, lower_limit=1.0, upper_limit=1.0e8, error=33.506),
+        log_mdot = FitParam(-1.0, frozen=false, lower_limit=-5.0, upper_limit=2.0, error=0.01),
+        thetaobs = FitParam(3.0, frozen=true, lower_limit=0.0, upper_limit=90.0, error=0.03),
+        BulkG = FitParam(13.0, frozen=true, lower_limit=1.0, upper_limit=100.0, error=0.13),
+        phi = FitParam(0.1, frozen=true, lower_limit=0.01, upper_limit=100.0, error=0.001),
+        zdiss = FitParam(1275.0, frozen=true, lower_limit=10.0, upper_limit=10000.0, error=0.026),
+        B = FitParam(2.6, frozen=true, lower_limit=0.01, upper_limit=15.0, error=0.026),
+        logPrel = FitParam(43.3, frozen=true, lower_limit=40.0, upper_limit=48.0, error=0.433),
+        gmin_inj = FitParam(1.0, frozen=true, lower_limit=1.0, upper_limit=1000.0, error=0.01),
+        gbreak = FitParam(300.0, frozen=true, lower_limit=10.0, upper_limit=10_000.0, error=3.0),
+        gmax = FitParam(3000.0, frozen=true, lower_limit=1000.0, upper_limit=1.0e6, error=30.0),
+        s1 = FitParam(1.0, frozen=true, lower_limit=-1.0, upper_limit=1.0, error=0.01),
+        s2 = FitParam(2.7, frozen=true, lower_limit=1.0, upper_limit=5.0, error=0.027),
+        z = FitParam(0.0, frozen=true, lower_limit=0.0, upper_limit=10.0, error=1.0)
+        )
+    XS_Jet(K, mass, Dco, log_mdot, thetaobs, BulkG, phi, zdiss, B, logPrel, gmin_inj, gbreak, gmax, s1, s2, z)
+end
+
 export XS_PowerLaw,
     XS_BlackBody,
     XS_BremsStrahlung,
@@ -465,4 +557,5 @@ export XS_PowerLaw,
     XS_DiskLine,
     XS_KerrDisk,
     XS_KyrLine,
-    XS_Gaussian
+    XS_Gaussian,
+    XS_Jet
