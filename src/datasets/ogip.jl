@@ -52,6 +52,14 @@ struct RMFChannels{T}
     bins_high::Vector{T}
 end
 
+function _parse_any(::Type{T}, @nospecialize(value::V))::T where {T,V}
+    if V <: AbstractString
+        parse(T, value)
+    else
+        convert(T, value)
+    end
+end
+
 # functions
 function parse_rmf_header(table::TableHDU)
     header = FITSIO.read_header(table)
@@ -64,13 +72,13 @@ function parse_rmf_header(table::TableHDU)
 
     tlindex = "TLMIN$findex"
     first_channel = if haskey(header, tlindex)
-        Int(header[tlindex])
+        _parse_any(Int, header[tlindex])
     else
         @warn "No TLMIN key set in RMF header ($tl_min_key). Assuming channels start at 1."
         1
     end
     num_channels = if haskey(header, "DETCHANS")
-        Int(header["DETCHANS"])
+        _parse_any(Int, header["DETCHANS"])
     else
         @warn "DETCHANS is not set in RMF header. Infering channel count from table length."
         -1
@@ -79,9 +87,9 @@ function parse_rmf_header(table::TableHDU)
 end
 
 function read_rmf_channels(table::TableHDU, T::Type)
-    channels = Int.(read(table, "CHANNEL"))
-    energy_low = T.(read(table, "E_MIN"))
-    energy_high = T.(read(table, "E_MAX"))
+    channels = _parse_any.(Int, read(table, "CHANNEL"))
+    energy_low = _parse_any.(T, read(table, "E_MIN"))
+    energy_high = _parse_any.(T, read(table, "E_MAX"))
     RMFChannels(channels, energy_low, energy_high)
 end
 
