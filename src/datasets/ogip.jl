@@ -221,6 +221,10 @@ function _read_exposure_time(header)
     0.0
 end
 
+function _get_stable(::Type{T}, header, name, default)::T where {T}
+    get(header, name, T(default))
+end
+
 function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
     info = _read_fits_and_close(path) do fits
         header = read_header(fits[2])
@@ -230,9 +234,9 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
         instrument = header["INSTRUME"]
         telescope = header["TELESCOP"]
         exposure_time = T(_read_exposure_time(header))
-        background_scale = T(header["BACKSCAL"])
-        area_scale = T(header["AREASCAL"])
-        sys_error = T(header["SYS_ERR"])
+        background_scale = _get_stable(T, header, "BACKSCAL", one(T))
+        area_scale = _get_stable(T, header, "AREASCAL", one(T))
+        sys_error = _get_stable(T, header, "SYS_ERR", zero(T))
 
         column_names = FITSIO.colnames(fits[2])
 
