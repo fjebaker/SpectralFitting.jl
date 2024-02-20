@@ -51,10 +51,10 @@ y = x .^ -2.0
 y_err = 0.1 .* y
 # introduce some bogus data points to ignore
 y[2:5] .= 2.0
-data = InjectiveData(x, y, codomain_variance=y_err)
+data = InjectiveData(x, y, codomain_variance = y_err)
 # mask out the bogus data points
 data.data_mask[2:5] .= false
-model = XS_PowerLaw(K=FitParam(1.0E-5), a=FitParam(2.0))
+model = XS_PowerLaw(K = FitParam(1.0E-5), a = FitParam(2.0))
 prob = FittingProblem(model => data)
 @test SpectralFitting.common_support(model, data) isa SpectralFitting.ContiguouslyBinned
 result = fit(prob, LevenbergMarquadt())
