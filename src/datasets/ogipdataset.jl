@@ -7,8 +7,21 @@ struct OGIPDataset{T,H} <: AbstractDataset
     header::H
 end
 
-function OGIPDataset(spec_path; T::Type = Float64, hdu = 2, kwargs...)
-    paths = SpectralDataPaths(spec_path)
+function OGIPDataset(
+    spec_path;
+    T::Type = Float64,
+    hdu = 2,
+    background = missing,
+    response = missing,
+    ancillary = missing,
+    kwargs...,
+)
+    paths = SpectralDataPaths(
+        spec_path;
+        background = background,
+        response = response,
+        ancillary = ancillary,
+    )
     config = StandardOGIPConfig(rmf_matrix_index = 2, rmf_energy_index = 3, T = T)
 
     header = read_fits_header(paths.spectrum; hdu = hdu)
