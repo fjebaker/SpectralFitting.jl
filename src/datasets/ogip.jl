@@ -52,6 +52,14 @@ struct RMFChannels{T}
     bins_high::Vector{T}
 end
 
+function _parse_any(::Type{T}, @nospecialize(value::V))::T where {T,V}
+    if V <: AbstractString
+        parse(T, value)
+    else
+        convert(T, value)
+    end
+end
+
 # functions
 function parse_rmf_header(table::TableHDU)
     header = FITSIO.read_header(table)
@@ -64,13 +72,13 @@ function parse_rmf_header(table::TableHDU)
 
     tlindex = "TLMIN$findex"
     first_channel = if haskey(header, tlindex)
-        Int(header[tlindex])
+        _parse_any(Int, header[tlindex])
     else
         @warn "No TLMIN key set in RMF header ($tl_min_key). Assuming channels start at 1."
         1
     end
     num_channels = if haskey(header, "DETCHANS")
-        Int(header["DETCHANS"])
+        _parse_any(Int, header["DETCHANS"])
     else
         @warn "DETCHANS is not set in RMF header. Infering channel count from table length."
         -1
@@ -79,9 +87,9 @@ function parse_rmf_header(table::TableHDU)
 end
 
 function read_rmf_channels(table::TableHDU, T::Type)
-    channels = Int.(read(table, "CHANNEL"))
-    energy_low = T.(read(table, "E_MIN"))
-    energy_high = T.(read(table, "E_MAX"))
+    channels = _parse_any.(Int, read(table, "CHANNEL"))
+    energy_low = _parse_any.(T, read(table, "E_MIN"))
+    energy_high = _parse_any.(T, read(table, "E_MAX"))
     RMFChannels(channels, energy_low, energy_high)
 end
 
@@ -213,6 +221,10 @@ function _read_exposure_time(header)
     0.0
 end
 
+function _get_stable(::Type{T}, header, name, default)::T where {T}
+    get(header, name, T(default))
+end
+
 function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
     info = _read_fits_and_close(path) do fits
         header = read_header(fits[2])
@@ -222,9 +234,9 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
         instrument = header["INSTRUME"]
         telescope = header["TELESCOP"]
         exposure_time = T(_read_exposure_time(header))
-        background_scale = T(header["BACKSCAL"])
-        area_scale = T(header["AREASCAL"])
-        sys_error = T(header["SYS_ERR"])
+        background_scale = _get_stable(T, header, "BACKSCAL", one(T))
+        area_scale = _get_stable(T, header, "AREASCAL", one(T))
+        sys_error = _get_stable(T, header, "SYS_ERR", zero(T))
 
         column_names = FITSIO.colnames(fits[2])
 

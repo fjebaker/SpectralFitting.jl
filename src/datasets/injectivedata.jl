@@ -14,7 +14,7 @@ function InjectiveData(
     domain_variance = nothing,
     codomain_variance = nothing,
     name = "[no-name]",
-    data_mask = BitVector(fill(true, size(codomain)))
+    data_mask = BitVector(fill(true, size(codomain))),
 )
     InjectiveData(domain, codomain, domain_variance, codomain_variance, name, data_mask)
 end
@@ -29,7 +29,8 @@ function make_model_domain(::ContiguouslyBinned, dataset::InjectiveData)
     push!(domain, domain[end] + Δ)
     domain
 end
-make_objective(::ContiguouslyBinned, dataset::InjectiveData) = dataset.codomain[dataset.data_mask]
+make_objective(::ContiguouslyBinned, dataset::InjectiveData) =
+    dataset.codomain[dataset.data_mask]
 
 make_model_domain(::OneToOne, dataset::InjectiveData) = dataset.domain
 make_objective(::OneToOne, dataset::InjectiveData) = dataset.codomain[dataset.data_mask]

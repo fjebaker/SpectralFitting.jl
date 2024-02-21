@@ -10,6 +10,8 @@ const GroupingIteratorItem = Union{Nothing,Tuple{Int,Int,Int}}
 const GroupingIteratorState = Tuple{Int,Union{Nothing,Int}}
 const GroupingIteratorItemAndState = Tuple{GroupingIteratorItem,GroupingIteratorState}
 
+Base.eltype(::GroupingIterator) = Tuple{Int,Int,Int}
+
 function Base.iterate(grouping::GroupingIterator)
     i1 = findfirst(==(1), grouping.grouping)
     if isnothing(i1)
@@ -20,7 +22,7 @@ end
 
 function Base.iterate(grouping::GroupingIterator, state)
     i::Int, i1::Int = state
-    if (i >= lastindex(grouping.grouping)) || (i1 >= lastindex(grouping.grouping))
+    if (i > lastindex(grouping.grouping)) || (i1 > lastindex(grouping.grouping))
         return nothing
     end
     index = findnext(==(1), grouping.grouping, i1 + 1)

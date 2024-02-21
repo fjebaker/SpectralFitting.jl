@@ -24,14 +24,19 @@ function SpectralDataPaths(;
     SpectralDataPaths(spectrum, background, response, ancillary)
 end
 
-function SpectralDataPaths(spec_path)
+function SpectralDataPaths(
+    spec_path;
+    background = missing,
+    response = missing,
+    ancillary = missing,
+)
     background_path, response_path, ancillary_path =
         OGIP.read_paths_from_spectrum(spec_path)
     SpectralDataPaths(
         spectrum = spec_path,
-        background = background_path,
-        response = response_path,
-        ancillary = ancillary_path,
+        background = ismissing(background) ? background_path : background,
+        response = ismissing(response) ? response_path : response,
+        ancillary = ismissing(ancillary) ? ancillary_path : ancillary,
     )
 end
 
@@ -249,19 +254,19 @@ function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPC
     back = if !ismissing(paths.background)
         OGIP.read_background(paths.background, config)
     else
-        # @warn "No background file specified."
+        @warn "No background file found."
         missing
     end
     resp = if !ismissing(paths.response)
         OGIP.read_rmf(paths.response, config)
     else
-        # @warn "No response file specified."
+        @warn "No response file found."
         missing
     end
     ancillary = if !ismissing(paths.ancillary)
         OGIP.read_ancillary_response(paths.ancillary, config)
     else
-        # @warn "No ancillary file specified."
+        @warn "No ancillary file found."
         missing
     end
 
