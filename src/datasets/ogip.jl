@@ -14,13 +14,15 @@ rmf_energy_index(c::AbstractOGIPConfig) = error("Not implemented for $(typeof(c)
 struct StandardOGIPConfig{T} <: AbstractOGIPConfig{T}
     rmf_matrix_index::Int
     rmf_energy_index::Int
+    rmf_matrix_key::String
     function StandardOGIPConfig(;
         rmf_matrix_index = 3,
         rmf_energy_index = 2,
+        rmf_matrix_key = "SPECRESP",
         T::Type = Float64,
     )
         @assert rmf_matrix_index != rmf_energy_index
-        new{T}(rmf_matrix_index, rmf_energy_index)
+        new{T}(rmf_matrix_index, rmf_energy_index, rmf_matrix_key)
     end
 end
 rmf_matrix_index(c::StandardOGIPConfig) = c.rmf_matrix_index
@@ -107,6 +109,24 @@ function _chan_to_vectors(chan::Matrix)
     end
 end
 
+function _translate_channel_array(channel)
+    if channel isa Matrix
+        _chan_to_vectors(channel)
+    elseif eltype(channel) <: AbstractVector
+        channel
+    else
+        map(i -> [i], channel)
+    end
+end
+
+function _adapt_matrix_type(T::Type, mat::M) where {M}
+    if eltype(M) <: AbstractVector
+        map(row -> convert.(T, row), mat)
+    elseif M <: AbstractMatrix
+        map(row -> convert.(T, row), eachcol(mat))
+    end
+end
+
 function read_rmf_matrix(table::TableHDU, header::RMFHeader, T::Type)
     energy_low = convert.(T, read(table, "ENERG_LO"))
     energy_high = convert.(T, read(table, "ENERG_HI"))
@@ -115,17 +135,18 @@ function read_rmf_matrix(table::TableHDU, header::RMFHeader, T::Type)
     matrix_raw = read(table, "MATRIX")
 
     # type stable: convert to common vector of vector format
-    f_chan::Vector{Vector{Int}} =
-        f_chan_raw isa Matrix ? _chan_to_vectors(f_chan_raw) : f_chan_raw
-    n_chan::Vector{Vector{Int}} =
-        n_chan_raw isa Matrix ? _chan_to_vectors(n_chan_raw) : n_chan_raw
+    f_chan::Vector{Vector{Int}} = _translate_channel_array(f_chan_raw)
+    n_chan::Vector{Vector{Int}} = _translate_channel_array(n_chan_raw)
+
+    @show typeof(matrix_raw)
+    @show size(f_chan), size(matrix_raw)
 
     RMFMatrix(
         f_chan,
         n_chan,
         energy_low,
         energy_high,
-        map(row -> convert.(T, row), matrix_raw),
+        _adapt_matrix_type(T, matrix_raw),
         header,
     )
 end
@@ -159,7 +180,7 @@ end
 function read_ancillary_response(path::String, ogip_config::AbstractOGIPConfig{T}) where {T}
     fits = FITS(path)
     (bins_low, bins_high, effective_area) = _read_fits_and_close(path) do fits
-        area::Vector{T} = convert.(T, read(fits[2], "SPECRESP"))
+        area::Vector{T} = convert.(T, read(fits[2], ogip_config.rmf_matrix_key))
         lo::Vector{T} = convert.(T, read(fits[2], "ENERG_LO"))
         hi::Vector{T} = convert.(T, read(fits[2], "ENERG_HI"))
         (lo, hi, area)

@@ -260,8 +260,9 @@ function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPC
     resp = if !ismissing(paths.response)
         OGIP.read_rmf(paths.response, config)
     else
-        @warn "No response file found."
-        missing
+        throw(
+            "No response file found in the header. Response must be specified with the keyword `response=PATH`.",
+        )
     end
     ancillary = if !ismissing(paths.ancillary)
         OGIP.read_ancillary_response(paths.ancillary, config)
