@@ -7,7 +7,7 @@ struct OGIPDataset{T,H} <: AbstractDataset
     header::H
 end
 
-function OGIPDataset(
+function load_ogip_dataset(
     spec_path;
     hdu = 2,
     background = missing,
@@ -30,8 +30,10 @@ function OGIPDataset(
     object = haskey(header, "OBJECT") ? header["OBJECT"] : "[no object]"
 
     data = SpectralData(paths, config)
-    OGIPDataset(data, paths, obs_id, exposure_id, object, header)
+    (data, paths, obs_id, exposure_id, object, header)
 end
+
+OGIPDataset(spec_path; kwargs...) = OGIPDataset(load_ogip_dataset(spec_path; kwargs...)...)
 
 @_forward_SpectralData_api OGIPDataset.data
 
