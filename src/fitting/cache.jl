@@ -4,10 +4,11 @@ _invoke_and_transform!(cache::AbstractFittingCache, domain, params) =
     error("Not implemented for $(typeof(cache))")
 
 # one of these for each (mulit)model / data pair
-struct SpectralCache{M,O,T,P,TransformerType} <: AbstractFittingCache
+struct SpectralCache{M,O,T,K,P,TransformerType} <: AbstractFittingCache
     model::M
     model_output::O
     calculated_objective::T
+    output_cache::K
     parameter_cache::P
     transfomer!!::TransformerType
     function SpectralCache(
@@ -19,15 +20,29 @@ struct SpectralCache{M,O,T,P,TransformerType} <: AbstractFittingCache
         param_diff_cache_size = nothing,
     ) where {M,XfmT}
         model_output = DiffCache(construct_objective_cache(layout, model, domain))
-        calc_obj = similar(objective)
-        calc_obj .= 0
+        # fix for https://github.com/fjebaker/SpectralFitting.jl/issues/79
+        # output must be a vector but can only give matrix to `mul!`, so we need to
+        # unfortunately duplicate the array to ensure we have both types
+        calc_obj = zeros(eltype(objective), (length(objective), 1))
         calc_obj_cache = DiffCache(calc_obj)
+        # vector chache
+        output = similar(objective)
+        output .= 0
+        output_cache = DiffCache(output)
         param_cache =
             make_diff_parameter_cache(model; param_diff_cache_size = param_diff_cache_size)
-        new{M,typeof(model_output),typeof(calc_obj_cache),typeof(param_cache),XfmT}(
+        new{
+            M,
+            typeof(model_output),
+            typeof(calc_obj_cache),
+            typeof(output_cache),
+            typeof(param_cache),
+            XfmT,
+        }(
             model,
             model_output,
             calc_obj_cache,
+            output_cache,
             param_cache,
             transformer,
         )
@@ -60,7 +75,9 @@ function _invoke_and_transform!(cache::SpectralCache, domain, params)
     output = invokemodel!(model_output, domain, cache.model, parameters)
     cache.transfomer!!(calc_obj, domain, output)
 
-    calc_obj
+    output_vector = get_tmp(cache.output_cache, params)
+    output_vector .= calc_obj
+    output_vector
 end
 
 struct FittingConfig{ImplType,CacheType,P,D,O}
