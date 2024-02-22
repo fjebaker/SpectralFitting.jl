@@ -350,6 +350,9 @@ function read_filename(header, entry, parent, exts...)
     parent_name = basename(parent)
     if haskey(header, entry)
         path::String = strip(header[entry])
+        if path == "NONE"
+            return missing
+        end
         name = find_file(data_directory, path, parent_name, exts)
         if !ismissing(name)
             return name
