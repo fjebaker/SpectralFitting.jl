@@ -62,6 +62,21 @@ function _parse_any(::Type{T}, @nospecialize(value::V))::T where {T,V}
     end
 end
 
+function _string_boolean(@nospecialize(value::V))::Bool where {V}
+    if V <: AbstractString
+        if value == "F"
+            false
+        elseif value == "T"
+            true
+        else
+            @warn("Unknown boolean string: $(value)")
+            false
+        end
+    else
+        value
+    end
+end
+
 # functions
 function parse_rmf_header(table::TableHDU)
     header = FITSIO.read_header(table)
@@ -250,7 +265,7 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
     info = _read_fits_and_close(path) do fits
         header = read_header(fits[2])
         # if not set, assume not poisson errors
-        is_poisson = get(header, "POISSERR", false)
+        is_poisson = _string_boolean(get(header, "POISSERR", false))
         # read general infos
         instrument = header["INSTRUME"]
         telescope = header["TELESCOP"]
