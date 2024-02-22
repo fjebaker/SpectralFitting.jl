@@ -364,7 +364,7 @@ function make_diff_parameter_cache(
 
     # embed current parameter values inside of the dual cache
     # else all frozens will be zero
-    get_tmp(diffcache, ForwardDiff.Dual(1.0)) .= vals
+    get_tmp(diffcache, ForwardDiff.Dual(one(eltype(vals)))) .= vals
 
     ParameterCache(free_mask, diffcache)
 end
