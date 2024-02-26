@@ -169,8 +169,5 @@ export make_model_domain,
 include("spectrum.jl")
 include("response.jl")
 include("spectraldata.jl")
-
-# mission specifics
 include("ogipdataset.jl")
-include("xmm-newton.jl")
-include("nustart.jl")
+include("mission-specifics.jl")

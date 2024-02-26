@@ -7,9 +7,8 @@ struct OGIPDataset{T,H} <: AbstractDataset
     header::H
 end
 
-function OGIPDataset(
+function load_ogip_dataset(
     spec_path;
-    T::Type = Float64,
     hdu = 2,
     background = missing,
     response = missing,
@@ -22,7 +21,7 @@ function OGIPDataset(
         response = response,
         ancillary = ancillary,
     )
-    config = StandardOGIPConfig(rmf_matrix_index = 2, rmf_energy_index = 3, T = T)
+    config = StandardOGIPConfig(; kwargs...)
 
     header = read_fits_header(paths.spectrum; hdu = hdu)
 
@@ -30,11 +29,15 @@ function OGIPDataset(
     exposure_id = haskey(header, "EXP_ID") ? header["EXP_ID"] : "[no exposure id]"
     object = haskey(header, "OBJECT") ? header["OBJECT"] : "[no object]"
 
-    data = SpectralData(paths, config; kwargs...)
-    OGIPDataset(data, paths, obs_id, exposure_id, object, header)
+    data = SpectralData(paths, config)
+    (data, paths, obs_id, exposure_id, object, header)
 end
 
+OGIPDataset(spec_path; kwargs...) = OGIPDataset(load_ogip_dataset(spec_path; kwargs...)...)
+
 @_forward_SpectralData_api OGIPDataset.data
+
+make_label(d::OGIPDataset) = d.observation_id
 
 function _printinfo(io, data::OGIPDataset{T}) where {T}
     descr = """OGIPDataset:
