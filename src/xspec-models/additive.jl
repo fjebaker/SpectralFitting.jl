@@ -503,9 +503,9 @@ Flux    │'          ':                           │
     "Comoving (proper) distance in Mpc."
     Dco::T
     "log(L/L_Edd."
-    log_mdor::T
+    log_mdot::T
     "Inclination angle (deg)."
-    thetabos::T
+    thetaobs::T
     "Bulk lorentz factor of the jet."
     BulkG::T
     "Angular size scale (radians) of the jet acceleration region as seen from the black hole."
