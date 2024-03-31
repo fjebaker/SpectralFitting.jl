@@ -3,21 +3,8 @@ function prettyfloat(f)
         "0.0"
     elseif f == Inf
         "Inf"
-    elseif (f ≥ 1)
-        #  ignore "InexactError" if, e.g., f is very large
-        remainder = 1.0
-        try
-            remainder = f - trunc(Int, f)
-        catch e
-            if !isa(e, InexactError)
-                rethrow(e)
-            end
-        end
-        if remainder < 1e-8
-            Printf.@sprintf("%.1f", f)
-        else
-            Printf.@sprintf("%#.5g", f)
-        end
+    elseif ((f ≥ 1) && (f < 1e5) && (f - trunc(Int, f)  < 1e-5))
+        Printf.@sprintf("%.1f", f)
     else
         Printf.@sprintf("%#.5g", f)
     end
