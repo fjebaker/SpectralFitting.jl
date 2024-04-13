@@ -44,6 +44,58 @@ function XS_PowerLaw(; K = FitParam(1.0), a = FitParam(1.0))
 end
 
 """
+    XS_CutOffPowerLaw(K, a)
+
+$(FIELDS)
+
+# Example
+
+```julia
+using SpectralFitting
+using UnicodePlots
+energy = 10 .^collect(range(-1.0, 2.0, 100))
+m = invokemodel(energy, XS_CutOffPowerLaw())
+lineplot(energy[1:end-1],m,xscale=:log10,yscale=:log10,xlim=(1e-1,1e2),ylim=(1e-6,1e0),xlabel="Energy (keV)",ylabel="Flux",title="XS_CutOffPowerLaw",canvas=DotCanvas)
+```
+
+```
+                    XS_CutOffPowerLaw             
+        ┌────────────────────────────────────────┐ 
+10⁰     │:..                                     │ 
+        │   '':...                               │ 
+        │        '':..                           │ 
+        │             '''..                      │ 
+        │                  '':..                 │ 
+        │                      '':.              │ 
+        │                          ':.           │ 
+Flux    │                             '..        │ 
+        │                               ':.      │ 
+        │                                 '.     │ 
+        │                                   :    │ 
+        │                                    :.  │ 
+        │                                     :  │ 
+        │                                      : │ 
+10⁻⁶    │                                       :│ 
+        └────────────────────────────────────────┘ 
+         10⁻¹                                 10²  
+                        Energy (keV)
+```
+"""
+@xspecmodel :C_zcutoffpl struct XS_CutOffPowerLaw{T} <: AbstractSpectralModel{T,Additive}
+    "Normalisation."
+    K::T
+    "Photon index."
+    Γ::T
+    "Cut-off energy (keV)."
+    Ecut::T
+    "Redshift."
+    z::T
+end
+function XS_CutOffPowerLaw(; K = FitParam(1.0), Γ = FitParam(2.0), Ecut = FitParam(15.0), z = FitParam(0.0, frozen=true))
+    XS_CutOffPowerLaw(K, Γ, Ecut, z)
+end
+
+"""
     XS_BlackBody(K, T)
 
 $(FIELDS)
@@ -634,6 +686,7 @@ function XS_Jet(;
 end
 
 export XS_PowerLaw,
+    XS_CutOffPowerLaw,
     XS_BlackBody,
     XS_BremsStrahlung,
     XS_Laor,
