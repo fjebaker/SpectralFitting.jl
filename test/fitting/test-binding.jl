@@ -54,3 +54,9 @@ values = trunc.(Int, get_value.(parameters))
 
 model1 = PowerLaw()
 model2 = PowerLaw() + PowerLaw()
+
+# test multiple bindings with multiple models and multiple datasets
+prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => dummy_data1)
+bind!(prob, :K, :a)
+_, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@test mapping == ([1, 2], [1, 2], [1, 2])
