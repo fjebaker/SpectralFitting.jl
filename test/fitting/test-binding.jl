@@ -60,3 +60,20 @@ prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => du
 bind!(prob, :K, :a)
 _, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
 @test mapping == ([1, 2], [1, 2], [1, 2])
+
+# 3 models, 1 bound parameter
+prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => dummy_data1)
+bind!(prob, :a)
+_, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@test mapping == ([1, 2], [3, 2], [4, 2])
+
+# 3 models (2 the same, 1 different), bind one parameter between the two
+prob = FittingProblem(model1 => dummy_data1, model2 => dummy_data1, model1 => dummy_data1)
+bind!(prob, 1 => :a, 2 => :a_2, 3 => :a)
+_, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@test mapping == ([1, 2], [3, 4, 5, 2], [6, 2])
+
+# 2 models, both different, bind a parameter that is only in one model (check it does no-ops okay)
+# prob = FittingProblem(model1 => dummy_data1, model2 => dummy_data1)
+# bind!(prob, :K)
+# note that this does not work at present because `_get_index_of_symbol` throws an error if the symbol is not found
