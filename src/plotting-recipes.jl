@@ -169,13 +169,18 @@ end
         top{0.75h}
         bottom{0.25h}
     ]
-    bottom_margins --> (-5, :mm)
+    margins --> (0, :mm)
 
     # logarithmic x-axis (might want to let this be an option)
     xscale --> :log10
     filtered_array = filter(x -> x != 0, result.objective)
-    min_non_zero_value = 0.8 * minimum(filtered_array)
-    max_non_zero_value = 1.2 * maximum(filtered_array)
+    min_data_value = 0.8 * minimum(filtered_array)
+    max_data_value = 1.2 * maximum(filtered_array)
+    filtered_array = filter(x -> x != 0, y)
+    min_model_value = 0.8 * minimum(filtered_array)
+    max_model_value = 1.2 * maximum(filtered_array)
+    min_non_zero_value = min(min_data_value, min_model_value)
+    max_non_zero_value = max(max_data_value, max_model_value)
 
     # plot the data
     @series begin
@@ -200,7 +205,7 @@ end
         xticks --> nothing
         ylabel --> "Flux (units)"
         markerstrokecolor --> modelcolor
-        label --> label
+        label --> :none
         seriestype --> :scatter
         markershape --> :none
         markersize --> 0.5
