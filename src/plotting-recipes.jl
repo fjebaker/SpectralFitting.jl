@@ -123,3 +123,119 @@ end
         x, y_ratio
     end
 end
+
+# residual plots
+# note: multiple datasets require repeated calls to this function (write a wrapper later)
+@userplot ResidualPlot
+@recipe function _plotting_fun(
+    r::ResidualPlot,
+    datacolor = :auto,
+    modelcolor = :auto,
+    residualcolor = :auto,
+    label = :auto,
+)
+    # check that the function has been passed one dataset and one fit result
+    if length(r.args) != 2 ||
+       !(typeof(r.args[1]) <: AbstractDataset) ||
+       !(typeof(r.args[2]) <: AbstractFittingResult)
+        error(
+            "Ratio plots first argument must be `AbstractDataset` and second argument of type `AbstractFittingResult`.",
+        )
+    end
+
+    println("Debug: Creating a residual plot")
+
+    data = r.args[1]
+    x = plotting_domain(data)
+    # at the moment I don't understand why the following line is necessary
+    # I would assume result = r.args[2] which might be of type FittingResultSlice
+    result = r.args[2] isa FittingResult ? r.args[2][1] : r.args[2]
+    y = invoke_result(result, result.u)
+
+    # residual is the difference between the model and the data in units of "sigma" so the error bars have size 1
+    # this assumes we have statistics such that sigma = sqrt(variance) - should probably make this more statistically neutral
+    y_residual = @. (result.objective - y) / sqrt(result.variance)
+    # is this the best way to ensure y_residual_error has the same type as y_residual, or should it just be fixe at Float64?
+    y_residual_error = ones(eltype(y_residual), length(y_residual))
+
+    minorgrid --> true
+
+    if (label == :auto)
+        label = make_label(data)
+    end
+
+    # layout --> @layout [grid(2, 1, heights=[0.7 ,0.3]), margin=0mm]
+    layout --> @layout [
+        top{0.75h}
+        bottom{0.25h}
+    ]
+    bottom_margins --> (-5, :mm)
+
+    # logarithmic x-axis (might want to let this be an option)
+    xscale --> :log10
+    filtered_array = filter(x -> x != 0, result.objective)
+    min_non_zero_value = 0.8 * minimum(filtered_array)
+    max_non_zero_value = 1.2 * maximum(filtered_array)
+
+    # plot the data
+    @series begin
+        subplot --> 1
+        yscale --> :log10
+        yrange --> [min_non_zero_value, max_non_zero_value]
+        markerstrokecolor --> datacolor
+        label --> label
+        seriestype --> :scatter
+        markershape --> :none
+        markersize --> 0.5
+        yerror --> sqrt.(result.variance)
+        xerror --> bin_widths(data) ./ 2
+        x, result.objective
+    end
+
+    # plot the model - need to fix this
+    @series begin
+        subplot --> 1
+        yscale --> :log10
+        yrange --> [min_non_zero_value, max_non_zero_value]
+        xticks --> nothing
+        ylabel --> "Flux (units)"
+        markerstrokecolor --> modelcolor
+        label --> label
+        seriestype --> :scatter
+        markershape --> :none
+        markersize --> 0.5
+        xerror --> bin_widths(data) ./ 2
+        x, y
+    end
+   
+    # plot the residuals
+    @series begin
+        subplot --> 2
+        yscale --> :identity
+        xticks --> true
+        xlabel --> "Energy (keV)"
+        ylabel --> "Data - model"
+        markerstrokecolor --> residualcolor
+        label --> :none
+        seriestype --> :scatter
+        markershape --> :none
+        markersize --> 0.5
+        yerror --> y_residual_error
+        xerror --> bin_widths(data) ./ 2
+        x, y_residual
+    end
+
+    # zero line
+    @series begin
+        subplot --> 2
+        yscale --> :identity
+        xticks --> true
+        xlabel --> "Energy (keV)"
+        ylabel --> "Data - model"
+        linestyle --> :dash
+        seriestype --> :hline
+        label --> false
+        # not currently specifying a colour
+        [0.0]
+    end
+end
