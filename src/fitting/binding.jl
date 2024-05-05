@@ -12,6 +12,8 @@ function _construct_bound_mapping(bindings, parameter_count)
         # the model we use as a reference to bind *to*
         reference = binding[1]
         for b in @views binding[2:end]
+            # get the number of the parameter that we are binding
+            parameter_number = parameter_mapping[b[1]][b[2]]
             parameter_mapping[b[1]][b[2]] = reference[2]
 
             # mark for removal: find the parameter index in the global array
@@ -21,11 +23,17 @@ function _construct_bound_mapping(bindings, parameter_count)
 
             # need to now shuffle all the indices greater than this one down by 1
             for k = b[2]+1:length(parameter_mapping[b[1]])
-                parameter_mapping[b[1]][k] -= 1
+                if (parameter_mapping[b[1]][k] > parameter_number)
+                    parameter_mapping[b[1]][k] -= 1
+                end
             end
             # and for subsequent models
             for j = b[1]+1:length(parameter_count)
-                parameter_mapping[j] .-= 1
+                for k = 1:length(parameter_mapping[j])
+                    if parameter_mapping[j][k] > parameter_number
+                        parameter_mapping[j][k] -= 1
+                    end
+                end
             end
         end
     end
