@@ -23,11 +23,7 @@ end
         make_objective(data_layout, dataset),
         make_objective_variance(data_layout, dataset),
     )
-    _yerr = if error_statistic(dataset) == ErrorStatistics.Poisson
-        sqrt.(rateerror)
-    else
-        rateerror
-    end
+    _yerr = sqrt.(rateerror)
     yerr --> _yerr
     xerr --> bin_widths(dataset) ./ 2
     markerstrokecolor --> :auto
@@ -154,7 +150,8 @@ end
 
     # residual is the difference between the model and the data in units of "sigma" so the error bars have size 1
     # this assumes we have statistics such that sigma = sqrt(variance) - should probably make this more statistically neutral
-    y_residual = @. (result.objective - y) / sqrt(result.variance)
+    yerr = sqrt.(result.variance)
+    y_residual = @. (result.objective - y) / yerr
     # is this the best way to ensure y_residual_error has the same type as y_residual, or should it just be fixe at Float64?
     y_residual_error = ones(eltype(y_residual), length(y_residual))
 
@@ -192,7 +189,7 @@ end
         seriestype --> :scatter
         markershape --> :none
         markersize --> 0.5
-        yerror --> sqrt.(result.variance)
+        yerror --> yerr
         xerror --> bin_widths(data) ./ 2
         x, result.objective
     end
@@ -206,20 +203,20 @@ end
         ylabel --> "Flux (units)"
         markerstrokecolor --> modelcolor
         label --> :none
-        seriestype --> :scatter
+        seriestype --> :stepmid
         markershape --> :none
         markersize --> 0.5
         xerror --> bin_widths(data) ./ 2
         x, y
     end
-   
+
     # plot the residuals
     @series begin
         subplot --> 2
         yscale --> :identity
         xticks --> true
         xlabel --> "Energy (keV)"
-        ylabel --> "Data - model"
+        ylabel --> "(Data - model)/error"
         markerstrokecolor --> residualcolor
         label --> :none
         seriestype --> :scatter
@@ -236,7 +233,7 @@ end
         yscale --> :identity
         xticks --> true
         xlabel --> "Energy (keV)"
-        ylabel --> "Data - model"
+        ylabel --> "(Data - model)/error"
         linestyle --> :dash
         seriestype --> :hline
         label --> false
