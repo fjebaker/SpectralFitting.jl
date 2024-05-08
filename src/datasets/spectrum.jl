@@ -37,11 +37,7 @@ end
 
 function make_objective_variance(::ContiguouslyBinned, dataset::Spectrum)
     check_units_warning(dataset.units)
-    if dataset.error_statistics == ErrorStatistics.Poisson
-        @. dataset.errors .^ 2
-    else
-        dataset.errors
-    end
+    dataset.errors .^ 2
 end
 
 function make_model_domain(::ContiguouslyBinned, dataset::Spectrum)
