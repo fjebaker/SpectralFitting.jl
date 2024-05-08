@@ -5,29 +5,6 @@ import SpectralFitting: SpectralUnits
 using FITSIO
 using SparseArrays
 
-export AbstractOGIPConfig, StandardOGIPConfig
-
-abstract type AbstractOGIPConfig{T} end
-rmf_matrix_index(c::AbstractOGIPConfig) = error("Not implemented for $(typeof(c))")
-rmf_energy_index(c::AbstractOGIPConfig) = error("Not implemented for $(typeof(c))")
-
-struct StandardOGIPConfig{T} <: AbstractOGIPConfig{T}
-    rmf_matrix_index::Int
-    rmf_energy_index::Int
-    rmf_matrix_key::String
-    function StandardOGIPConfig(;
-        rmf_matrix_index = 3,
-        rmf_energy_index = 2,
-        rmf_matrix_key = "SPECRESP",
-        T::Type = Float64,
-    )
-        @assert rmf_matrix_index != rmf_energy_index
-        new{T}(rmf_matrix_index, rmf_energy_index, rmf_matrix_key)
-    end
-end
-rmf_matrix_index(c::StandardOGIPConfig) = c.rmf_matrix_index
-rmf_energy_index(c::StandardOGIPConfig) = c.rmf_energy_index
-
 struct MissingHeader <: Exception
     header::String
 end
@@ -153,9 +130,6 @@ function read_rmf_matrix(table::TableHDU, header::RMFHeader, T::Type)
     f_chan::Vector{Vector{Int}} = _translate_channel_array(f_chan_raw)
     n_chan::Vector{Vector{Int}} = _translate_channel_array(n_chan_raw)
 
-    @show typeof(matrix_raw)
-    @show size(f_chan), size(matrix_raw)
-
     RMFMatrix(
         f_chan,
         n_chan,
@@ -178,29 +152,52 @@ function _read_fits_and_close(f, path)
     res
 end
 
-function read_rmf(path::String, ogip_config::AbstractOGIPConfig{T}) where {T}
-    i = rmf_matrix_index(ogip_config)
-    j = rmf_energy_index(ogip_config)
-
+function read_rmf(path::String; T::Type = Float64)
     (header, rmf, channels::RMFChannels{T}) = _read_fits_and_close(path) do fits
-        hdr = parse_rmf_header(fits[i])
-        _rmf = read_rmf_matrix(fits[i], hdr, T)
-        _channels = read_rmf_channels(fits[j], T)
+        rmf_i = find_extension(fits, ["RESP", "MATRIX"])
+        energy_i = find_extension(fits, "EBOUND")
+
+        hdr = parse_rmf_header(fits[rmf_i])
+        _rmf = read_rmf_matrix(fits[rmf_i], hdr, T)
+        _channels = read_rmf_channels(fits[energy_i], T)
         (hdr, _rmf, _channels)
     end
 
     _build_reponse_matrix(header, rmf, channels, T)
 end
 
-function read_ancillary_response(path::String, ogip_config::AbstractOGIPConfig{T}) where {T}
+function find_extension(fits, extension::T) where {T <: Union{<:AbstractString, <:AbstractVector}}
+    # find the correct extensions
+    i::Int = 1
+    for hdu in fits
+        header = read_header(hdu)
+        extname = get(header, "EXTNAME", "")
+        if T <: AbstractString
+            if contains(extname, extension)
+                return i
+            end
+        elseif T <: AbstractVector
+            for ext in extension
+                if contains(extname, ext)
+                    return i
+                end
+            end
+        end
+        i += 1
+    end
+    return nothing
+end
+
+function read_ancillary_response(path::String; T::Type = Float64)
     fits = FITS(path)
     (bins_low, bins_high, effective_area) = _read_fits_and_close(path) do fits
-        area::Vector{T} = convert.(T, read(fits[2], ogip_config.rmf_matrix_key))
-        lo::Vector{T} = convert.(T, read(fits[2], "ENERG_LO"))
-        hi::Vector{T} = convert.(T, read(fits[2], "ENERG_HI"))
+        i = find_extension(fits, "RESP")
+        area::Vector{T} = convert.(T, read(fits[i], "SPECRESP"))
+        lo::Vector{T} = convert.(T, read(fits[i], "ENERG_LO"))
+        hi::Vector{T} = convert.(T, read(fits[i], "ENERG_HI"))
         (lo, hi, area)
     end
-    SpectralFitting.AncillaryResponse(bins_low, bins_high, effective_area)
+    SpectralFitting.AncillaryResponse{T}(bins_low, bins_high, effective_area)
 end
 
 function _build_reponse_matrix(
@@ -261,8 +258,8 @@ function _get_stable(::Type{T}, header, name, default)::T where {T}
     get(header, name, T(default))
 end
 
-function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
-    info = _read_fits_and_close(path) do fits
+function read_spectrum(path; T::Type = Float64)
+    info::SpectralFitting.Spectrum{T} = _read_fits_and_close(path) do fits
         header = read_header(fits[2])
         # if not set, assume not poisson errors
         is_poisson = _string_boolean(get(header, "POISSERR", false))
@@ -309,7 +306,7 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
             SpectralFitting.ErrorStatistics.Unknown, T[0 for _ in values]
         end
 
-        SpectralFitting.Spectrum(
+        SpectralFitting.Spectrum{T}(
             channels,
             quality,
             grouping,
@@ -328,8 +325,8 @@ function read_spectrum(path, config::AbstractOGIPConfig{T}) where {T}
     info
 end
 
-function read_background(path::String, config::AbstractOGIPConfig{T}) where {T}
-    read_spectrum(path, config)
+function read_background(path::String)
+    read_spectrum(path)
 end
 
 function read_paths_from_spectrum(path::String)
@@ -383,7 +380,7 @@ end
 end # module
 
 using .OGIP
-export OGIP, StandardOGIPConfig
+export OGIP
 
 function read_fits_header(path; hdu = 2)
     OGIP._read_fits_and_close(path) do f

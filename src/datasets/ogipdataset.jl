@@ -21,15 +21,13 @@ function load_ogip_dataset(
         response = response,
         ancillary = ancillary,
     )
-    config = StandardOGIPConfig(; kwargs...)
-
     header = read_fits_header(paths.spectrum; hdu = hdu)
 
     obs_id = haskey(header, "OBS_ID") ? header["OBS_ID"] : "[no observation id]"
     exposure_id = haskey(header, "EXP_ID") ? header["EXP_ID"] : "[no exposure id]"
     object = haskey(header, "OBJECT") ? header["OBJECT"] : "[no object]"
 
-    data = SpectralData(paths, config)
+    data = SpectralData(paths)
     (data, paths, obs_id, exposure_id, object, header)
 end
 
