@@ -23,11 +23,7 @@ end
         make_objective(data_layout, dataset),
         make_objective_variance(data_layout, dataset),
     )
-    _yerr = if error_statistic(dataset) == ErrorStatistics.Poisson
-        sqrt.(rateerror)
-    else
-        rateerror
-    end
+    _yerr = sqrt.(rateerror)
     yerr --> _yerr
     xerr --> bin_widths(dataset) ./ 2
     markerstrokecolor --> :auto
