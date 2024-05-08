@@ -57,8 +57,8 @@ end
 
 # constructor
 
-SpectralData(paths::SpectralDataPaths, config::OGIP.AbstractOGIPConfig; kwargs...) =
-    _dataset_from_ogip(paths, config; kwargs...)
+SpectralData(paths::SpectralDataPaths;  kwargs...) =
+    _dataset_from_ogip(paths; kwargs...)
 
 function SpectralData(
     spectrum::Spectrum,
@@ -249,23 +249,23 @@ function rebin_if_different_domains!(output, data_domain, model_domain, input)
     output
 end
 
-function _dataset_from_ogip(paths::SpectralDataPaths, config::OGIP.AbstractOGIPConfig)
-    spec = OGIP.read_spectrum(paths.spectrum, config)
+function _dataset_from_ogip(paths::SpectralDataPaths)
+    spec = OGIP.read_spectrum(paths.spectrum)
     back = if !ismissing(paths.background)
-        OGIP.read_background(paths.background, config)
+        OGIP.read_background(paths.background)
     else
         @warn "No background file found."
         missing
     end
     resp = if !ismissing(paths.response)
-        OGIP.read_rmf(paths.response, config)
+        OGIP.read_rmf(paths.response)
     else
         throw(
             "No response file found in the header. Response must be specified with the keyword `response=PATH`.",
         )
     end
     ancillary = if !ismissing(paths.ancillary)
-        OGIP.read_ancillary_response(paths.ancillary, config)
+        OGIP.read_ancillary_response(paths.ancillary)
     else
         @warn "No ancillary file found."
         missing
