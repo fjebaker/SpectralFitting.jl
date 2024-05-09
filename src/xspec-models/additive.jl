@@ -91,7 +91,12 @@ Flux    │                             '..        │
     "Redshift."
     z::T
 end
-function XS_CutOffPowerLaw(; K = FitParam(1.0), Γ = FitParam(2.0), Ecut = FitParam(15.0), z = FitParam(0.0, frozen=true))
+function XS_CutOffPowerLaw(;
+    K = FitParam(1.0),
+    Γ = FitParam(2.0),
+    Ecut = FitParam(15.0),
+    z = FitParam(0.0, frozen = true),
+)
     XS_CutOffPowerLaw(K, Γ, Ecut, z)
 end
 

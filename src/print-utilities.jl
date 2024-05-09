@@ -3,7 +3,7 @@ function prettyfloat(f)
         "0.0"
     elseif f == Inf
         "Inf"
-    elseif ((f ≥ 1) && (f < 1e5) && (f - trunc(Int, f)  < 1e-5))
+    elseif ((f ≥ 1) && (f < 1e5) && (f - trunc(Int, f) < 1e-5))
         Printf.@sprintf("%.1f", f)
     else
         Printf.@sprintf("%#.5g", f)
