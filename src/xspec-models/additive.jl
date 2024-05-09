@@ -44,7 +44,7 @@ function XS_PowerLaw(; K = FitParam(1.0), a = FitParam(1.0))
 end
 
 """
-    XS_CutOffPowerLaw(K, a)
+    XS_CutOffPowerLaw(K, Γ, Ecut, z)
 
 $(FIELDS)
 
