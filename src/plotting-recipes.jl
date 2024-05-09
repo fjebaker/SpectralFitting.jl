@@ -152,7 +152,7 @@ end
     # this assumes we have statistics such that sigma = sqrt(variance) - should probably make this more statistically neutral
     yerr = sqrt.(result.variance)
     y_residual = @. (result.objective - y) / yerr
-    # is this the best way to ensure y_residual_error has the same type as y_residual, or should it just be fixe at Float64?
+    # is this the best way to ensure y_residual_error has the same type as y_residual, or should it just be fixed at Float64?
     y_residual_error = ones(eltype(y_residual), length(y_residual))
 
     minorgrid --> true
