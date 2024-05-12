@@ -125,5 +125,17 @@ function finalize(
         )
         (; chi2, p, σp)
     end
-    MultiFittingResult(results.chi2, results.p, results.σp, config)
+
+    unc = getindex.(results, :σp)
+    unc_or_nothing = if any(isnothing, unc)
+        nothing
+    else
+        unc
+    end
+    MultiFittingResult(
+        getindex.(results, :chi2), 
+        getindex.(results, :p), 
+        unc_or_nothing,
+        config,
+    )
 end
