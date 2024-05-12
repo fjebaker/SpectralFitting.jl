@@ -133,8 +133,8 @@ function finalize(
         unc
     end
     MultiFittingResult(
-        getindex.(results, :chi2), 
-        getindex.(results, :p), 
+        getindex.(results, :chi2),
+        getindex.(results, :p),
         unc_or_nothing,
         config,
     )

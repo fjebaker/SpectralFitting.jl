@@ -10,7 +10,7 @@ struct SpectralCache{M,O,T,K,P,TransformerType} <: AbstractFittingCache
     calculated_objective::T
     output_cache::K
     parameter_cache::P
-    transfomer!!::TransformerType
+    transformer!!::TransformerType
     function SpectralCache(
         layout::AbstractDataLayout,
         model::M,
@@ -73,7 +73,7 @@ function _invoke_and_transform!(cache::SpectralCache, domain, params)
     parameters = _get_parameters(cache.parameter_cache, params)
 
     output = invokemodel!(model_output, domain, cache.model, parameters)
-    cache.transfomer!!(calc_obj, domain, output)
+    cache.transformer!!(calc_obj, domain, output)
 
     output_vector = get_tmp(cache.output_cache, params)
     output_vector .= calc_obj

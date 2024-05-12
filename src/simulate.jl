@@ -24,7 +24,7 @@ function make_model_domain(::ContiguouslyBinned, dataset::SimulatedSpectrum)
 end
 
 bin_widths(dataset::SimulatedSpectrum) = diff(dataset.domain)
-plotting_domain(dataset::SimulatedSpectrum) = dataset.domain[1:end - 1] .+ bin_widths(dataset)
+plotting_domain(dataset::SimulatedSpectrum) = dataset.domain[1:end-1] .+ bin_widths(dataset)
 objective_units(dataset::SimulatedSpectrum) = dataset.units
 
 function _printinfo(io::IO, spectrum::SimulatedSpectrum)
@@ -36,7 +36,12 @@ function _printinfo(io::IO, spectrum::SimulatedSpectrum)
     print(io, descr)
 end
 
-function simulate!(config::FittingConfig, p; simulate_distribution = Distributions.Normal, rng = Random.default_rng())
+function simulate!(
+    config::FittingConfig,
+    p;
+    simulate_distribution = Distributions.Normal,
+    rng = Random.default_rng(),
+)
     config.objective .= _invoke_and_transform!(config.cache, config.domain, p)
     for (i, m) in enumerate(config.objective)
         distr = simulate_distribution(m, sqrt(config.variance[i]))
@@ -49,7 +54,14 @@ function simulate(prob::FittingProblem; seed = abs(randint()), kwargs...)
     rng = Random.default_rng(seed)
     Random.seed!(rng, seed)
     simulate!(conf, get_value.(conf.parameters); rng = rng, kw...)
-    SimulatedSpectrum(conf.domain, conf.objective, sqrt.(conf.variance), nothing, conf.cache.transformer!!, seed)
+    SimulatedSpectrum(
+        conf.domain,
+        conf.objective,
+        sqrt.(conf.variance),
+        nothing,
+        conf.cache.transformer!!,
+        seed,
+    )
 end
 
 function simulate(model::AbstractSpectralModel, dataset::AbstractDataset; kwargs...)
