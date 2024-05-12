@@ -57,19 +57,20 @@ end
 
 # constructor
 
-SpectralData(paths::SpectralDataPaths;  kwargs...) =
-    _dataset_from_ogip(paths; kwargs...)
+SpectralData(paths::SpectralDataPaths; kwargs...) = _dataset_from_ogip(paths; kwargs...)
 
 function SpectralData(
     spectrum::Spectrum,
     response::ResponseMatrix;
+    # try to match the domains of the response matrix to the data
+    match_domains = true,
     background = missing,
     ancillary = missing,
 )
     domain = _make_domain_vector(spectrum, response)
     energy_low, energy_high = _make_energy_vector(spectrum, response)
     data_mask = BitVector(fill(true, size(spectrum.data)))
-    SpectralData(
+    data = SpectralData(
         spectrum,
         response,
         background,
@@ -79,6 +80,14 @@ function SpectralData(
         domain,
         data_mask,
     )
+    if !check_domains(data)
+        if match_domains
+            match_domains!(data)
+        else
+            @warn "The spectrum and response domains are unmatched. Use `match_domains!` to remedy. Results will assume you know what you're doing"
+        end
+    end
+    return data
 end
 
 supports_contiguosly_binned(::Type{<:SpectralData}) = true
@@ -143,8 +152,8 @@ function objective_transformer(
     _transformer!!
 end
 
-bin_widths(dataset::SpectralData) =
-    (dataset.energy_high.-dataset.energy_low)[dataset.data_mask]
+unmasked_bin_widths(dataset::SpectralData) = dataset.energy_high .- dataset.energy_low
+bin_widths(dataset::SpectralData) = unmasked_bin_widths(dataset)[dataset.data_mask]
 has_background(dataset::SpectralData) = !ismissing(dataset.background)
 has_ancillary(dataset::SpectralData) = !ismissing(dataset.ancillary)
 
@@ -305,8 +314,27 @@ function _make_energy_vector(spec::Spectrum, resp::ResponseMatrix{T}) where {T}
         resp.channel_bins_high,
     )
     high = full_domain[2:end]
+    # full domain becomes the low
     resize!(full_domain, length(high))
     full_domain, high
+end
+
+function check_domains(data::SpectralData)
+    (length(data.spectrum.channels) == length(data.response.channels)) &&
+        (all(i -> i in data.response.channels, data.spectrum.channels))
+end
+
+function match_domains!(data::SpectralData)
+    # drop parts of the response matrix that aren't in the spectrum
+    I = filter(i -> i ∈ data.spectrum.channels, data.response.channels)
+    data.response = ResponseMatrix(
+        data.response.matrix[I, :],
+        data.response.channels[I],
+        data.response.channel_bins_low[I],
+        data.response.channel_bins_high[I],
+        data.response.bins_low,
+        data.response.bins_high,
+    )
 end
 
 macro _forward_SpectralData_api(args)
@@ -384,7 +412,7 @@ function _printinfo(io, data::SpectralData{T}) where {T}
         Crayons.Crayon(reset = true),
         " with ",
         Crayons.Crayon(foreground = :cyan),
-        length(data.energy_low[data.data_mask]) - 1,
+        length(data.energy_low[data.data_mask]),
         Crayons.Crayon(reset = true),
         " active channels:",
     )

@@ -102,11 +102,13 @@ function finalize(
     config::FittingConfig{Impl,<:MultiModelCache},
     params;
     statistic = ChiSquared(),
+    σparams = nothing,
 ) where {Impl}
     domain = config.domain
     cache = config.cache
     results = map(enumerate(cache.caches)) do (i, ch)
         p = @views params[cache.parameter_mapping[i]]
+        σp = @views isnothing(σparams) ? nothing : σparams[cache.parameter_mapping[i]]
 
         domain_start, domain_end = _get_range(cache.domain_mapping, i)
         objective_start, objective_end = _get_range(cache.objective_mapping, i)
@@ -121,7 +123,19 @@ function finalize(
             output,
             config.variance[objective_start:objective_end],
         )
-        (chi2, p)
+        (; chi2, p, σp)
     end
-    MultiFittingResult(first.(results), last.(results), config)
+
+    unc = getindex.(results, :σp)
+    unc_or_nothing = if any(isnothing, unc)
+        nothing
+    else
+        unc
+    end
+    MultiFittingResult(
+        getindex.(results, :chi2), 
+        getindex.(results, :p), 
+        unc_or_nothing,
+        config,
+    )
 end
