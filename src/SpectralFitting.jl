@@ -10,6 +10,8 @@ import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show
 import Distributions
 import ConstructionBase
 
+import Random
+
 using FITSIO
 using SparseArrays
 using Surrogates

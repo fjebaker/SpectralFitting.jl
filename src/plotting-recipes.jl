@@ -1,5 +1,8 @@
 using RecipesBase
 
+plotting_domain(dataset::AbstractDataset) = spectrum_energy(dataset)
+plotting_domain(dataset::InjectiveData) = dataset.domain
+
 @recipe function _plotting_func(dataset::InjectiveData; data_layout = OneToOne())
     seriestype --> :scatter
     markersize --> 1.0
@@ -39,14 +42,11 @@ end
     ylabel --> objective_units(dataset)
     label --> make_label(dataset)
     minorgrid --> true
-    x = spectrum_energy(dataset)
+    x = plotting_domain(dataset)
 
     I = @. !isinf(x) && !isinf(rate)
     @views (x[I], rate[I])
 end
-
-plotting_domain(dataset::AbstractDataset) = spectrum_energy(dataset)
-plotting_domain(dataset::InjectiveData) = dataset.domain
 
 @recipe function _plotting_func(dataset::AbstractDataset, result::FittingResult)
     label --> "fit"
