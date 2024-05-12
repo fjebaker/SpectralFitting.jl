@@ -153,8 +153,9 @@ function objective_transformer(
     _transformer!!
 end
 
+unmasked_bin_widths(dataset::SpectralData) = dataset.energy_high .- dataset.energy_low
 bin_widths(dataset::SpectralData) =
-    (dataset.energy_high.-dataset.energy_low)[dataset.data_mask]
+    unmasked_bin_widths(dataset)[dataset.data_mask]
 has_background(dataset::SpectralData) = !ismissing(dataset.background)
 has_ancillary(dataset::SpectralData) = !ismissing(dataset.ancillary)
 
@@ -414,7 +415,7 @@ function _printinfo(io, data::SpectralData{T}) where {T}
         Crayons.Crayon(reset = true),
         " with ",
         Crayons.Crayon(foreground = :cyan),
-        length(data.energy_low[data.data_mask]) - 1,
+        length(data.energy_low[data.data_mask]),
         Crayons.Crayon(reset = true),
         " active channels:",
     )
