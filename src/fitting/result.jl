@@ -31,6 +31,8 @@ struct FittingResultSlice{C,V,U,T} <: AbstractFittingResult
     χ2::T
 end
 
+estimated_error(r::FittingResultSlice) = r.σu
+estimated_params(r::FittingResultSlice) = r.u
 measure(stat::AbstractStatistic, slice::FittingResultSlice) = measure(stat, slice, slice.u)
 
 function measure(stat::AbstractStatistic, slice::FittingResultSlice, u)
@@ -56,6 +58,9 @@ struct FittingResult{T,U,C} <: AbstractFittingResult
     σu::Union{Nothing,U}
     config::C
 end
+
+estimated_error(r::FittingResult) = r.σu
+estimated_params(r::FittingResult) = r.u
 
 measure(stat::AbstractStatistic, slice::FittingResult, args...) =
     measure(stat, slice[1], args...)
@@ -95,6 +100,9 @@ struct MultiFittingResult{T,U,C} <: AbstractFittingResult
     σus::Union{Nothing,U}
     config::C
 end
+
+estimated_error(r::MultiFittingResult) = r.σus
+estimated_params(r::MultiFittingResult) = r.us
 
 function Base.getindex(result::MultiFittingResult, i::Int)
     cache = result.config.cache.caches[i]

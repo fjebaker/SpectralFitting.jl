@@ -49,14 +49,26 @@ function _unpack_fitting_configuration(prob; kwargs...)
     kwargs, config
 end
 
+function configuration(prob::FittingProblem; kwargs...)
+    kw, config = _unpack_fitting_configuration(prob; kwargs...)
+    if length(kw) > 0
+        throw("Unknown keyword arguments: $(kw)")
+    end
+    config
+end
+
+function fit(prob::FittingProblem, args...; kwargs...)
+    method_kwargs, config = _unpack_fitting_configuration(prob; kwargs...)
+    @inline fit(config, args...; method_kwargs...)
+end
+
 function fit(
-    prob::FittingProblem,
+    config::FittingConfig,
     alg::LevenbergMarquadt;
     verbose = false,
     max_iter = 1000,
-    kwargs...,
+    method_kwargs...,
 )
-    method_kwargs, config = _unpack_fitting_configuration(prob; kwargs...)
     lsq_result = _lsq_fit(
         _f_objective(config),
         config.domain,
@@ -75,14 +87,13 @@ function fit(
 end
 
 function fit(
-    prob::FittingProblem,
+    config::FittingConfig,
     statistic::AbstractStatistic,
     optim_alg;
     verbose = false,
     autodiff = nothing,
-    kwargs...,
+    method_kwargs...,
 )
-    method_kwargs, config = _unpack_fitting_configuration(prob; kwargs...)
     objective = _f_wrap_objective(statistic, config)
     u0 = get_value.(config.parameters)
     lower = get_lowerlimit.(config.parameters)
