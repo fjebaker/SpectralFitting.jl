@@ -84,7 +84,7 @@ function _addinfoinvoke!(
     lens::Lens,
 ) where {NumType}
     # don't increment flux for convolutional models
-    if !(modelkind(model) === Convolutional)
+    if !(modelkind(model) === Convolutional())
         inc_flux!(ga)
     end
     flux = get_flux_symbol(ga.objective_cache_count)
