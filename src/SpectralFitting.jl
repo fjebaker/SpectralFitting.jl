@@ -73,6 +73,8 @@ include("fitting/binding.jl")
 include("fitting/multi-cache.jl")
 include("fitting/methods.jl")
 include("fitting/statistics.jl")
+
+include("simulate.jl")
 include("fitting/goodness.jl")
 
 include("plotting-recipes.jl")
