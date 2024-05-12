@@ -5,12 +5,14 @@ export FittingResult,
     invoke_result,
     update_model!
 
-function _pretty_print_result(model, u, chi2)
+function _pretty_print_result(model, u, σ, chi2)
     ppx2 = prettyfloat(chi2)
     ppu = join((prettyfloat(i) for i in u), ", ")
+    ppσ = isnothing(σ) ? nothing : join((prettyfloat(i) for i in σ), ", ")
     """
       Model: $(model)
       . u     : [$(ppu)]
+      . σᵤ    : [$(ppσ)]
       . χ²    : $(ppx2) 
     """
 end
@@ -25,6 +27,7 @@ struct FittingResultSlice{C,V,U,T} <: AbstractFittingResult
     objective::V
     variance::V
     u::U
+    σu::Union{Nothing,U}
     χ2::T
 end
 
@@ -40,16 +43,17 @@ function invoke_result(slice::FittingResultSlice, u)
 end
 
 function _pretty_print(slice::FittingResultSlice)
-    "FittingResultSlice:\n" * _pretty_print_result(slice.cache.model, slice.u, slice.χ2)
+    "FittingResultSlice:\n" * _pretty_print_result(slice.cache.model, slice.u, slice.σu, slice.χ2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(slice::FittingResultSlice))
     print(io, encapsulate(_pretty_print(slice)))
 end
 
-struct FittingResult{T,K,C} <: AbstractFittingResult
+struct FittingResult{T,U,C} <: AbstractFittingResult
     χ2::T
-    u::K
+    u::U
+    σu::Union{Nothing,U}
     config::C
 end
 
@@ -69,6 +73,7 @@ function Base.getindex(result::FittingResult, i)
             result.config.objective,
             result.config.variance,
             result.u,
+            result.σu,
             result.χ2,
         )
     else
@@ -77,22 +82,24 @@ function Base.getindex(result::FittingResult, i)
 end
 
 function _pretty_print(res::FittingResult)
-    "FittingResult:\n" * _pretty_print_result(res.config.cache.model, res.u, res.χ2)
+    "FittingResult:\n" * _pretty_print_result(res.config.cache.model, res.u, res.σu, res.χ2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::FittingResult))
     print(io, encapsulate(_pretty_print(res)))
 end
 
-struct MultiFittingResult{T,K,C} <: AbstractFittingResult
+struct MultiFittingResult{T,U,C} <: AbstractFittingResult
     χ2s::Vector{T}
-    us::K
+    us::U
+    σus::Union{Nothing,U}
     config::C
 end
 
 function Base.getindex(result::MultiFittingResult, i::Int)
     cache = result.config.cache.caches[i]
     u = result.us[i]
+    σu = isnothing(result.σus) ? nothing : result.σus[i]
     chi2 = result.χ2s[i]
     d_start, d_end = _get_range(result.config.cache.domain_mapping, i)
     o_start, o_end = _get_range(result.config.cache.objective_mapping, i)
@@ -102,6 +109,7 @@ function Base.getindex(result::MultiFittingResult, i::Int)
         result.config.objective[o_start:o_end],
         result.config.variance[o_start:o_end],
         u,
+        σu,
         chi2,
     )
 end
@@ -114,7 +122,7 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::MultiFittingRe
     print(buff, " ")
     for i = 1:length(res.us)
         slice = res[i]
-        b = _pretty_print_result(slice.cache.model, slice.u, slice.χ2)
+        b = _pretty_print_result(slice.cache.model, slice.u, slice.σu, slice.χ2)
         r = indent(b, 1)
         print(buff, r)
     end

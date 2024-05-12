@@ -70,7 +70,8 @@ function fit(
         method_kwargs...,
     )
     params = LsqFit.coef(lsq_result)
-    finalize(config, params)
+    σ = LsqFit.standard_errors(lsq_result)
+    finalize(config, params; σparams = σ)
 end
 
 function fit(
