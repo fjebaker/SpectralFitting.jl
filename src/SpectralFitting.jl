@@ -10,6 +10,8 @@ import Pkg.MiniProgressBars: MiniProgressBar, start_progress, end_progress, show
 import Distributions
 import ConstructionBase
 
+import Random
+
 using FITSIO
 using SparseArrays
 using Surrogates
@@ -73,6 +75,8 @@ include("fitting/binding.jl")
 include("fitting/multi-cache.jl")
 include("fitting/methods.jl")
 include("fitting/statistics.jl")
+
+include("simulate.jl")
 include("fitting/goodness.jl")
 
 include("plotting-recipes.jl")

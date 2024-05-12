@@ -1,4 +1,3 @@
-
 function goodness(
     result::AbstractFittingResult,
     u::AbstractVector{T},
@@ -7,7 +6,9 @@ function goodness(
     stat = ChiSquared(),
     distribution = Distributions.Normal,
     refit = true,
+    kwargs...,
 ) where {T}
+    x = similar(u)
     measures = zeros(T, N)
     config = deepcopy(result.config)
     for i in eachindex(measures)
@@ -21,13 +22,18 @@ function goodness(
                 get_lowerlimit(config.parameters[i]),
                 get_upperlimit(config.parameters[i]),
             )
-            set_value!(config.parameters[i], rand(distr))
+            x[i] = rand(distr)
         end
+
+        simulate!(config, x; kwargs...)
 
         if refit
             new_result = fit(config, LevenbergMarquadt())
+            measures[i] = measure(stat, new_result)
+        else
+            measures[i] =
+                measure(stat, config.objective, invoke_result(result, x), config.variance)
         end
-        measures[i] = measure(stat, new_result)
     end
 
     perc = 100 * count(<(result.χ2), measures) / N
