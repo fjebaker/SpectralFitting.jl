@@ -85,8 +85,8 @@ function fit(
     σ = try
         LsqFit.standard_errors(lsq_result)
     catch e
-        if e isa LoadError
-            @warn "No error estimation due to error: $e"
+        if e isa LinearAlgebra.SingularException
+            @warn "No parameter uncertainty estimation due to error: $e"
             nothing
         else
             throw(e)
