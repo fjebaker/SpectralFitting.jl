@@ -82,7 +82,16 @@ function fit(
         method_kwargs...,
     )
     params = LsqFit.coef(lsq_result)
-    σ = LsqFit.standard_errors(lsq_result)
+    σ = try
+        LsqFit.standard_errors(lsq_result)
+    catch e
+        if e isa LoadError
+            @warn "No error estimation due to error: $e"
+            nothing
+        else
+            throw(e)
+        end
+    end
     finalize(config, params; σparams = σ)
 end
 
