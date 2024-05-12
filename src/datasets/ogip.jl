@@ -166,7 +166,10 @@ function read_rmf(path::String; T::Type = Float64)
     _build_reponse_matrix(header, rmf, channels, T)
 end
 
-function find_extension(fits, extension::T) where {T <: Union{<:AbstractString, <:AbstractVector}}
+function find_extension(
+    fits,
+    extension::T,
+) where {T<:Union{<:AbstractString,<:AbstractVector}}
     # find the correct extensions
     i::Int = 1
     for hdu in fits

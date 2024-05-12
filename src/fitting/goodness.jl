@@ -16,7 +16,11 @@ function goodness(
             m = u[i]
             d = σ[i]
             # TODO: respect the upper and lower bounds of the parameters
-            distr = Distributions.Truncated(distribution(m, d), get_lowerlimit(config.parameters[i]), get_upperlimit(config.parameters[i])) 
+            distr = Distributions.Truncated(
+                distribution(m, d),
+                get_lowerlimit(config.parameters[i]),
+                get_upperlimit(config.parameters[i]),
+            )
             set_value!(config.parameters[i], rand(distr))
         end
 
@@ -30,7 +34,7 @@ function goodness(
     @info "% with measure < result = $(perc)"
 
     measures
-end 
+end
 
 function goodness(result::AbstractFittingResult, σu = estimated_error(result); kwargs...)
     @assert !isnothing(σu) "σ cannot be nothing, else algorithm has no parameter intervals to sample from."

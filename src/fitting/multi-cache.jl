@@ -123,7 +123,7 @@ function finalize(
             output,
             config.variance[objective_start:objective_end],
         )
-        (;chi2, p, σp)
+        (; chi2, p, σp)
     end
     MultiFittingResult(results.chi2, results.p, results.σp, config)
 end

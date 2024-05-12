@@ -45,7 +45,8 @@ function invoke_result(slice::FittingResultSlice, u)
 end
 
 function _pretty_print(slice::FittingResultSlice)
-    "FittingResultSlice:\n" * _pretty_print_result(slice.cache.model, slice.u, slice.σu, slice.χ2)
+    "FittingResultSlice:\n" *
+    _pretty_print_result(slice.cache.model, slice.u, slice.σu, slice.χ2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(slice::FittingResultSlice))
