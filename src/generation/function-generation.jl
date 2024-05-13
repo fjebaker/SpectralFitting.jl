@@ -128,7 +128,7 @@ end
 
 function _parameter_lens(info::ModelInfo, symbols)
     map(symbols) do s
-        :(getproperty($(info.lens), $(Meta.quot(s))))
+        :(getfield($(info.lens), $(Meta.quot(s))))
     end
 end
 

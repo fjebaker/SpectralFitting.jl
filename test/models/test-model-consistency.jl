@@ -20,3 +20,11 @@ end
         @test isapprox.(phabs_f1 .- phabs_f2, 0.0, atol = 1e-1) |> all
     end
 end
+
+
+
+y = ones(Float64, 10)
+x = collect(range(0.0, 5.0, length(y) + 1))
+output_xs = invokemodel!(y, x, XS_CalculateFlux()) |> copy
+output_jl = invokemodel!(y, x, SpectralFitting.Log10Flux()) |> copy
+@test output_xs ≈ output_jl atol = 1e-8

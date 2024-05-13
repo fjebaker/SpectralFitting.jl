@@ -90,6 +90,7 @@ include("xspec-models/convolutional.jl")
 include("julia-models/model-utilities.jl")
 include("julia-models/additive.jl")
 include("julia-models/multiplicative.jl")
+include("julia-models/convolutional.jl")
 
 function __init__()
     # check if we have the minimum model data already

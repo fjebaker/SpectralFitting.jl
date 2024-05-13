@@ -84,7 +84,7 @@ function _addinfoinvoke!(
     lens::Lens,
 ) where {NumType}
     # don't increment flux for convolutional models
-    if !(modelkind(model) === Convolutional)
+    if !(modelkind(model) === Convolutional())
         inc_flux!(ga)
     end
     flux = get_flux_symbol(ga.objective_cache_count)
@@ -189,11 +189,28 @@ function _unique_parameter_symbols(infos::Vector{ModelInfo})
     (param_names...,)
 end
 
-function all_parameters_to_named_tuple(model::Type{<:CompositeModel})
+function _all_parameters_to_named_tuple_composite(model::Type{<:CompositeModel})
     infos = getinfo(model)
     lenses = reduce(vcat, map(i -> _parameter_lens(i, i.symbols), infos))
     names = _unique_parameter_symbols(infos)
+    names, lenses
+end
+
+function all_parameters_to_named_tuple(model::Type{<:CompositeModel})
+    names, lenses = _all_parameters_to_named_tuple_composite(model)
     :(NamedTuple{$(names)}(($(lenses...),)))
+end
+
+function model_structure(model::Type{<:CompositeModel})
+    counters = (; a = Ref(0), m = Ref(0), c = Ref(0))
+    infos = Pair{Symbol,ModelInfo}[]
+    expr = _addinfosymbol!(infos, counters, model, :model)
+    expr, infos
+end
+
+function all_model_symbols_to_models(model::Type{<:CompositeModel}; kwargs...)
+    _, infos = model_structure(model; kwargs...)
+    infos
 end
 
 _unique_model_symbol(::SpectralFitting.Additive, counters) = Symbol('a', counters.a[] += 1)
@@ -203,9 +220,7 @@ _unique_model_symbol(::SpectralFitting.Convolutional, counters) =
     Symbol('c', counters.c[] += 1)
 
 function _destructure_for_printing(model::Type{<:CompositeModel}; lens = :(model))
-    counters = (; a = Ref(0), m = Ref(0), c = Ref(0))
-    infos = Pair{Symbol,ModelInfo}[]
-    expr = _addinfosymbol!(infos, counters, model, lens)
+    expr, infos = model_structure(model)
     # reorder data structure as NamedTuple of pairs of (model, parameters)
     param_names = _unique_parameter_symbols(last.(infos))
     offset = 1
