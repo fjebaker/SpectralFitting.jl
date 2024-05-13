@@ -13,6 +13,26 @@ Returns a compile-time known tuple of all models symbols.
     :($(params))
 end
 
+@inline @generated function all_model_symbols(model::AbstractSpectralModel)
+    syms = (first.(FunctionGeneration.all_model_symbols_to_models(model))...,)
+    :($(syms))
+end
+
+@inline @generated function composite_model_map(model::CompositeModel)
+    info = FunctionGeneration.all_model_symbols_to_models(model)
+    syms = (first.(info)...,)
+    models = map(i -> i[2].lens, info)
+    :(NamedTuple{$(syms)}(($(models...),)))
+end
+
+@inline @generated function composite_model_parameter_map(model::CompositeModel)
+    info = FunctionGeneration.all_model_symbols_to_models(model)
+    param_syms, params = FunctionGeneration._all_parameters_to_named_tuple_composite(model)
+    syms = (first.(info)..., param_syms...)
+    models = map(i -> i[2].lens, info)
+    :(NamedTuple{$(syms)}(($(models...), $(params...))))
+end
+
 remake_with_parameters(model::AbstractSpectralModel, cache::ParameterCache) =
     _unsafe_remake_with_parameters(model, cache.parameters)
 function remake_with_parameters(model::AbstractSpectralModel, params::AbstractArray)

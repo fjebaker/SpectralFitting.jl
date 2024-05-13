@@ -242,12 +242,22 @@ ConstructionBase.constructorof(::Type{<:CompositeModel}) =
     throw("Cannot be used with `CompositeModel`.")
 
 function Base.propertynames(model::CompositeModel, private::Bool = false)
-    all_parameter_symbols(model)
+    (all_parameter_symbols(model)..., all_model_symbols(model)...)
+end
+
+# TODO: really ensure this is type stable as it could be a performance killer
+Base.@constprop aggressive function _get_property(model::CompositeModel, symb::Symbol)
+    if symb in all_model_symbols(model)
+        lookup = composite_model_map(model)
+        return lookup[symb]
+    else
+        lookup = all_parameters_to_named_tuple(model)
+        return lookup[symb]
+    end
 end
 
 function Base.getproperty(model::CompositeModel, symb::Symbol)
-    lookup = all_parameters_to_named_tuple(model)
-    lookup[symb]
+    _get_property(model, symb)
 end
 
 function Base.setproperty!(model::CompositeModel, symb::Symbol, value::FitParam)

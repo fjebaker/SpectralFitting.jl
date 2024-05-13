@@ -106,3 +106,36 @@ expr, info = eval(t)
     m2 = (DummyMultiplicative(), ("a_4", "b_4")),
     m3 = (DummyMultiplicative(), ("a_5", "b_5")),
 ))
+
+info = SpectralFitting.all_model_symbols(model)
+@test info == (:a1, :m1, :a2, :m2, :m3)
+
+info = SpectralFitting.composite_model_map(model)
+@test info == (;
+    a1 = DummyAdditive(),
+    m1 = DummyMultiplicative(),
+    a2 = DummyAdditive(),
+    m2 = DummyMultiplicative(),
+    m3 = DummyMultiplicative(),
+)
+
+info = SpectralFitting.composite_model_parameter_map(model)
+@test info == (;
+    a1 = DummyAdditive(),
+    m1 = DummyMultiplicative(),
+    a2 = DummyAdditive(),
+    m2 = DummyMultiplicative(),
+    m3 = DummyMultiplicative(),
+    K_1 = FitParam(1.0),
+    a_1 = FitParam(1.0),
+    b_1 = FitParam(5.0),
+    a_2 = FitParam(1.0),
+    b_2 = FitParam(5.0),
+    K_2 = FitParam(1.0),
+    a_3 = FitParam(1.0),
+    b_3 = FitParam(5.0),
+    a_4 = FitParam(1.0),
+    b_4 = FitParam(5.0),
+    a_5 = FitParam(1.0),
+    b_5 = FitParam(5.0),
+)
