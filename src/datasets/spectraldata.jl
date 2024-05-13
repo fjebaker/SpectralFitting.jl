@@ -130,6 +130,8 @@ function make_objective_variance(layout::AbstractDataLayout, dataset::SpectralDa
 end
 
 make_model_domain(::ContiguouslyBinned, dataset::SpectralData) = dataset.domain
+make_output_domain(::ContiguouslyBinned, dataset::SpectralData) =
+    folded_energy(dataset.response)
 
 restrict_domain!(dataset::SpectralData, low, high) =
     restrict_domain!(dataset, i -> high > i > low)
