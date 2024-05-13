@@ -49,7 +49,7 @@ function simulate!(
     exposure_time = 1e3,
     bin_width = nothing,
 )
-    config.objective .= _invoke_and_transform!(config.cache, config.domain, p)
+    config.objective .= _invoke_and_transform!(config.cache, config.model_domain, p)
     for (i, m) in enumerate(config.objective)
         distr = simulate_distribution(m * exposure_time)
         count = rand(rng, distr)
@@ -58,18 +58,13 @@ function simulate!(
     end
 end
 
-function simulate!(
-    output_domain::AbstractVector,
-    conf::FittingConfig;
-    seed = abs(rand(Int)),
-    kwargs...,
-)
+function simulate!(conf::FittingConfig; seed = abs(rand(Int)), kwargs...)
     rng = Random.default_rng(seed)
     Random.seed!(rng, seed)
     simulate!(conf, get_value.(conf.parameters); rng = rng, kwargs...)
     SimulatedSpectrum(
-        conf.domain,
-        output_domain,
+        conf.model_domain,
+        conf.output_domain,
         conf.objective,
         # variance has already been sqrt'd
         conf.variance,
@@ -85,7 +80,7 @@ function _make_simulation_fitting_config(
     ancillary;
     layout = ContiguouslyBinned(),
     input_domain = response_energy(response),
-    output_domain = channel_energy(response),
+    output_domain = folded_energy(response),
     kwargs...,
 ) where {T}
     if !supports(layout, model)
@@ -104,11 +99,10 @@ function _make_simulation_fitting_config(
     objective = zeros(eltype(E), length(E) - 1)
     variance = ones(eltype(objective), size(objective))
 
-    domain = input_domain
     cache = SpectralCache(
         layout,
         model,
-        domain,
+        input_domain,
         objective,
         _fold_transformer(T, layout, R, ΔE, E),
     )
@@ -117,7 +111,8 @@ function _make_simulation_fitting_config(
         implementation(model),
         cache,
         _allocate_free_parameters(model),
-        domain,
+        input_domain,
+        output_domain,
         objective,
         variance,
     )
@@ -130,22 +125,13 @@ function simulate(
     ancillary::Union{Nothing,<:AncillaryResponse};
     kwargs...,
 )
-    input_domain = response_energy(response)
-    output_domain = channel_energy(response)
-    kw, conf = _make_simulation_fitting_config(
-        model,
-        response,
-        ancillary;
-        output_domain = output_domain,
-        input_domain = input_domain,
-        kwargs...,
-    )
-    simulate!(output_domain, conf; kw...)
+    kw, conf = _make_simulation_fitting_config(model, response, ancillary; kwargs...)
+    simulate!(conf; kw...)
 end
 
 function simulate(model::AbstractSpectralModel, dataset::AbstractDataset; kwargs...)
     kw, conf = _unpack_fitting_configuration(FittingProblem(model => dataset); kwargs...)
-    simulate!(response_energy(dataset.data.response), conf; kw...)
+    simulate!(conf; kw...)
 end
 
 

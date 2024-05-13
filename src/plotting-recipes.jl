@@ -51,7 +51,7 @@ end
 @recipe function _plotting_func(dataset::AbstractDataset, result::FittingResult)
     label --> "fit"
     seriestype --> :stepmid
-    y = _f_objective(result.config)(result.config.domain, result.u)
+    y = _f_objective(result.config)(result.config.model_domain, result.u)
     x = plotting_domain(dataset)
     if length(y) != length(x)
         error(

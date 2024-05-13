@@ -45,6 +45,11 @@ function make_model_domain(::ContiguouslyBinned, dataset::Spectrum)
     dataset.channels
 end
 
+function make_output_domain(::ContiguouslyBinned, dataset::Spectrum)
+    @warn "Spectrum doesn't know the energy values by default. Domain is channels. Proceed only if you know what you are doing."
+    dataset.channels
+end
+
 isgrouped(spectrum::Spectrum) = all(==(1), spectrum.grouping)
 
 regroup!(spectrum::Spectrum) = regroup!(spectrum, spectrum.grouping)

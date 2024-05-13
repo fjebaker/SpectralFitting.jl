@@ -71,7 +71,7 @@ function fit(
 )
     lsq_result = _lsq_fit(
         _f_objective(config),
-        config.domain,
+        config.model_domain,
         config.objective,
         config.covariance,
         config.parameters,
@@ -124,7 +124,7 @@ function fit(
     # build problem and solve
     opt_f = Optimization.OptimizationFunction{false}(objective, _autodiff)
     # todo: something is broken with passing the boundaries
-    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.domain)
+    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.model_domain)
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
     finalize(config, sol.u; statistic = statistic)
 end

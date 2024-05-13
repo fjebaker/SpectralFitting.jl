@@ -2,6 +2,7 @@ struct MultiModelCache{K,N,CacheTypes<:Tuple,ParameterMappingType} <: AbstractFi
     caches::CacheTypes
     all_outputs::K
     domain_mapping::NTuple{N,Int}
+    output_domain_mapping::NTuple{N,Int}
     objective_mapping::NTuple{N,Int}
     parameter_mapping::ParameterMappingType
 end
@@ -51,6 +52,8 @@ _build_objective_mapping(layout::AbstractDataLayout, dataset::FittableMultiDatas
     _build_mapping_length(i -> make_objective(layout, i), dataset.d)
 _build_domain_mapping(layout::AbstractDataLayout, dataset::FittableMultiDataset) =
     _build_mapping_length(i -> make_model_domain(layout, i), dataset.d)
+_build_output_domain_mapping(layout::AbstractDataLayout, dataset::FittableMultiDataset) =
+    _build_mapping_length(i -> make_output_domain(layout, i), dataset.d)
 
 function FittingConfig(prob::FittingProblem)
     impl =
@@ -62,6 +65,7 @@ function FittingConfig(prob::FittingProblem)
     variances = map(d -> make_objective_variance(layout, d), prob.data.d)
     # build index mappings for pulling out the data
     domains, domain_mapping = _build_domain_mapping(layout, prob.data)
+    output_domains, output_domain_mapping = _build_output_domain_mapping(layout, prob.data)
     objectives, objective_mapping = _build_objective_mapping(layout, prob.data)
     parameters, parameter_mapping = _build_parameter_mapping(prob.model, prob.bindings)
 
@@ -85,6 +89,7 @@ function FittingConfig(prob::FittingProblem)
         caches,
         DiffCache(similar(all_objectives)),
         domain_mapping,
+        output_domain_mapping,
         objective_mapping,
         parameter_mapping,
     )
@@ -93,6 +98,7 @@ function FittingConfig(prob::FittingProblem)
         cache,
         parameters,
         reduce(vcat, domains),
+        reduce(vcat, output_domains),
         all_objectives,
         reduce(vcat, variances),
     )
@@ -104,7 +110,7 @@ function finalize(
     statistic = ChiSquared(),
     σparams = nothing,
 ) where {Impl}
-    domain = config.domain
+    domain = config.model_domain
     cache = config.cache
     results = map(enumerate(cache.caches)) do (i, ch)
         p = @views params[cache.parameter_mapping[i]]

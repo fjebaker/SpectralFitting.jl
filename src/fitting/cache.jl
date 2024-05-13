@@ -83,7 +83,8 @@ end
 struct FittingConfig{ImplType,CacheType,P,D,O}
     cache::CacheType
     parameters::P
-    domain::D
+    model_domain::D
+    output_domain::D
     objective::O
     variance::O
     covariance::O
@@ -91,29 +92,47 @@ struct FittingConfig{ImplType,CacheType,P,D,O}
         impl::AbstractSpectralModelImplementation,
         cache::C,
         params::P,
-        domain::D,
+        model_domain::D,
+        output_domain::D,
         objective::O,
         variance::O;
         covariance::O = inv.(variance),
     ) where {C,P,D,O}
-        new{typeof(impl),C,P,D,O}(cache, params, domain, objective, variance, covariance)
+        new{typeof(impl),C,P,D,O}(
+            cache,
+            params,
+            model_domain,
+            output_domain,
+            objective,
+            variance,
+            covariance,
+        )
     end
 end
 
 function FittingConfig(model::AbstractSpectralModel, dataset::AbstractDataset)
     layout = common_support(model, dataset)
-    domain = make_model_domain(layout, dataset)
+    model_domain = make_model_domain(layout, dataset)
+    output_domain = make_output_domain(layout, dataset)
     objective = make_objective(layout, dataset)
     variance = make_objective_variance(layout, dataset)
     params = _allocate_free_parameters(model)
     cache = SpectralCache(
         layout,
         model,
-        domain,
+        model_domain,
         objective,
         objective_transformer(layout, dataset),
     )
-    FittingConfig(implementation(model), cache, params, domain, objective, variance)
+    FittingConfig(
+        implementation(model),
+        cache,
+        params,
+        model_domain,
+        output_domain,
+        objective,
+        variance,
+    )
 end
 
 function _f_objective(config::FittingConfig)
@@ -128,7 +147,7 @@ function finalize(
     statistic = ChiSquared(),
     σparams = nothing,
 )
-    y = _f_objective(config)(config.domain, params)
+    y = _f_objective(config)(config.model_domain, params)
     chi2 = measure(statistic, config.objective, y, config.variance)
     FittingResult(chi2, params, σparams, config)
 end

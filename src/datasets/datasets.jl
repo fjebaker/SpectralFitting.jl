@@ -174,6 +174,7 @@ Must support the same API, but may also have some query methods for specific int
 abstract type AbstractMultiDataset <: AbstractDataset end
 
 export make_model_domain,
+    make_output_domain,
     make_domain_variance,
     make_objective,
     make_objective_variance,

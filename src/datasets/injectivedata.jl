@@ -33,8 +33,10 @@ make_objective(::ContiguouslyBinned, dataset::InjectiveData) =
     dataset.codomain[dataset.data_mask]
 
 make_model_domain(::OneToOne, dataset::InjectiveData) = dataset.domain
-make_output_domain(::OneToOne, dataset::InjectiveData) = dataset.domain
 make_objective(::OneToOne, dataset::InjectiveData) = dataset.codomain[dataset.data_mask]
+
+make_output_domain(layout::AbstractDataLayout, dataset::InjectiveData) =
+    make_model_domain(layout, dataset)
 
 function make_objective_variance(
     ::AbstractDataLayout,

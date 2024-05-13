@@ -372,6 +372,10 @@ macro _forward_SpectralData_api(args)
     T, field = args.args
     quote
         SpectralFitting.supports_contiguosly_binned(t::Type{<:$(T)}) = true
+        SpectralFitting.make_output_domain(
+            layout::SpectralFitting.AbstractDataLayout,
+            t::$(T),
+        ) = SpectralFitting.make_output_domain(layout, getfield(t, $(field)))
         SpectralFitting.make_model_domain(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
