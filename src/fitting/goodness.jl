@@ -6,11 +6,16 @@ function goodness(
     stat = ChiSquared(),
     distribution = Distributions.Normal,
     refit = true,
+    seed = abs(randint()),
     kwargs...,
 ) where {T}
     x = similar(u)
     measures = zeros(T, N)
     config = deepcopy(result.config)
+
+    rng = Random.default_rng()
+    Random.seed!(rng, seed)
+
     for i in eachindex(measures)
         # sample the next parameters
         for i in eachindex(u)
@@ -25,7 +30,7 @@ function goodness(
             x[i] = rand(distr)
         end
 
-        simulate!(config, x; kwargs...)
+        simulate!(config, x; rng = rng, kwargs...)
 
         if refit
             new_result = fit(config, LevenbergMarquadt())
