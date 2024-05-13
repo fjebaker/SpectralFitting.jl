@@ -306,11 +306,6 @@ updatemodel(model::AbstractSpectralModel, patch::NamedTuple) =
 updatemodel(model::AbstractSpectralModel; kwargs...) =
     ConstructionBase.setproperties(model; kwargs...)
 
-@inline function updatefree(model::AbstractSpectralModel, free_params)
-    patch = free_parameters_to_named_tuple(free_params, model)
-    updatemodel(model, patch)
-end
-
 @inline function updateparameters(model::AbstractSpectralModel, params)
     patch = all_parameters_to_named_tuple(params, model)
     updatemodel(model, patch)
