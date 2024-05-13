@@ -15,6 +15,13 @@ function response_energy(resp::ResponseMatrix{T}) where {T}
     E
 end
 
+function channel_energy(resp::ResponseMatrix{T}) where {T}
+    E = zeros(T, length(resp.channel_bins_low) + 1)
+    E[1:end-1] .= resp.channel_bins_low
+    E[end] = resp.channel_bins_high[end]
+    E
+end
+
 function regroup!(resp::ResponseMatrix{T}, grouping) where {T}
     itt = GroupingIterator(grouping)
     new_matrix = zeros(T, (length(itt), size(resp.matrix, 2)))
