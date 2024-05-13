@@ -351,19 +351,19 @@ function read_filename(header, entry, parent, exts...)
     if haskey(header, entry)
         path::String = strip(header[entry])
         if path == "NONE"
-            return missing
+            return nothing
         end
         name = find_file(data_directory, path, parent_name, exts)
-        if !ismissing(name)
+        if !isnothing(name)
             return name
         end
     end
-    missing
+    nothing
 end
 
 function find_file(dir, name, parent, extensions)
     if length(name) == 0
-        return missing
+        return nothing
     elseif match(r"%match%", name) !== nothing
         base = splitext(parent)[1]
         for ext in extensions
@@ -373,9 +373,9 @@ function find_file(dir, name, parent, extensions)
             end
         end
         @warn "Missing! Could not find file '%match%': tried $extensions"
-        return missing
+        return nothing
     elseif match(r"^none\b", name) !== nothing
-        return missing
+        return nothing
     end
     joinpath(dir, name)
 end

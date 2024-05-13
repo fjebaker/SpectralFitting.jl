@@ -12,7 +12,7 @@ mutable struct Spectrum{T} <: AbstractDataset
     area_scale::T
 
     error_statistics::SpectralFitting.ErrorStatistics.T
-    errors::Union{Missing,Vector{T}}
+    errors::Union{Nothing,Vector{T}}
     systematic_error::T
 
     telescope_name::String
@@ -59,7 +59,7 @@ function regroup!(spectrum::Spectrum{T}, grouping) where {T}
         spectrum.channels[grp[1]] = grp[1]
         regroup_vector!(spectrum.data, grp)
         regroup_quality_vector!(spectrum.quality, grp)
-        if !ismissing(spectrum.errors)
+        if !isnothing(spectrum.errors)
             vs = spectrum.data[grp[1]]
             if spectrum.units == u"counts"
                 spectrum.errors[grp[1]] = count_error(vs, 1.0)
@@ -95,7 +95,7 @@ function drop_channels!(spectrum::Spectrum, indices)
     deleteat!(spectrum.data, indices)
     deleteat!(spectrum.quality, indices)
     deleteat!(spectrum.grouping, indices)
-    if !ismissing(spectrum.errors)
+    if !isnothing(spectrum.errors)
         deleteat!(spectrum.errors, indices)
     end
     length(indices)

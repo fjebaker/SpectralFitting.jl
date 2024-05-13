@@ -1,3 +1,4 @@
+
 mutable struct SimulatedSpectrum{T,F} <: AbstractDataset
     domain::Vector{T}
     data::Vector{T}
