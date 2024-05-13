@@ -18,7 +18,7 @@ The first thing we want to do is load our datasets. Unlike in XSPEC, we have no 
 using SpectralFitting, Plots
 
 DATADIR = "..."
-DATADIR = "/home/lilith/Developer/jl/datasets/xspec/walkthrough" # hide
+DATADIR = get(ENV, "CI", false) ? @__DIR__() * "/../../ex-datadir" : "/home/lilith/Developer/jl/datasets/xspec/walkthrough" # hide
 spec1_path = joinpath(DATADIR, "s54405.pha")
 data = OGIPDataset(spec1_path) 
 ```
