@@ -6,11 +6,13 @@ using SpectralFitting
 SpectralFitting.download_all_model_data()
 
 makedocs(
+    warnonly = true,
     modules = [SpectralFitting],
     clean = true,
     sitename = "SpectralFitting.jl",
     pages = [
         "Home" => "index.md",
+        "Walkthrough" => "walkthrough.md",
         "Why & How" => "why-and-how.md",
         "Examples" => "examples.md",
         # "Transitioning from XSPEC" => "transitioning-from-xspec.md",
