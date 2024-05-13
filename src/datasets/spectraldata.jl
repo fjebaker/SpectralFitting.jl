@@ -147,18 +147,7 @@ function restrict_domain!(dataset::SpectralData, condition)
     dataset
 end
 
-function objective_transformer(
-    layout::ContiguouslyBinned,
-    dataset::SpectralData{T},
-) where {T}
-    R_folded = if has_ancillary(dataset)
-        sparse(fold_ancillary(dataset.response, dataset.ancillary))
-    else
-        dataset.response.matrix
-    end
-    R = R_folded[dataset.data_mask, :]
-    ΔE = bin_widths(dataset)
-    E = response_energy(dataset.response)
+function _fold_transformer(T::Type, layout, R, ΔE, E)
     cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
     function _transformer!!(energy, flux)
         f = rebin_if_different_domains!(get_tmp(cache, flux), E, energy, flux)
@@ -172,6 +161,22 @@ function objective_transformer(
     end
     _transformer!!
 end
+
+function objective_transformer(
+    layout::ContiguouslyBinned,
+    dataset::SpectralData{T},
+) where {T}
+    R_folded = if has_ancillary(dataset)
+        sparse(fold_ancillary(dataset.response, dataset.ancillary))
+    else
+        dataset.response.matrix
+    end
+    R = R_folded[dataset.data_mask, :]
+    ΔE = bin_widths(dataset)
+    E = response_energy(dataset.response)
+    _fold_transformer(T, layout, R, ΔE, E)
+end
+
 
 unmasked_bin_widths(dataset::SpectralData) = dataset.energy_high .- dataset.energy_low
 bin_widths(dataset::SpectralData) = unmasked_bin_widths(dataset)[dataset.data_mask]

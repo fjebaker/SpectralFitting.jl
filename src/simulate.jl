@@ -50,23 +50,69 @@ function simulate!(
     end
 end
 
-function simulate(prob::FittingProblem; seed = abs(randint()), kwargs...)
-    kw, conf = _unpack_fitting_configuration(prob; kwargs...)
+function simulate!(conf::FittingConfig; seed = abs(rand(Int)), kwargs...)
     rng = Random.default_rng(seed)
     Random.seed!(rng, seed)
-    simulate!(conf, get_value.(conf.parameters); rng = rng, kw...)
+    simulate!(conf, get_value.(conf.parameters); rng = rng, kwargs...)
     SimulatedSpectrum(
         conf.domain,
         conf.objective,
         sqrt.(conf.variance),
-        nothing,
+        u"counts / (s * keV)",
         conf.cache.transformer!!,
         seed,
     )
 end
 
+function _make_simulation_fitting_config(
+    model::AbstractSpectralModel,
+    response::ResponseMatrix{T},
+    ancillary;
+    layout = ContiguouslyBinned(),
+    kwargs...,
+) where {T}
+    if !supports(layout, model)
+        throw("Model must support desired layout for simulation.")
+    end
+
+    R = if !isnothing(ancillary)
+        fold_ancillary(response, ancillary)
+    else
+        response.matrix
+    end
+
+    E = response_energy(response)
+    ΔE = diff(E)
+
+    objective = zeros(eltype(E), length(E) - 1)
+    variance = fill(1e-4, size(objective))
+    cache =
+        SpectralCache(layout, model, E, objective, _fold_transformer(T, layout, R, ΔE, E))
+
+    conf = FittingConfig(
+        implementation(model),
+        cache,
+        _allocate_free_parameters(model),
+        E,
+        objective,
+        variance,
+    )
+    kwargs, conf
+end
+
+function simulate(
+    model::AbstractSpectralModel,
+    response::ResponseMatrix,
+    ancillary::Union{Nothing,<:AncillaryResponse};
+    kwargs...,
+)
+    kw, conf = _make_simulation_fitting_config(model, response, ancillary; kwargs...)
+    simulate!(conf; kw...)
+end
+
 function simulate(model::AbstractSpectralModel, dataset::AbstractDataset; kwargs...)
-    simulate(FittingProblem(model => dataset); kwargs...)
+    kw, conf = _unpack_fitting_configuration(FittingProblem(model => dataset); kwargs...)
+    simulate!(conf; kw...)
 end
 
 
