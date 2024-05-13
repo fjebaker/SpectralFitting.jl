@@ -15,7 +15,13 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1.9'
-      - run: |
+      - name: Setup data directories
+        run: |
+          wget "https://www.star.bristol.ac.uk/fergus/spectral-fitting/ci-data/1E-1048-5937.tar"
+          mkdir ex-datadir
+          tar -xf 1E-1048-5937.tar -C ex-datadir/
+      - name: Build documentation
+        run: |
           julia --project=docs -e '
             using Pkg
             Pkg.add("Plots")
