@@ -24,8 +24,6 @@ function invoke!(flux, energy, model::Log10Flux)
         lastindex(energy) - 1,
     )
 
-    @show ilow, ihigh
-
     total_e_flux = zero(eltype(flux))
 
     # low bin straddle

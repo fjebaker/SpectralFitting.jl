@@ -139,8 +139,6 @@ end
         )
     end
 
-    println("Debug: Creating a residual plot")
-
     data = r.args[1]
     x = plotting_domain(data)
     # at the moment I don't understand why the following line is necessary
