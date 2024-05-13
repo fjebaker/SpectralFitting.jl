@@ -209,8 +209,14 @@ function _build_reponse_matrix(
     channels::RMFChannels,
     T::Type,
 )
-    R = spzeros(T, header.num_channels, length(rmf.bins_low))
-    build_response_matrix!(R, rmf.f_chan, rmf.n_chan, rmf.matrix, header.first_channel)
+    R = build_response_matrix(
+        rmf.f_chan,
+        rmf.n_chan,
+        rmf.matrix,
+        header.num_channels,
+        header.first_channel,
+        T,
+    )
     SpectralFitting.ResponseMatrix(
         R,
         channels.channels,
@@ -221,6 +227,47 @@ function _build_reponse_matrix(
     )
 end
 
+function build_response_matrix(
+    f_chan::Vector,
+    n_chan::Vector,
+    matrix_rows::Vector,
+    num_cols::Int,
+    first_channel,
+    T::Type,
+)
+    ptrs = Int[1]
+    indices = Int[]
+    matrix = Float64[]
+
+    prev = first(ptrs)
+
+    for i in eachindex(f_chan)
+        M = matrix_rows[i]
+
+        row_len = 0
+        for (f, n) in zip(f_chan[i], n_chan[i])
+            if n == 0
+                # advance row
+                break
+            end
+            first = (f - first_channel) + 1
+            # append all of the indices
+            for j = 0:n-1
+                push!(indices, j + first)
+            end
+            append!(matrix, M[row_len+1:row_len+n])
+            row_len += n
+        end
+
+        next = row_len + prev
+        push!(ptrs, next)
+        prev = next
+    end
+
+    SparseArrays.SparseMatrixCSC{T,Int}(num_cols, length(f_chan), ptrs, indices, matrix)
+end
+
+# TODO: marked for refactoring (unused)
 function build_response_matrix!(
     R,
     f_chan::Vector,
