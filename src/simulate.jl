@@ -3,7 +3,7 @@ mutable struct SimulatedSpectrum{T,F} <: AbstractDataset
     model_domain::Vector{T}
     output_domain::Vector{T}
     data::Vector{T}
-    errors::Vector{T}
+    variance::Vector{T}
     units::Union{Nothing,SpectralUnits.RateOrCount}
     transformer!!::F
     seed::Int
@@ -18,7 +18,7 @@ end
 
 function make_objective_variance(::ContiguouslyBinned, dataset::SimulatedSpectrum)
     check_units_warning(dataset.units)
-    dataset.errors .^ 2
+    dataset.variance
 end
 
 make_model_domain(::ContiguouslyBinned, dataset::SimulatedSpectrum) = dataset.model_domain
@@ -51,13 +51,18 @@ function simulate!(
     simulate_distribution = Distributions.Poisson,
     rng = Random.default_rng(),
     exposure_time = 1e5,
+    counting_variance = true,
 )
     config.objective .= _invoke_and_transform!(config.cache, config.model_domain, p)
     for (i, m) in enumerate(config.objective)
         distr = simulate_distribution(m * exposure_time)
         count = rand(rng, distr)
         config.objective[i] = count / exposure_time
-        config.variance[i] = sqrt(abs(count)) / exposure_time
+
+        # how to propagate the variance
+        if counting_variance
+            config.variance[i] = count / exposure_time^2
+        end
     end
 end
 
@@ -69,7 +74,6 @@ function simulate!(conf::FittingConfig; seed = abs(rand(Int)), kwargs...)
         conf.model_domain,
         conf.output_domain,
         conf.objective,
-        # variance has already been sqrt'd
         conf.variance,
         u"counts / (s * keV)",
         conf.cache.transformer!!,
