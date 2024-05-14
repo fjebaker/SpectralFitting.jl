@@ -110,4 +110,24 @@ end
     end
 end
 
-export PowerLaw, BlackBody
+struct GaussianLine{T} <: AbstractSpectralModel{T,Additive}
+    "Normalisation."
+    K::T
+    "Mean"
+    μ::T
+    "Standard deviation"
+    σ::T
+end
+function GaussianLine(; K = FitParam(1.0), μ = FitParam(6.4), σ = FitParam(1.0))
+    GaussianLine{typeof(K)}(K, μ, σ)
+end
+@inline function invoke!(flux, energy, model::GaussianLine)
+    let μ = model.μ, σ = model.σ
+        integration_kernel!(flux, energy) do Elow, δE
+            E = Elow + δE / 2
+            δE * inv(σ * √(2π)) * exp(-1 * (E - μ)^2 / (2 * σ^2))
+        end
+    end
+end
+
+export PowerLaw, BlackBody, GaussianLine

@@ -14,10 +14,16 @@ on:
       - 'src/**.jl'
       - 'test/**.jl'
 
+concurrency:
+  # cancels when a PR gets updated
+  group: ${{ github.head_ref || github.run_id }}-${{ github.actor }}
+  cancel-in-progress: true
+
 jobs:
 
   smoke-test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }}
+    timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

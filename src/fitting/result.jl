@@ -68,14 +68,14 @@ measure(stat::AbstractStatistic, slice::FittingResult, args...) =
 
 function invoke_result(result::FittingResult, u)
     @assert length(u) == length(result.u)
-    _invoke_and_transform!(result.config.cache, result.config.domain, u)
+    _invoke_and_transform!(result.config.cache, result.config.model_domain, u)
 end
 
 function Base.getindex(result::FittingResult, i)
     if i == 1
         FittingResultSlice(
             result.config.cache,
-            result.config.domain,
+            result.config.model_domain,
             result.config.objective,
             result.config.variance,
             result.u,
@@ -114,7 +114,7 @@ function Base.getindex(result::MultiFittingResult, i::Int)
     o_start, o_end = _get_range(result.config.cache.objective_mapping, i)
     @views FittingResultSlice(
         cache,
-        result.config.domain[d_start:d_end],
+        result.config.model_domain[d_start:d_end],
         result.config.objective[o_start:o_end],
         result.config.variance[o_start:o_end],
         u,

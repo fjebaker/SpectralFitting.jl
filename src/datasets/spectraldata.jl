@@ -1,8 +1,8 @@
 struct SpectralDataPaths
-    spectrum::Union{Missing,String}
-    background::Union{Missing,String}
-    response::Union{Missing,String}
-    ancillary::Union{Missing,String}
+    spectrum::Union{Nothing,String}
+    background::Union{Nothing,String}
+    response::Union{Nothing,String}
+    ancillary::Union{Nothing,String}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(paths::SpectralDataPaths))
@@ -16,27 +16,27 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(paths::SpectralData
 end
 
 function SpectralDataPaths(;
-    spectrum = missing,
-    background = missing,
-    response = missing,
-    ancillary = missing,
+    spectrum = nothing,
+    background = nothing,
+    response = nothing,
+    ancillary = nothing,
 )
     SpectralDataPaths(spectrum, background, response, ancillary)
 end
 
 function SpectralDataPaths(
     spec_path;
-    background = missing,
-    response = missing,
-    ancillary = missing,
+    background = nothing,
+    response = nothing,
+    ancillary = nothing,
 )
     background_path, response_path, ancillary_path =
         OGIP.read_paths_from_spectrum(spec_path)
     SpectralDataPaths(
         spectrum = spec_path,
-        background = ismissing(background) ? background_path : background,
-        response = ismissing(response) ? response_path : response,
-        ancillary = ismissing(ancillary) ? ancillary_path : ancillary,
+        background = isnothing(background) ? background_path : background,
+        response = isnothing(response) ? response_path : response,
+        ancillary = isnothing(ancillary) ? ancillary_path : ancillary,
     )
 end
 
@@ -44,9 +44,9 @@ mutable struct SpectralData{T} <: AbstractDataset
     spectrum::Spectrum{T}
     response::ResponseMatrix{T}
     # background is optional
-    background::Union{Missing,Spectrum{T}}
+    background::Union{Nothing,Spectrum{T}}
     # ancillary response is optionally, may also have already been folded into response
-    ancillary::Union{Missing,AncillaryResponse{T}}
+    ancillary::Union{Nothing,AncillaryResponse{T}}
 
     energy_low::Vector{T} # energy translated from the response channels
     energy_high::Vector{T} # energy translated from the response channels
@@ -57,15 +57,36 @@ end
 
 # constructor
 
-SpectralData(paths::SpectralDataPaths; kwargs...) = _dataset_from_ogip(paths; kwargs...)
+function SpectralData(paths::SpectralDataPaths; kwargs...)
+    spec, resp, back, anc = _read_all_ogip(paths; kwargs...)
+
+    # convert everything to rates
+    if spec.units == u"counts"
+        spec.units = u"counts / s"
+        @. spec.data /= spec.exposure_time
+        if !isnothing(spec.errors)
+            @. spec.errors /= spec.exposure_time
+        end
+    end
+
+    if !isnothing(back) && back.units == u"counts"
+        back.units = u"counts / s"
+        @. back.data /= back.exposure_time
+        if !isnothing(back.errors)
+            @. back.errors /= back.exposure_time
+        end
+    end
+
+    SpectralData(spec, resp; background = back, ancillary = anc)
+end
 
 function SpectralData(
     spectrum::Spectrum,
     response::ResponseMatrix;
     # try to match the domains of the response matrix to the data
     match_domains = true,
-    background = missing,
-    ancillary = missing,
+    background = nothing,
+    ancillary = nothing,
 )
     domain = _make_domain_vector(spectrum, response)
     energy_low, energy_high = _make_energy_vector(spectrum, response)
@@ -109,6 +130,8 @@ function make_objective_variance(layout::AbstractDataLayout, dataset::SpectralDa
 end
 
 make_model_domain(::ContiguouslyBinned, dataset::SpectralData) = dataset.domain
+make_output_domain(::ContiguouslyBinned, dataset::SpectralData) =
+    folded_energy(dataset.response)
 
 restrict_domain!(dataset::SpectralData, low, high) =
     restrict_domain!(dataset, i -> high > i > low)
@@ -126,18 +149,7 @@ function restrict_domain!(dataset::SpectralData, condition)
     dataset
 end
 
-function objective_transformer(
-    layout::ContiguouslyBinned,
-    dataset::SpectralData{T},
-) where {T}
-    R_folded = if has_ancillary(dataset)
-        sparse(fold_ancillary(dataset.response, dataset.ancillary))
-    else
-        dataset.response.matrix
-    end
-    R = R_folded[dataset.data_mask, :]
-    ΔE = bin_widths(dataset)
-    E = response_energy(dataset.response)
+function _fold_transformer(T::Type, layout, R, ΔE, E)
     cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
     function _transformer!!(energy, flux)
         f = rebin_if_different_domains!(get_tmp(cache, flux), E, energy, flux)
@@ -152,10 +164,26 @@ function objective_transformer(
     _transformer!!
 end
 
+function objective_transformer(
+    layout::ContiguouslyBinned,
+    dataset::SpectralData{T},
+) where {T}
+    R_folded = if has_ancillary(dataset)
+        sparse(fold_ancillary(dataset.response, dataset.ancillary))
+    else
+        dataset.response.matrix
+    end
+    R = R_folded[dataset.data_mask, :]
+    ΔE = bin_widths(dataset)
+    model_domain = response_energy(dataset.response)
+    _fold_transformer(T, layout, R, ΔE, model_domain)
+end
+
+
 unmasked_bin_widths(dataset::SpectralData) = dataset.energy_high .- dataset.energy_low
 bin_widths(dataset::SpectralData) = unmasked_bin_widths(dataset)[dataset.data_mask]
-has_background(dataset::SpectralData) = !ismissing(dataset.background)
-has_ancillary(dataset::SpectralData) = !ismissing(dataset.ancillary)
+has_background(dataset::SpectralData) = !isnothing(dataset.background)
+has_ancillary(dataset::SpectralData) = !isnothing(dataset.ancillary)
 
 function drop_bad_channels!(dataset::SpectralData)
     indices = findall(!=(GOOD_QUALITY), dataset.spectrum.quality)
@@ -235,7 +263,7 @@ function subtract_background!(dataset::SpectralData)
         error("No background to subtract. Did you already subtract the background?")
     end
     subtract_background!(dataset.spectrum, dataset.background)
-    dataset.background = missing
+    dataset.background = nothing
     dataset
 end
 
@@ -258,44 +286,44 @@ function rebin_if_different_domains!(output, data_domain, model_domain, input)
     output
 end
 
-function _dataset_from_ogip(paths::SpectralDataPaths)
-    spec = OGIP.read_spectrum(paths.spectrum)
-    back = if !ismissing(paths.background)
+function _read_all_ogip(paths::SpectralDataPaths; forgiving = false)
+    spec = if !isnothing(paths.spectrum)
+        OGIP.read_spectrum(paths.spectrum)
+    else
+        if !forgiving
+            @warn "No spectrum file found."
+        end
+        nothing
+    end
+    back = if !isnothing(paths.background)
         OGIP.read_background(paths.background)
     else
-        @warn "No background file found."
-        missing
+        if !forgiving
+            @warn "No background file found."
+        end
+        nothing
     end
-    resp = if !ismissing(paths.response)
+    resp = if !isnothing(paths.response)
         OGIP.read_rmf(paths.response)
     else
-        throw(
-            "No response file found in the header. Response must be specified with the keyword `response=PATH`.",
-        )
+        if !forgiving
+            throw(
+                "No response file found in the header. Response must be specified with the keyword `response=PATH`.",
+            )
+        else
+            nothing
+        end
     end
-    ancillary = if !ismissing(paths.ancillary)
+    ancillary = if !isnothing(paths.ancillary)
         OGIP.read_ancillary_response(paths.ancillary)
     else
-        @warn "No ancillary file found."
-        missing
+        if !forgiving
+            @warn "No ancillary file found."
+        end
+        nothing
     end
 
-    # convert everything to rates
-    if spec.units == u"counts"
-        spec.units = u"counts / s"
-        @. spec.data /= spec.exposure_time
-        if !ismissing(spec.errors)
-            @. spec.errors /= spec.exposure_time
-        end
-    end
-    if !ismissing(back) && back.units == u"counts"
-        back.units = u"counts / s"
-        @. back.data /= back.exposure_time
-        if !ismissing(back.errors)
-            @. back.errors /= back.exposure_time
-        end
-    end
-    SpectralData(spec, resp; background = back, ancillary = ancillary)
+    (spec, resp, back, ancillary)
 end
 
 function _make_domain_vector(::Spectrum, resp::ResponseMatrix{T}) where {T}
@@ -344,6 +372,10 @@ macro _forward_SpectralData_api(args)
     T, field = args.args
     quote
         SpectralFitting.supports_contiguosly_binned(t::Type{<:$(T)}) = true
+        SpectralFitting.make_output_domain(
+            layout::SpectralFitting.AbstractDataLayout,
+            t::$(T),
+        ) = SpectralFitting.make_output_domain(layout, getfield(t, $(field)))
         SpectralFitting.make_model_domain(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
@@ -454,7 +486,7 @@ function _printinfo(io, data::SpectralData{T}) where {T}
         print(
             io,
             Crayons.Crayon(foreground = :dark_gray),
-            "Background: missing",
+            "Background: nothing",
             Crayons.Crayon(reset = true),
             "\n",
         )
@@ -473,7 +505,7 @@ function _printinfo(io, data::SpectralData{T}) where {T}
         print(
             io,
             Crayons.Crayon(foreground = :dark_gray),
-            "Ancillary: missing",
+            "Ancillary: nothing",
             Crayons.Crayon(reset = true),
             "\n",
         )

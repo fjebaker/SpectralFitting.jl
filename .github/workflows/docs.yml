@@ -6,9 +6,15 @@ on:
       - main
       - fergus/docs
 
+concurrency:
+  # cancels when a PR gets updated
+  group: ${{ github.head_ref || github.run_id }}-${{ github.actor }}
+  cancel-in-progress: true
+
 jobs:
   docs:
     name: Build and publish
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

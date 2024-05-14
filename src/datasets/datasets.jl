@@ -94,6 +94,7 @@ specified by the caller.
 - [`make_objective`](@ref)
 - [`make_domain_variance`](@ref)
 - [`make_model_domain`](@ref)
+- [`make_ouput_domain`](@ref)
 
 """
 abstract type AbstractDataset end
@@ -128,11 +129,24 @@ make_objective_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
 """
     make_model_domain
 
-Returns the array used as the domain for the modelling
+Returns the array used as the domain for the modelling. This is paired with [`make_domain_variance`](@ref)
 """
 make_model_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
+    error("Layout $(layout) is not implemented for $(typeof(dataset))")
+
+"""
+    make_output_domain
+
+Returns the array used as the output domain. That is, in cases where the model
+input and output map to different domains, the input domain is said to be the
+model domain, the input domain is said to be the model domain. 
+
+The distinction is mainly used for the purposes of simulating data and for
+visualising data.
+"""
+make_output_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 function objective_transformer(layout::AbstractDataLayout, dataset::AbstractDataset)
@@ -160,6 +174,7 @@ Must support the same API, but may also have some query methods for specific int
 abstract type AbstractMultiDataset <: AbstractDataset end
 
 export make_model_domain,
+    make_output_domain,
     make_domain_variance,
     make_objective,
     make_objective_variance,

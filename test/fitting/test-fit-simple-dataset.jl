@@ -43,7 +43,7 @@ model = PowerLaw()
 prob = FittingProblem(model => data)
 
 result = fit(prob, LevenbergMarquadt())
-@test result.u[2] ≈ 6.1 atol = 0.1
+@test result.u[2] ≈ 6.2 atol = 0.1
 
 # fitting a contiguously binned dataset with some masked bins
 x = 10 .^ collect(range(-1, 2, 10))

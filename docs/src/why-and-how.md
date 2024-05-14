@@ -46,7 +46,8 @@ sum(total_flux)
 Doing so would allow us to only pre-allocate 2 flux arrays, instead of 4 when using the in-place variants:
 
 ```@example model_invocation
-flux1, flux2 = make_fluxes(model, energy, 2)
+fluxes = SpectralFitting.construct_objective_cache(model, energy)
+flux1, flux2 = eachcol(fluxes)
 
 invokemodel!(flux1, energy, XS_PowerLaw())
 invokemodel!(flux2, energy, XS_PowerLaw(a=FitParam(3.0)))
@@ -63,39 +64,12 @@ sum(flux1)
 It is precisely this re-writing that SpectralFitting performs via [`@generated`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Generated-functions) functions. We can inspect the code used to generate the invocation body after defining a [`CompositeModel`](@ref):
 
 ```@example model_invocation
-fluxes = (flux1, flux2)
-
 model = XS_PhotoelectricAbsorption() * (
     XS_PowerLaw() + XS_PowerLaw(a=FitParam(3.0)) + XS_BlackBody()
 )
 
-params = get_value.(get_params(model))
-
-SpectralFitting.__generated_model_call!(fluxes, energy, typeof(model), params)
-nothing # hide
-```
-
-```@raw html
-<pre class="documenter-example-output"><code class="nohighlight hljs ansi">begin
-    @inbounds let (flux1, flux2) = fluxes
-        var"##K#356" = params[1]
-        var"##a#357" = params[2]
-        var"##K#358" = params[3]
-        var"##a#359" = params[4]
-        var"##K#360" = params[5]
-        var"##T#361" = params[6]
-        var"##ηH#362" = params[7]
-        invokemodel!(flux1, energy, XS_PowerLaw, var"##K#356", var"##a#357")
-        invokemodel!(flux2, energy, XS_PowerLaw, var"##K#358", var"##a#359")
-        @. flux1 = flux1 + flux2
-        invokemodel!(flux2, energy, XS_BlackBody, var"##K#360", var"##T#361")
-        @. flux1 = flux1 + flux2
-        invokemodel!(flux2, energy, XS_PhotoelectricAbsorption, var"##ηH#362")
-        @. flux1 = flux1 * flux2
-        return flux1
-    end
-end
-</code><button class="copy-button fas fa-copy"></button></pre>
+params = get_value.(SpectralFitting.model_parameters_tuple(model))
+SpectralFitting.FunctionGeneration.generated_model_call!(typeof(fluxes), typeof(energy), typeof(model), typeof(params))
 ```
 
 This generated function also takes care of some other things for us, such as unpacking parameters (optionally unpacking frozen parameters separately), and ensuring any closure are passed to [`invokemodel`](@ref) if a model needs them (e.g., [`SurrogateSpectralModel`](@ref)).

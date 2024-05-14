@@ -22,9 +22,14 @@ end
 end
 
 
-
 y = ones(Float64, 10)
 x = collect(range(0.0, 5.0, length(y) + 1))
 output_xs = invokemodel!(y, x, XS_CalculateFlux()) |> copy
 output_jl = invokemodel!(y, x, SpectralFitting.Log10Flux()) |> copy
 @test output_xs ≈ output_jl atol = 1e-8
+
+
+x = 10 .^ collect(range(log10(4), log10(10.0), 100))
+f1 = invokemodel(x, XS_Gaussian())
+f2 = invokemodel(x, GaussianLine())
+@test f1 ≈ f2 atol = 1e-4

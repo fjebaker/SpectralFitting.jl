@@ -12,7 +12,7 @@ config = SpectralFitting.FittingConfig(model, dummy_data)
 
 f = SpectralFitting._f_objective(config)
 params = get_value.(config.parameters)
-domain = config.domain
+domain = config.model_domain
 
 result = f(domain, params)
 # todo: currently we still allocate cus extracting the frozen parameters

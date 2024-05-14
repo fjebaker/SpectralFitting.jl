@@ -10,9 +10,9 @@ end
 function load_ogip_dataset(
     spec_path;
     hdu = 2,
-    background = missing,
-    response = missing,
-    ancillary = missing,
+    background = nothing,
+    response = nothing,
+    ancillary = nothing,
     kwargs...,
 )
     paths = SpectralDataPaths(
