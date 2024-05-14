@@ -175,8 +175,8 @@ function objective_transformer(
     end
     R = R_folded[dataset.data_mask, :]
     ΔE = bin_widths(dataset)
-    E = response_energy(dataset.response)
-    _fold_transformer(T, layout, R, ΔE, E)
+    model_domain = response_energy(dataset.response)
+    _fold_transformer(T, layout, R, ΔE, model_domain)
 end
 
 

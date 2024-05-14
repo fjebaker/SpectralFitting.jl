@@ -96,10 +96,9 @@ function _make_simulation_fitting_config(
         response.matrix
     end
 
-    E = output_domain
-    ΔE = diff(E)
+    ΔE = diff(output_domain)
 
-    objective = zeros(eltype(E), length(E) - 1)
+    objective = zeros(eltype(output_domain), length(output_domain) - 1)
     variance = ones(eltype(objective), size(objective))
 
     cache = SpectralCache(
@@ -107,7 +106,7 @@ function _make_simulation_fitting_config(
         model,
         input_domain,
         objective,
-        _fold_transformer(T, layout, R, ΔE, E),
+        _fold_transformer(T, layout, R, ΔE, input_domain),
     )
 
     conf = FittingConfig(
