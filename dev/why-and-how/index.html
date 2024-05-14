@@ -16,7 +16,8 @@ flux3 = invokemodel(energy, XS_BlackBody())
 
 flux4 = invokemodel(energy, XS_PhotoelectricAbsorption())
 @. total_flux = total_flux * flux4
-sum(total_flux)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">8.296695648865288</code></pre><p>Doing so would allow us to only pre-allocate 2 flux arrays, instead of 4 when using the in-place variants:</p><pre><code class="language- hljs">flux1, flux2 = make_fluxes(model, energy, 2)
+sum(total_flux)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">8.296695648865288</code></pre><p>Doing so would allow us to only pre-allocate 2 flux arrays, instead of 4 when using the in-place variants:</p><pre><code class="language- hljs">fluxes = SpectralFitting.construct_objective_cache(model, energy)
+flux1, flux2 = eachcol(fluxes)
 
 invokemodel!(flux1, energy, XS_PowerLaw())
 invokemodel!(flux2, energy, XS_PowerLaw(a=FitParam(3.0)))
@@ -27,33 +28,10 @@ invokemodel!(flux2, energy, XS_BlackBody())
 
 invokemodel!(flux2, energy, XS_PhotoelectricAbsorption())
 @. flux1 = flux1 * flux2
-sum(flux1)</code></pre><p>It is precisely this re-writing that SpectralFitting performs via <a href="https://docs.julialang.org/en/v1/manual/metaprogramming/#Generated-functions"><code>@generated</code></a> functions. We can inspect the code used to generate the invocation body after defining a <a href="../composite-models/#SpectralFitting.CompositeModel"><code>CompositeModel</code></a>:</p><pre><code class="language- hljs">fluxes = (flux1, flux2)
-
-model = XS_PhotoelectricAbsorption() * (
+sum(flux1)</code></pre><p>It is precisely this re-writing that SpectralFitting performs via <a href="https://docs.julialang.org/en/v1/manual/metaprogramming/#Generated-functions"><code>@generated</code></a> functions. We can inspect the code used to generate the invocation body after defining a <a href="../composite-models/#SpectralFitting.CompositeModel"><code>CompositeModel</code></a>:</p><pre><code class="language- hljs">model = XS_PhotoelectricAbsorption() * (
     XS_PowerLaw() + XS_PowerLaw(a=FitParam(3.0)) + XS_BlackBody()
 )
 
-params = get_value.(get_params(model))
-
-SpectralFitting.__generated_model_call!(fluxes, energy, typeof(model), params)
-nothing # hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">begin
-    @inbounds let (flux1, flux2) = fluxes
-        var"##K#356" = params[1]
-        var"##a#357" = params[2]
-        var"##K#358" = params[3]
-        var"##a#359" = params[4]
-        var"##K#360" = params[5]
-        var"##T#361" = params[6]
-        var"##ηH#362" = params[7]
-        invokemodel!(flux1, energy, XS_PowerLaw, var"##K#356", var"##a#357")
-        invokemodel!(flux2, energy, XS_PowerLaw, var"##K#358", var"##a#359")
-        @. flux1 = flux1 + flux2
-        invokemodel!(flux2, energy, XS_BlackBody, var"##K#360", var"##T#361")
-        @. flux1 = flux1 + flux2
-        invokemodel!(flux2, energy, XS_PhotoelectricAbsorption, var"##ηH#362")
-        @. flux1 = flux1 * flux2
-        return flux1
-    end
-end
-</code><button class="copy-button fas fa-copy"></button></pre><p>This generated function also takes care of some other things for us, such as unpacking parameters (optionally unpacking frozen parameters separately), and ensuring any closure are passed to <a href="../using-models/#SpectralFitting.invokemodel"><code>invokemodel</code></a> if a model needs them (e.g., <a href="@ref"><code>SurrogateSpectralModel</code></a>).</p><p>This is achieved by moving as much information as possible about the model and its construction to its type, such that all of the invocation and parameter unpacking may be inferred at compile time.</p><p>Naturally, the <a href="../composite-models/#SpectralFitting.CompositeModel"><code>CompositeModel</code></a> types also support the out-of-place <a href="../using-models/#SpectralFitting.invokemodel"><code>invokemodel</code></a> and will allocate the minimum number of flux arrays needed, inferred using <a href="@ref"><code>flux_count</code></a>:</p><pre><code class="language-julia hljs">flux = invokemodel(energy, model)
-sum(flux)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">8.296695648865288</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>With the addition of more pure-Julia models, non-allocating methods without aggressive pre-allocation are possible, and will be added in the future. Such methods may allow models to add or multiply in-place on the total flux array, instead of relying on later broadcasts.</p></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../walkthrough/">« Walkthrough</a><a class="docs-footer-nextpage" href="../examples/">Examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Monday 13 May 2024 12:27">Monday 13 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+params = get_value.(SpectralFitting.model_parameters_tuple(model))
+SpectralFitting.FunctionGeneration.generated_model_call!(typeof(fluxes), typeof(energy), typeof(model), typeof(params))</code></pre><p>This generated function also takes care of some other things for us, such as unpacking parameters (optionally unpacking frozen parameters separately), and ensuring any closure are passed to <a href="../using-models/#SpectralFitting.invokemodel"><code>invokemodel</code></a> if a model needs them (e.g., <a href="@ref"><code>SurrogateSpectralModel</code></a>).</p><p>This is achieved by moving as much information as possible about the model and its construction to its type, such that all of the invocation and parameter unpacking may be inferred at compile time.</p><p>Naturally, the <a href="../composite-models/#SpectralFitting.CompositeModel"><code>CompositeModel</code></a> types also support the out-of-place <a href="../using-models/#SpectralFitting.invokemodel"><code>invokemodel</code></a> and will allocate the minimum number of flux arrays needed, inferred using <a href="@ref"><code>flux_count</code></a>:</p><pre><code class="language-julia hljs">flux = invokemodel(energy, model)
+sum(flux)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">8.296695648865288</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>With the addition of more pure-Julia models, non-allocating methods without aggressive pre-allocation are possible, and will be added in the future. Such methods may allow models to add or multiply in-place on the total flux array, instead of relying on later broadcasts.</p></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../walkthrough/">« Walkthrough</a><a class="docs-footer-nextpage" href="../examples/">Examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Tuesday 14 May 2024 00:39">Tuesday 14 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
