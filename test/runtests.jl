@@ -93,21 +93,21 @@ end
 end
 
 @testset "fitting" verbose = true begin
-    include("fitting/test-fit-simple-dataset.jl")
-    include("fitting/test-cache.jl")
-    include("fitting/test-binding.jl")
-    include("fitting/test-results.jl")
+    @time include("fitting/test-fit-simple-dataset.jl")
+    @time include("fitting/test-cache.jl")
+    @time include("fitting/test-binding.jl")
+    @time include("fitting/test-results.jl")
 
     @testset "powerlaws" begin
-        include("fitting/test-fit-powerlaw.jl")
+        @time include("fitting/test-fit-powerlaw.jl")
     end
     @testset "multifits" begin
-        include("fitting/test-fit-multi.jl")
-        include("fitting/test-fit-optim.jl")
+        @time include("fitting/test-fit-multi.jl")
+        @time include("fitting/test-fit-optim.jl")
     end
     if has_test_dir
         @testset "sample-data" begin
-            include("fitting/test-sample-data.jl")
+            @time include("fitting/test-sample-data.jl")
         end
     else
         @warn "Skipping dataset tests."
