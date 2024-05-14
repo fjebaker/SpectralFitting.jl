@@ -1,6 +1,6 @@
 
 mutable struct SimulatedSpectrum{T,F} <: AbstractDataset
-    input_domain::Vector{T}
+    model_domain::Vector{T}
     output_domain::Vector{T}
     data::Vector{T}
     errors::Vector{T}
@@ -21,9 +21,11 @@ function make_objective_variance(::ContiguouslyBinned, dataset::SimulatedSpectru
     dataset.errors .^ 2
 end
 
-function make_model_domain(::ContiguouslyBinned, dataset::SimulatedSpectrum)
-    dataset.domain
-end
+make_model_domain(::ContiguouslyBinned, dataset::SimulatedSpectrum) = dataset.model_domain
+make_output_domain(::ContiguouslyBinned, dataset::SimulatedSpectrum) = dataset.output_domain
+
+objective_transformer(::ContiguouslyBinned, dataset::SimulatedSpectrum) =
+    dataset.transformer!!
 
 bin_widths(dataset::SimulatedSpectrum) = diff(dataset.output_domain)
 plotting_domain(dataset::SimulatedSpectrum) =
@@ -32,11 +34,13 @@ objective_units(dataset::SimulatedSpectrum) = dataset.units
 
 function _printinfo(io::IO, spectrum::SimulatedSpectrum)
     dmin, dmax = prettyfloat.(extrema(spectrum.data))
-    xmin, xmax = prettyfloat.(extrema(spectrum.domain))
+    xmin, xmax = prettyfloat.(extrema(spectrum.model_domain))
+    omin, omax = prettyfloat.(extrema(spectrum.output_domain))
     descr = """SimulatedSpectrum with $(length(spectrum.data)) channels:
       Units                 : $(spectrum.units)
       . Data (min/max)      : ($dmin, $dmax)
       . Domain (min/max)    : ($xmin, $xmax)
+      . Out Dmn. (min/max)  : ($omin, $omax)
     """
     print(io, descr)
 end
@@ -46,15 +50,14 @@ function simulate!(
     p;
     simulate_distribution = Distributions.Poisson,
     rng = Random.default_rng(),
-    exposure_time = 1e3,
-    bin_width = nothing,
+    exposure_time = 1e5,
 )
     config.objective .= _invoke_and_transform!(config.cache, config.model_domain, p)
     for (i, m) in enumerate(config.objective)
         distr = simulate_distribution(m * exposure_time)
         count = rand(rng, distr)
-        config.objective[i] = count / (exposure_time)
-        config.variance[i] = sqrt(abs(count)) / (exposure_time)
+        config.objective[i] = count / exposure_time
+        config.variance[i] = sqrt(abs(count)) / exposure_time
     end
 end
 
@@ -122,7 +125,7 @@ end
 function simulate(
     model::AbstractSpectralModel,
     response::ResponseMatrix,
-    ancillary::Union{Nothing,<:AncillaryResponse};
+    ancillary::Union{Nothing,<:AncillaryResponse} = nothing;
     kwargs...,
 )
     kw, conf = _make_simulation_fitting_config(model, response, ancillary; kwargs...)

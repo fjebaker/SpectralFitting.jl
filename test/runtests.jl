@@ -114,6 +114,17 @@ end
     end
 end
 
+@testset "simulation" verbose = true begin
+    include("simulation/test-simulation.jl")
+    if has_test_dir
+        @testset "sample-data" begin
+            include("simulation/test-sample-data-sim.jl")
+        end
+    else
+        @warn "Skipping simulating real observatory tests."
+    end
+end
+
 using Aqua
 
 # little bit of aqua
