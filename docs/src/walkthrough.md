@@ -130,7 +130,7 @@ update_model!(model, result)
 To estimate the goodness of our fit, we can mimic the `goodness` command from XSPEC. This will use the [`simulate`](@ref) function to simulate spectra for a dataset (here determined by the result), and fit the model to the simulated dataset. The fit statistic for each fit is then appended to an array, which we can use to plot a histogram:
 
 ```@example walk
-spread = goodness(result; N = 1000, seed = 42)
+spread = goodness(result; N = 1000, seed = 42, exposure_time = data.data.spectrum.exposure_time)
 histogram(spread, ylims = (0, 300), label = "Simulated")
 vline!([result.χ2], label = "Best fit")
 ```
