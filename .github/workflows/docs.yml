@@ -43,6 +43,7 @@ jobs:
             Pkg.add("Plots")
             Pkg.add("UnicodePlots")
             Pkg.add("BenchmarkTools")
+            Pkg.add("Surrogates")
             Pkg.add(url = "https://github.com/astro-group-bristol/LibXSPEC_jll.jl#master")
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
