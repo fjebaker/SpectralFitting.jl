@@ -225,7 +225,7 @@ function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
         )
 
         for (val, s::String) in zip(modelparameters(m), param_symbols)
-            free = !isfrozen(val)
+            free = val isa FitParam ? !isfrozen(val) : true
             _print_param(buff, free, s, val, param_name_offset, q1, q2, q3, q4)
         end
     end

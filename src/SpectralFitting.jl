@@ -55,7 +55,7 @@ include("generation/function-generation.jl")
 include("generation/wrappers.jl")
 
 include("meta-models/table-models.jl")
-# include("meta-models/surrogate-models.jl")
+include("meta-models/surrogate-models.jl")
 
 include("poisson.jl")
 

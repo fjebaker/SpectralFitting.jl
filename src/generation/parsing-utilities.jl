@@ -105,14 +105,29 @@ function _addinfoinvoke!(
     T = NumType <: SpectralFitting.FitParam ? NumType.parameters[1] : NumType
     model_constructor = :($(model.name.wrapper){$(model.parameters[1:end-1]...),$(T)})
 
-    # assemble the invocation statement
-    s = :(invokemodel!(
-        $flux,
-        energy,
-        $(model_constructor)($(closure_params...), $(info.generated_symbols...)),
-    ))
+    s = _build_invoke(
+        model,
+        T,
+        flux,
+        model_constructor,
+        closure_params,
+        info.generated_symbols,
+    )
+
     push_model!(ga, model)
     push_statement!(ga, s)
+end
+
+function _build_invoke(
+    ::Type{<:AbstractSpectralModel},
+    ::Type,
+    flux,
+    model_constructor,
+    closure_params,
+    params,
+)
+    # assemble the invocation statement
+    :(invokemodel!($flux, energy, $(model_constructor)($(closure_params...), $(params...))))
 end
 
 function _addinfoinvoke!(ga::GenerationAggregate, model::Type{<:CompositeModel}, lens::Lens)

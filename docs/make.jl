@@ -14,13 +14,16 @@ makedocs(
         "Home" => "index.md",
         "Walkthrough" => "walkthrough.md",
         "Why & How" => "why-and-how.md",
-        "Examples" => "examples.md",
+        "Examples" => [
+            "Diverse examples" => "examples/examples.md",
+            "A quick guide" => "examples/sherpa-example.md",
+        ],
         # "Transitioning from XSPEC" => "transitioning-from-xspec.md",
         "Models" => [
             "Using models" => "using-models.md",
             "Model index" => "models.md",
             "Composite models" => "composite-models.md",
-            # "Surrogate models" => "surrogate-models.md",
+            "Surrogate models" => "surrogate-models.md",
         ],
         # "Parameters" => "parameters.md",
         # "Datasets" => "datasets.md",
