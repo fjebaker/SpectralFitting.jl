@@ -126,7 +126,8 @@ function model_parameters_tuple(model::Type{<:CompositeModel})
     reduce(vcat, map(i -> _parameter_lens(i, i.symbols), infos))
 end
 
-function _parameter_lens(info::ModelInfo, symbols)
+_parameter_lens(info::ModelInfo, symbols) = _parameter_lens(info, symbols, info.type)
+function _parameter_lens(info::ModelInfo, symbols, ::Type{<:AbstractSpectralModel})
     map(symbols) do s
         :(getfield($(info.lens), $(Meta.quot(s))))
     end
