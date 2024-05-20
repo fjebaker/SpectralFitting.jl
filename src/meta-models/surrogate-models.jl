@@ -81,7 +81,6 @@ function remake_with_number_type(
 ) where {T,K,N,S,Syms}
     params = model_parameters_tuple(model)
     new_params = convert.(T, params)
-    @show new_params
     SurrogateSpectralModel{T,K,N,S,Syms}(model.surrogate, NTuple{N,T}(new_params))
 end
 
@@ -178,7 +177,7 @@ function wrap_model_as_objective(model::AbstractSpectralModel; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
         flux = zeros(typeof(x[2]), 1)
-        invokemodel!(flux, energies, model) |> first
+        invokemodel!(flux, energies, model, [x[2:end]...],) |> first
     end
 end
 

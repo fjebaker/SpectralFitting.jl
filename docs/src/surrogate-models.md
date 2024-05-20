@@ -11,6 +11,10 @@ Surrogate models allow you to create fast or memory efficient approximations of 
 
 ## Surrogates overview
 
+!!! warning
+
+    The surrogate model optimization does not work well for most XSPEC models currently. This is being actively developed.
+
 Any function may be wrapped as a surrogate model using the [`SurrogateSpectralModel`](@ref) type.
 
 ```@docs
@@ -38,10 +42,10 @@ Before we start, let us discuss a number of benefits the use of surrogate models
 The performance of this model represents its complexity.
 
 ```@example surrogate_example
-energy = collect(range(0.1, 20.0, 100))
+energy = collect(range(0.1, 20.0, 200))
 model = XS_PhotoelectricAbsorption()
 
-flux = make_flux(model, energy)
+flux = similar(energy)[1:end-1]
 ```
 
 Benchmarking with [BenchmarkTools.jl](https://juliaci.github.io/BenchmarkTools.jl/stable/):
@@ -51,7 +55,7 @@ using BenchmarkTools
 @btime invokemodel!($flux, $energy, $model);
 ```
 ```@raw html
-<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  2.302 ms (3 allocations: 112 bytes)
+<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  3.055 ms (5 allocations: 192 bytes)
 </code><button class="copy-button fas fa-copy"></button></pre>
 ```
 
@@ -71,16 +75,17 @@ Next, we use [`make_surrogate_function`](@ref) to build and optimize a surrogate
 For illustration purposes, we'll omit the accuracy improving step, and perform this ourselves. We can do this by setting `optimization_samples = 0` in the keyword arguments:
 
 ```@example surrogate_example
-surrogate = make_surrogate_function(
-    model, 
-    lower_bounds, 
-    upper_bounds
-    ;
-    optimization_samples = 0
+using Surrogates
+
+harness = make_surrogate_function(
+    (x, y) -> RadialBasis(x, y, lower_bounds, upper_bounds),
+    model,
+    lower_bounds,
+    upper_bounds,
 )
 
 # number of points the surrogate has been trained on
-length(surrogate.x)
+length(harness.surrogate.x)
 ```
 
 We can examine how well our surrogate reconstructs the model for a given test parameter:
@@ -89,13 +94,14 @@ We can examine how well our surrogate reconstructs the model for a given test pa
 import Random # hide
 Random.seed!(1) # hide
 # random test value
-ηh_test = rand(1.0:30.0)
+ηh_test = rand(range(1.0, 30.0, 100))
 
-f = invokemodel(energy, model, ηh_test)
+model.ηH.value = ηh_test
+f = invokemodel(energy, model)
 
 f̂ = map(energy[1:end-1]) do e
     v = (e, ηh_test)
-    surrogate(v)
+    harness.surrogate(v)
 end
 p = plot(energy[1:end-1], f, label="model", legend=:bottomright, xlabel="E (keV)") # hide
 plot!(energy[1:end-1], f̂, label="surr") # hide
@@ -105,18 +111,16 @@ p # hide
 Now we'll use [`optimize_accuracy!`](@ref) to improve the faithfulness of our surrogate. This requires making use of [`wrap_model_as_objective`](@ref) as a little wrapper around our model:
 
 ```@example surrogate_example
-obj = wrap_model_as_objective(model)
+optimize_accuracy!(harness; maxiters=250)
 
-optimize_accuracy!(surrogate, obj, lower_bounds, upper_bounds; maxiters=250)
-
-length(surrogate.x)
+length(harness.surrogate.x)
 ```
 
 We can plot the surrogate model again and see the improvement.
 ```@example surrogate_example
 new_f̂ = map(energy[2:end]) do e
     v = (e, ηh_test)
-    surrogate(v)
+    harness.surrogate(v)
 end
 plot!(energy[1:end-1], new_f̂, label="surr+") # hide
 p # hide
@@ -128,7 +132,7 @@ Tight. We can also inspect the memory footprint of our model:
 # in bytes
 Base.summarysize(surrogate)
 ```
-This may be reduced by lowering `maxiters` in [`optimize_accuracy!`](@ref) at the cost of decreasing faithfulness. However, compare this to the Fortran tabulated source file in the XSPEC source code, which is approximately 224 Kb -- about 22x larger. The surrogate models are considerably more portable at this level.
+This may be reduced by lowering `maxiters` in [`optimize_accuracy!`](@ref) at the cost of decreasing faithfulness. However, compare this to the Fortran tabulated source file in the XSPEC source code, which is approximately 224 Kb -- about 15x larger. The surrogate models are considerably more portable at this level.
 
 Inspecting the plot shows that there is a small domain near zero energy where the surrogate is calculating a negative value. We can either try to improve the accuracy to fix this, or specify a clamping function: for [`XS_PhotoelectricAbsorption`](@ref), we know the multiplicative factor is constrained between 0 and 1. Therefore, we may adjust our surrogate to reflect this:
 
@@ -142,12 +146,7 @@ nothing # hide
 Now that we have the surrogate model, we use [`SurrogateSpectralModel`](@ref) to wrap it into an [`AbstractSpectralModel`](@ref). The constructor also needs to know the model kind, have a copy of the model parameters, and know which symbols to represent the parameters with.
 
 ```@example surrogate_example
-sm = SurrogateSpectralModel(
-    Multiplicative(),
-    clamped_surrogate,
-    (FitParam(1.0),), # must be a tuple
-    (:ηh,) # must also be a tuple
-)
+sm = make_model(harness)
 ```
 
 We can now use the familiar API and attempt to benchmark the performance:
@@ -156,33 +155,36 @@ We can now use the familiar API and attempt to benchmark the performance:
 @btime invokemodel!($flux, $energy, $sm);
 ```
 ```@raw html
-<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  50.406 μs (297 allocations: 6.19 KiB)
+<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  107.357 μs (0 allocations: 0 bytes)
 </code><button class="copy-button fas fa-copy"></button></pre>
 ```
 
-These allocations are coming from the global closure we have in the  `clamped_surrogate` lambda. We can actually elide these using a proper closure:
+Comparing this to the initial benchmark of [`XS_PhotoelectricAbsorption`](@ref), we see about a 28x speedup, with no allocations, _and_ this surrogate model is now automatic differentiation ready.
+
+## Evaluating the model
 
 ```@example surrogate_example
-make_surr(surrogate) = SpectralFitting.SurrogateSpectralModel(
-    Multiplicative(),
-    (v) -> clamp(surrogate(v), 0.0, 1.0), 
-    (FitParam(1.0),), 
-    (:ηH,)
-)
+p_range = collect(range(1.0, 30.0))
 
-sm2 = make_surr(surrogate)
+fluxes_vecs = map(p_range) do p
+    model.ηH.value = p
+    f = invokemodel(energy, model)
+end
+fluxes_mat = reduce(hcat, fluxes_vecs)
+
+surface(p_range, energy[1:end-1], fluxes_mat, xlabel = "ηH", ylabel = "E", zlabel = "f", title = "Model")
 ```
 
-Now when we benchmark
-```julia
-@btime invokemodel!($flux, $energy, $sm2);
-```
-```@raw html
-<pre class="documenter-example-output"><code class="nohighlight hljs ansi">  46.228 μs (0 allocations: 0 bytes)
-</code><button class="copy-button fas fa-copy"></button></pre>
-```
+```@example surrogate_example
+s_fluxes_vecs = map(p_range) do p
+    sm.params[1].value = p
+    display(sm)
+    f = invokemodel(energy, sm)
+end
+s_fluxes_mat = reduce(hcat, s_fluxes_vecs)
 
-Comparing this to the initial benchmark of [`XS_PhotoelectricAbsorption`](@ref), we see about a 60x speedup, with no allocations, _and_ this surrogate model is now automatic differentiation ready.
+surface(p_range, energy[1:end-1], s_fluxes_mat, xlabel = "ηH", ylabel = "E", zlabel = "f", title = "Surrogate")
+```
 
 ## Sharing surrogate models
 
