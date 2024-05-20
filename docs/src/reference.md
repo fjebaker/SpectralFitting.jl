@@ -1,12 +1,5 @@
 # API reference
 
-## Energy and flux utility functions
-
-```@docs
-make_flux
-make_fluxes
-```
-
 ## Utility functions for defining new models
 
 ```@docs
