@@ -33,7 +33,7 @@ function SurrogateSpectralModel(
     params::TupleT,
     params_symbols::Tuple,
 ) where {TupleT <: NTuple{N,T}} where {N,T}
-    SurrogateSpectralModel{T,K,N,typeof(s),params_symbols}(surrogate, params)
+    SurrogateSpectralModel{T,K,N,typeof(surrogate),params_symbols}(surrogate, params)
 end
 
 closurekind(::Type{<:SurrogateSpectralModel}) = WithClosures()
