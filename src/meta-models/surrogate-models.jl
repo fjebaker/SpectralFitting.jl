@@ -27,12 +27,14 @@ struct SurrogateSpectralModel{T,K,N,S,Symbols} <: AbstractSpectralModel{T,K}
     surrogate::S
     params::NTuple{N,T}
 end
-SurrogateSpectralModel(
-    ::K,
-    surrogate::S,
-    params::NTuple{N,T},
+function SurrogateSpectralModel(
+    K::AbstractSpectralModelKind,
+    surrogate,
+    params::TupleT,
     params_symbols::Tuple,
-) where {N,T,K,S} = SurrogateSpectralModel{T,K,N,S,params_symbols}(surrogate, params)
+) where {TupleT <: NTuple{N,T}} where {N,T}
+    SurrogateSpectralModel{T,K,N,typeof(s),params_symbols}(surrogate, params)
+end
 
 closurekind(::Type{<:SurrogateSpectralModel}) = WithClosures()
 FunctionGeneration.model_base_name(::Type{<:SurrogateSpectralModel{T,K}}) where {T,K} =
@@ -234,7 +236,7 @@ function make_surrogate_function(
     ;
     seed_samples = 50,
     sample_type = SobolSample(),
-) where {M<:AbstractSpectralModel,T<:NTuple{N,P}} where {N,P}
+) where {M<:AbstractSpectralModel,T<:NTuple}
     # do tests here to make sure lower and upper bounds are okay
     obj = wrap_model_as_objective(model)
 
