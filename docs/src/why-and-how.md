@@ -46,7 +46,7 @@ sum(total_flux)
 Doing so would allow us to only pre-allocate 2 flux arrays, instead of 4 when using the in-place variants:
 
 ```@example model_invocation
-fluxes = SpectralFitting.construct_objective_cache(model, energy)
+fluxes = zeros(Float64, (length(energy) - 1, 2))
 flux1, flux2 = eachcol(fluxes)
 
 invokemodel!(flux1, energy, XS_PowerLaw())
