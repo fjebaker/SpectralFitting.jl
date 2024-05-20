@@ -107,7 +107,7 @@ p # hide
 Now we'll use [`optimize_accuracy!`](@ref) to improve the faithfulness of our surrogate. This requires making use of [`wrap_model_as_objective`](@ref) as a little wrapper around our model:
 
 ```@example surrogate_example
-optimize_accuracy!(harness; maxiters=250)
+optimize_accuracy!(harness; maxiters=200)
 
 length(harness.surrogate.x)
 ```
@@ -142,7 +142,7 @@ nothing # hide
 Now that we have the surrogate model, we use [`SurrogateSpectralModel`](@ref) to wrap it into an [`AbstractSpectralModel`](@ref). The constructor also needs to know the model kind, have a copy of the model parameters, and know which symbols to represent the parameters with.
 
 ```@example surrogate_example
-sm = @code_warntype make_model(harness)
+sm = make_model(harness)
 ```
 
 We can now use the familiar API and attempt to benchmark the performance:
