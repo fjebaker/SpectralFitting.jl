@@ -1,12 +1,5 @@
 # Surrogate models
 
-```@setup surrogate_example
-using SpectralFitting
-using Plots
-ENV["GKSwstype"]="nul"
-Plots.default(show=false)
-```
-
 Surrogate models allow you to create fast or memory efficient approximations of model components, or assist in optimizing some objective function directly. SpectralFitting uses the [Surrogates.jl](https://github.com/SciML/Surrogates.jl) library of models, that yields pure-Julia surrogate models. Consequently, surrogate models also permit use of automatic differentiation in fitting, and are therefore powerful tools for improving fitting performance.
 
 ## Surrogates overview
@@ -42,6 +35,8 @@ Before we start, let us discuss a number of benefits the use of surrogate models
 The performance of this model represents its complexity.
 
 ```@example surrogate_example
+using SpectralFitting 
+
 energy = collect(range(0.1, 20.0, 200))
 model = XS_PhotoelectricAbsorption()
 
@@ -91,6 +86,7 @@ length(harness.surrogate.x)
 We can examine how well our surrogate reconstructs the model for a given test parameter:
 
 ```@example surrogate_example
+using Plots
 import Random # hide
 Random.seed!(1) # hide
 # random test value
@@ -130,7 +126,7 @@ Tight. We can also inspect the memory footprint of our model:
 
 ```@example surrogate_example
 # in bytes
-Base.summarysize(surrogate)
+Base.summarysize(harness)
 ```
 This may be reduced by lowering `maxiters` in [`optimize_accuracy!`](@ref) at the cost of decreasing faithfulness. However, compare this to the Fortran tabulated source file in the XSPEC source code, which is approximately 224 Kb -- about 15x larger. The surrogate models are considerably more portable at this level.
 
@@ -146,7 +142,7 @@ nothing # hide
 Now that we have the surrogate model, we use [`SurrogateSpectralModel`](@ref) to wrap it into an [`AbstractSpectralModel`](@ref). The constructor also needs to know the model kind, have a copy of the model parameters, and know which symbols to represent the parameters with.
 
 ```@example surrogate_example
-sm = make_model(harness)
+sm = @code_warntype make_model(harness)
 ```
 
 We can now use the familiar API and attempt to benchmark the performance:
