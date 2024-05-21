@@ -97,6 +97,9 @@ domain = collect(range(0.1, 10.0, 100))
 invokemodel(domain, model)
 ```
 
+!!! note
+    To add new XSPEC or foreign function models, see [Wrapping new XSPEC models](@ref).
+
 ## Model abstraction
 
 All spectral models are a sub-type of [`AbstractSpectralModel`](@ref).
