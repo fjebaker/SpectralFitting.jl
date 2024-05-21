@@ -68,11 +68,11 @@ include("datasets/injectivedata.jl")
 include("model-data-io.jl")
 
 # include fitting api
-include("fitting/result.jl")
-include("fitting/cache.jl")
 include("fitting/problem.jl")
+include("fitting/cache.jl")
+include("fitting/config.jl")
+include("fitting/result.jl")
 include("fitting/binding.jl")
-include("fitting/multi-cache.jl")
 include("fitting/methods.jl")
 include("fitting/statistics.jl")
 
