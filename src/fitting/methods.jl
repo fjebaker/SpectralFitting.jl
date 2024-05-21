@@ -98,18 +98,7 @@ function fit(
     lower = get_lowerlimit.(config.parameters)
     upper = get_upperlimit.(config.parameters)
 
-    # determine autodiff
-    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) &&
-       !supports_autodiff(config)
-        error("Model does not support automatic differentiation.")
-    end
-    _autodiff = if supports_autodiff(config) && isnothing(autodiff)
-        Optimization.AutoForwardDiff()
-    elseif !isnothing(autodiff)
-        autodiff
-    else
-        Optimization.SciMLBase.NoAD()
-    end
+    _autodiff = _determine_ad_backend(config; autodiff = autodiff)
 
     # build problem and solve
     opt_f = Optimization.OptimizationFunction(objective, _autodiff)
@@ -118,8 +107,8 @@ function fit(
         opt_f,
         u0,
         config.model_domain;
-        lb = lower,
-        ub = upper,
+        lb = _autodiff isa Optimization.SciMLBase.NoAD ? nothing : lower,
+        ub = _autodiff isa Optimization.SciMLBase.NoAD ? nothing : upper,
     )
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
 
@@ -131,4 +120,20 @@ function fit!(prob::FittingProblem, args...; kwargs...)
     result = fit(prob, args...; kwargs...)
     update_model!(prob.model, result)
     result
+end
+
+
+function _determine_ad_backend(config; autodiff = nothing)
+    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) &&
+       !supports_autodiff(config)
+        error("Model does not support automatic differentiation.")
+    end
+
+    if supports_autodiff(config) && isnothing(autodiff)
+        Optimization.AutoForwardDiff()
+    elseif !isnothing(autodiff)
+        autodiff
+    else
+        Optimization.SciMLBase.NoAD()
+    end
 end

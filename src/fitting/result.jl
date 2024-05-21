@@ -32,21 +32,21 @@ struct FittingResultSlice{P<:AbstractFittingResult,V,U,T} <: AbstractFittingResu
     χ2::T
 end
 
-get_cache(f::FittingResultSlice) = f.parent.cache
-get_model(f::FittingResultSlice) = f.parent.prob.model.m[f.index]
-get_dataset(f::FittingResultSlice) = f.parent.prob.data.d[f.index]
+get_cache(f::FittingResultSlice) = f.parent.config.cache
+get_model(f::FittingResultSlice) = f.parent.config.prob.model.m[f.index]
+get_dataset(f::FittingResultSlice) = f.parent.config.prob.data.d[f.index]
 
 estimated_error(r::FittingResultSlice) = r.σu
 estimated_params(r::FittingResultSlice) = r.u
 
 function invoke_result(slice::FittingResultSlice, u)
     @assert length(u) == length(slice.u)
-    _invoke_and_transform!(slice.cache, slice.domain, u)
+    _invoke_and_transform!(get_cache(slice), slice.domain, u)
 end
 
 function _pretty_print(slice::FittingResultSlice)
     "FittingResultSlice:\n" *
-    _pretty_print_result(slice.cache.model, slice.u, slice.σu, slice.χ2)
+    _pretty_print_result(get_cache(slice).model, slice.u, slice.σu, slice.χ2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(slice::FittingResultSlice))
@@ -130,7 +130,7 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(res::MultiFittingRe
     print(buff, " ")
     for i = 1:length(res.us)
         slice = res[i]
-        b = _pretty_print_result(slice.cache.model, slice.u, slice.σu, slice.χ2)
+        b = _pretty_print_result(get_model(slice), slice.u, slice.σu, slice.χ2)
         r = indent(b, 1)
         print(buff, r)
     end

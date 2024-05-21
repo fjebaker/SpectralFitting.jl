@@ -1,3 +1,7 @@
+function measure(stat::AbstractStatistic, result::FittingResult, args...; kwargs...)
+    measure(stat, result[1], args...; kwargs...)
+end
+
 struct ChiSquared <: AbstractStatistic end
 function measure(::ChiSquared, y, ŷ, σ²)
     sum(@.((y - ŷ)^2 / σ²))
@@ -30,9 +34,8 @@ end
 
 function _f_wrap_objective(stat::Cash, config::FittingConfig)
     f = _f_objective(config)
-    exp_time = config.prob.data[1].data.spectrum.exposure_time
-    prefactor = exp_time .* bin_widths(config.prob.data[1].data)
-    @show prefactor
+    exp_time = config.prob.data[1].spectrum.exposure_time
+    prefactor = exp_time .* bin_widths(config.prob.data[1])
     function _objective(parameters, domain)
         ŷ = f(domain, parameters)
         measure(stat, config.objective .* prefactor, ŷ .* prefactor)

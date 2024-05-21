@@ -217,8 +217,6 @@ function make_surrogate_function(
     # build surrogate
     inits = _initial_space(obj, lowerbounds, upperbounds, sample_type, seed_samples)
 
-    @show typeof(inits)
-
     SurrogateHarness(model, obj, make_surrogate(inits.x, inits.y), lowerbounds, upperbounds)
 end
 
