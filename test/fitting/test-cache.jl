@@ -8,7 +8,7 @@ dummy_data = make_dummy_dataset((E) -> (E^(-3.0)); units = u"counts / (s * keV)"
 # test that both julia and xspec implementations can fit simple
 model = DummyMultiplicative() * PowerLaw() + PowerLaw() + PowerLaw()
 
-config = SpectralFitting.FittingConfig(model, dummy_data)
+config = SpectralFitting.FittingConfig(FittingProblem(model => dummy_data))
 
 f = SpectralFitting._f_objective(config)
 params = get_value.(config.parameters)

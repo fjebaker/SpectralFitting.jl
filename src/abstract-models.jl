@@ -4,6 +4,7 @@ export AbstractSpectralModel,
     Multiplicative,
     Additive,
     numbertype,
+    paramtype,
     Convolutional,
     modelkind,
     AbstractSpectralModelImplementation,
@@ -103,6 +104,8 @@ supports(::ContiguouslyBinned, ::Type{<:AbstractSpectralModel}) = true
 Get the numerical type of the model. This goes through [`FitParam`](@ref), so
 that the number type returned is as close to a primative as possible.
 
+See also [`paramtype`](@ref).
+
 ## Example
 
 ```julia
@@ -111,6 +114,21 @@ numbertype(PowerLaw()) == Float64
 """
 numbertype(::AbstractSpectralModel{T}) where {T<:Number} = T
 numbertype(::AbstractSpectralModel{FitParam{T}}) where {T<:Number} = T
+
+"""
+    paramtype(::AbstractSpectralModel)
+
+Get the parameter type of the model. This, unlike [`numbertype`](@ref) does not
+go through [`FitParam`](@ref).
+
+## Example
+
+```julia
+paramtype(PowerLaw()) == FitParam{Float64}
+```
+"""
+paramtype(::T) where {T<:AbstractSpectralModel} = paramtype(T)
+paramtype(::Type{<:AbstractSpectralModel{T}}) where {T} = T
 
 """
     modelkind(M::Type{<:AbstractSpectralModel})

@@ -35,22 +35,8 @@ function _lsq_fit(
     )
 end
 
-function _unpack_fitting_configuration(prob; kwargs...)
-    config = if model_count(prob) == 1 && data_count(prob) == 1
-        FittingConfig(prob.model.m[1], prob.data.d[1])
-    elseif model_count(prob) == data_count(prob)
-        FittingConfig(prob)
-    elseif model_count(prob) < data_count(prob)
-        error("Single model, many data not yet implemented.")
-    else
-        error("Multi model, single data not yet implemented.")
-    end
-
-    kwargs, config
-end
-
 function configuration(prob::FittingProblem; kwargs...)
-    kw, config = _unpack_fitting_configuration(prob; kwargs...)
+    kw, config = _unpack_config(prob; kwargs...)
     if length(kw) > 0
         throw("Unknown keyword arguments: $(kw)")
     end
@@ -58,7 +44,7 @@ function configuration(prob::FittingProblem; kwargs...)
 end
 
 function fit(prob::FittingProblem, args...; kwargs...)
-    method_kwargs, config = _unpack_fitting_configuration(prob; kwargs...)
+    method_kwargs, config = _unpack_config(prob; kwargs...)
     @inline fit(config, args...; method_kwargs...)
 end
 
@@ -69,6 +55,8 @@ function fit(
     max_iter = 1000,
     method_kwargs...,
 )
+    @assert fit_statistic(config) == ChiSquared() "Least squares only for χ2 statistics."
+
     lsq_result = _lsq_fit(
         _f_objective(config),
         config.model_domain,
@@ -92,45 +80,60 @@ function fit(
             throw(e)
         end
     end
-    finalize(config, params; σparams = σ)
+
+    y = _f_objective(config)(config.model_domain, params)
+    chi2 = measure(fit_statistic(config), config.objective, y, config.variance)
+    finalize(config, params, chi2; σparams = σ)
 end
 
 function fit(
     config::FittingConfig,
-    statistic::AbstractStatistic,
     optim_alg;
     verbose = false,
     autodiff = nothing,
     method_kwargs...,
 )
-    objective = _f_wrap_objective(statistic, config)
+    objective = _f_wrap_objective(fit_statistic(config), config)
     u0 = get_value.(config.parameters)
     lower = get_lowerlimit.(config.parameters)
     upper = get_upperlimit.(config.parameters)
 
-    # determine autodiff
-    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) &&
-       !supports_autodiff(config)
-        error("Model does not support automatic differentiation.")
-    end
-    _autodiff = if supports_autodiff(config) && isnothing(autodiff)
-        Optimization.AutoForwardDiff()
-    elseif !isnothing(autodiff)
-        autodiff
-    else
-        Optimization.SciMLBase.NoAD()
-    end
+    _autodiff = _determine_ad_backend(config; autodiff = autodiff)
 
     # build problem and solve
-    opt_f = Optimization.OptimizationFunction{false}(objective, _autodiff)
+    opt_f = Optimization.OptimizationFunction(objective, _autodiff)
     # todo: something is broken with passing the boundaries
-    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.model_domain)
+    opt_prob = Optimization.OptimizationProblem(
+        opt_f,
+        u0,
+        config.model_domain;
+        lb = _autodiff isa Optimization.SciMLBase.NoAD ? nothing : lower,
+        ub = _autodiff isa Optimization.SciMLBase.NoAD ? nothing : upper,
+    )
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
-    finalize(config, sol.u; statistic = statistic)
+
+    final_stat = objective(sol.u, config.model_domain)
+    finalize(config, sol.u, final_stat)
 end
 
 function fit!(prob::FittingProblem, args...; kwargs...)
     result = fit(prob, args...; kwargs...)
     update_model!(prob.model, result)
     result
+end
+
+
+function _determine_ad_backend(config; autodiff = nothing)
+    if !((isnothing(autodiff)) || (autodiff isa Optimization.SciMLBase.NoAD)) &&
+       !supports_autodiff(config)
+        error("Model does not support automatic differentiation.")
+    end
+
+    if supports_autodiff(config) && isnothing(autodiff)
+        Optimization.AutoForwardDiff()
+    elseif !isnothing(autodiff)
+        autodiff
+    else
+        Optimization.SciMLBase.NoAD()
+    end
 end

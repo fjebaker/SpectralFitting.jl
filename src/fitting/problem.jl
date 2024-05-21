@@ -87,27 +87,4 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProble
     print(io, encapsulate(String(take!(buff))))
 end
 
-function update_model!(
-    model::AbstractSpectralModel,
-    result::Union{<:FittingResult,<:FittingResultSlice},
-)
-    free_params = filter(isfree, parameter_tuple(model))
-    for (i, f) in enumerate(free_params)
-        set_value!(f, result.u[i])
-    end
-    model
-end
-
-function update_model!(
-    model::FittableMultiModel,
-    result::Union{<:FittingResult,<:FittingResultSlice},
-)
-    @assert length(model.m) == 1
-    update_model!(model.m[1], result)
-end
-
-function update_model!(multimodel::FittableMultiModel, result::MultiFittingResult)
-    error("TODO")
-end
-
 export FittingProblem, FittableMultiModel, FittableMultiDataset

@@ -11,7 +11,7 @@ model = PowerLaw()
 prob = FittingProblem(model, dummy_data)
 
 # test inference
-@inferred SpectralFitting._unpack_fitting_configuration(prob);
+@inferred SpectralFitting._unpack_config(prob);
 
 result = fit(prob, LevenbergMarquadt())
 
