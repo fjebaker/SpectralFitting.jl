@@ -92,13 +92,6 @@ function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
         JuliaImplementation()
     end
 end
-function closurekind(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
-    if (closurekind(M1) isa WithClosures) || (closurekind(M2) isa WithClosures)
-        WithClosures()
-    else
-        WithoutClosures()
-    end
-end
 
 # invocation wrappers
 function invokemodel(e, m::CompositeModel)

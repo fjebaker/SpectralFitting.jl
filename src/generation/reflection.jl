@@ -375,7 +375,7 @@ function get_parameter_symbols(model::Type{<:CompositeModel})
     first.(info.parameter_symbols)
 end
 
-function get_closure_symbols(model::Type{<:AbstractSpectralModel})
+function get_closure_symbols(::Type{<:AbstractSpectralModel})
     ()
 end
 
@@ -415,7 +415,7 @@ end
 # parameter_lenses(infos::Vector{<:ModelInfo}) = reduce(vcat, map(parameter_lenses(info, info.symbols), infos))
 parameter_lenses(info::ModelInfo) = parameter_lenses(info.model, info)
 
-end
+end # module Reflection
 
 # public API wrappers
 

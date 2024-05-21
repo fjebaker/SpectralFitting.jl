@@ -8,11 +8,6 @@ export AbstractSpectralModel,
     XSPECImplementation,
     JuliaImplementation,
     implementation,
-    AbstractSpectralModelClosureType,
-    WithClosures,
-    WithoutClosures,
-    closurekind,
-    has_closure_params,
     invokemodel,
     invokemodel!,
     objective_cache_count,
@@ -94,17 +89,6 @@ struct JuliaImplementation <: AbstractSpectralModelImplementation end
 
 implementation(::Type{<:AbstractSpectralModel}) = JuliaImplementation()
 implementation(model::AbstractSpectralModel) = implementation(typeof(model))
-
-abstract type AbstractSpectralModelClosureType end
-struct WithClosures <: AbstractSpectralModelClosureType end
-struct WithoutClosures <: AbstractSpectralModelClosureType end
-
-closurekind(::Type{<:AbstractSpectralModel}) = WithoutClosures()
-
-has_closure_params(::WithClosures) = true
-has_closure_params(::WithoutClosures) = false
-has_closure_params(M::Type{<:AbstractSpectralModel}) = has_closure_params(closurekind(M))
-has_closure_params(::M) where {M<:AbstractSpectralModel} = has_closure_params(M)
 
 Δoutput_length(::Type{<:AbstractSpectralModel}) = -1
 Δoutput_length(::M) where {M<:AbstractSpectralModel} = Δoutput_length(M)

@@ -28,14 +28,18 @@ struct SurrogateSpectralModel{T,K,N,S,Symbols} <: AbstractSpectralModel{T,K}
     params::NTuple{N,T}
 end
 
-function SurrogateSpectralModel(::K, surrogate::S, params::Tuple, symbols) where {K<:AbstractSpectralModelKind,S}
+function SurrogateSpectralModel(
+    ::K,
+    surrogate::S,
+    params::Tuple,
+    symbols,
+) where {K<:AbstractSpectralModelKind,S}
     P = typeof(params)
     N = length(P.parameters)
     T = first(P.parameters)
     SurrogateSpectralModel{T,K,N,S,symbols}(surrogate, params)
 end
 
-closurekind(::Type{<:SurrogateSpectralModel}) = WithClosures()
 FunctionGeneration.model_base_name(::Type{<:SurrogateSpectralModel{T,K}}) where {T,K} =
     :(SurrogateSpectralModel{$T,$K})
 
