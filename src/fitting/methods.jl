@@ -55,6 +55,8 @@ function fit(
     max_iter = 1000,
     method_kwargs...,
 )
+    @assert fit_statistic(config) == ChiSquared() "Least squares only for χ2 statistics."
+
     lsq_result = _lsq_fit(
         _f_objective(config),
         config.model_domain,
@@ -78,18 +80,20 @@ function fit(
             throw(e)
         end
     end
-    finalize(config, params; σparams = σ)
+
+    y = _f_objective(config)(config.model_domain, params)
+    chi2 = measure(fit_statistic(config), config.objective, y, config.variance)
+    finalize(config, params, chi2; σparams = σ)
 end
 
 function fit(
     config::FittingConfig,
-    statistic::AbstractStatistic,
     optim_alg;
     verbose = false,
     autodiff = nothing,
     method_kwargs...,
 )
-    objective = _f_wrap_objective(statistic, config)
+    objective = _f_wrap_objective(fit_statistic(config), config)
     u0 = get_value.(config.parameters)
     lower = get_lowerlimit.(config.parameters)
     upper = get_upperlimit.(config.parameters)
@@ -108,11 +112,19 @@ function fit(
     end
 
     # build problem and solve
-    opt_f = Optimization.OptimizationFunction{false}(objective, _autodiff)
+    opt_f = Optimization.OptimizationFunction(objective, _autodiff)
     # todo: something is broken with passing the boundaries
-    opt_prob = Optimization.OptimizationProblem{false}(opt_f, u0, config.model_domain)
+    opt_prob = Optimization.OptimizationProblem(
+        opt_f,
+        u0,
+        config.model_domain;
+        lb = lower,
+        ub = upper,
+    )
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
-    finalize(config, sol.u; statistic = statistic)
+
+    final_stat = objective(sol.u, config.model_domain)
+    finalize(config, sol.u, final_stat)
 end
 
 function fit!(prob::FittingProblem, args...; kwargs...)

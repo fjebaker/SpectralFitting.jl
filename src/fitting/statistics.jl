@@ -1,17 +1,50 @@
-
-measure(stat::AbstractStatistic, y, ŷ, σ²) = error("Implement missing for $(typeof(stat))")
-
 struct ChiSquared <: AbstractStatistic end
-measure(::ChiSquared, y, ŷ, σ²) = sum(@.((y - ŷ)^2 / σ²))
+function measure(::ChiSquared, y, ŷ, σ²)
+    sum(@.((y - ŷ)^2 / σ²))
+end
+function measure(s::ChiSquared, ::FittingConfig, y, ŷ, σ²)
+    measure(s, y, ŷ, σ²)
+end
+function measure(s::ChiSquared, slice::FittingResultSlice, u = slice.u)
+    ŷ = _invoke_and_transform!(get_cache(slice), slice.domain, u)
+    measure(s, slice.objective, ŷ, slice.variance)
+end
 
-struct Cash <: AbstractStatistic end
-
-function _f_wrap_objective(stat::AbstractStatistic, config::FittingConfig)
+function _f_wrap_objective(stat::ChiSquared, config::FittingConfig)
     f = _f_objective(config)
     function _objective(parameters, domain)
         ŷ = f(domain, parameters)
         measure(stat, config.objective, ŷ, config.variance)
     end
+end
+
+struct Cash <: AbstractStatistic end
+function measure(::Cash, S, ŷ)
+    2 * sum(@.(ŷ - S + S * (log(S) - log(ŷ))))
+end
+function measure(s::Cash, config::FittingConfig, y, ŷ, σ²)
+    exp_time = config.prob.data[1].data.spectrum.exposure_time
+    prefactor = exp_time .* bin_widths(config.prob.data[1].data)
+    measure(s, y .* prefactor, ŷ, σ²)
+end
+
+function _f_wrap_objective(stat::Cash, config::FittingConfig)
+    f = _f_objective(config)
+    exp_time = config.prob.data[1].data.spectrum.exposure_time
+    prefactor = exp_time .* bin_widths(config.prob.data[1].data)
+    @show prefactor
+    function _objective(parameters, domain)
+        ŷ = f(domain, parameters)
+        measure(stat, config.objective .* prefactor, ŷ .* prefactor)
+    end
+end
+
+function measure(s::Cash, slice::FittingResultSlice, u = slice.u)
+    data = get_dataset(slice)
+    exp_time = data.data.spectrum.exposure_time
+    prefactor = exp_time .* bin_widths(data.data)
+    ŷ = _invoke_and_transform!(get_cache(slice), slice.domain, u)
+    measure(s, slice.objective .* prefactor, y .* prefactor̂)
 end
 
 export ChiSquared, Cash, measure
