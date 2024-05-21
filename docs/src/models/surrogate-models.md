@@ -107,7 +107,7 @@ p # hide
 Now we'll use [`optimize_accuracy!`](@ref) to improve the faithfulness of our surrogate. This requires making use of [`wrap_model_as_objective`](@ref) as a little wrapper around our model:
 
 ```@example surrogate_example
-optimize_accuracy!(harness; maxiters=200)
+optimize_accuracy!(harness; maxiters=250)
 
 length(harness.surrogate.x)
 ```

@@ -1,5 +1,7 @@
 push!(LOAD_PATH, "src")
 
+ENV["GKSwstype"] = "100"
+
 using Documenter
 using SpectralFitting
 
@@ -13,21 +15,23 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Walkthrough" => "walkthrough.md",
-        "Why & How" => "why-and-how.md",
         "Examples" => [
             "Diverse examples" => "examples/examples.md",
             "A quick guide" => "examples/sherpa-example.md",
         ],
-        # "Transitioning from XSPEC" => "transitioning-from-xspec.md",
         "Models" => [
-            "Using models" => "using-models.md",
-            "Model index" => "models.md",
-            "Composite models" => "composite-models.md",
-            "Surrogate models" => "surrogate-models.md",
+            "Using models" => "models/using-models.md",
+            "Model index" => "models/models.md",
+            "Composite models" => "models/composite-models.md",
+            "Surrogate models" => "models/surrogate-models.md",
         ],
         # "Parameters" => "parameters.md",
-        # "Datasets" => "datasets.md",
+        "Datasets" => [
+            "Using datasets" => "datasets/datasets.md",
+            "Mission support" => "datasets/mission-support.md",
+        ],
         # "Fitting" => "fitting.md",
+        "Why & How" => "why-and-how.md",
         "Reference" => "reference.md",
     ],
 )
