@@ -42,6 +42,7 @@ include("units.jl")
 SpectralUnits.@reexport using .SpectralUnits
 
 include("print-utilities.jl")
+include("support.jl")
 
 include("fitparam.jl")
 include("param-cache.jl")

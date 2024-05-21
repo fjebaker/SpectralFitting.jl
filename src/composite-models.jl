@@ -105,7 +105,7 @@ struct CompositeModel{M1,M2,O,T,K} <: AbstractSpectralModel{T,K}
         m2::M2,
         op::O,
     ) where {M1<:AbstractSpectralModel{T},M2<:AbstractSpectralModel{T,K},O} where {T,K} =
-        new{M1,M2,O,T,K}(m1, m2, op)
+        new{M1,M2,O,T,K}(deepcopy(m1), deepcopy(m2), op)
 end
 
 function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}

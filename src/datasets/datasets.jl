@@ -1,70 +1,3 @@
-@enumx ErrorStatistics begin
-    Numeric
-    Poisson
-    Gaussian
-    Unknown
-end
-
-abstract type AbstractDataLayout end
-struct OneToOne <: AbstractDataLayout end
-struct ContiguouslyBinned <: AbstractDataLayout end
-
-export OneToOne, ContiguouslyBinned
-
-const DEFAULT_SUPPORT_ORDERING = (ContiguouslyBinned(), OneToOne())
-
-function preferred_support(x)
-    for layout in DEFAULT_SUPPORT_ORDERING
-        if supports(layout, x)
-            return layout
-        end
-    end
-    error("No prefered support for $(typeof(x))")
-end
-
-# used to check what to default to
-# todo: check if can be compile time eval'd else expand for loop or @generated
-function common_support(x, y)
-    # order of preference is important
-    # can normally trivially fallback from one-to-one to contiguous bins to regular bins
-    for layout in DEFAULT_SUPPORT_ORDERING
-        if supports(layout, x) && supports(layout, y)
-            return layout
-        end
-    end
-    error("No common support between $(typeof(x)) and $(typeof(y)).")
-end
-
-function _support_reducer(x::OneToOne, y)
-    if supports(x, y)
-        return x
-    else
-        error("No common support!!")
-    end
-end
-function _support_reducer(x::ContiguouslyBinned, y)
-    if supports(x, y)
-        return x
-    else
-        _support_reducer(OneToOne(), y)
-    end
-end
-function _support_reducer(x, y)
-    common_support(x, y)
-end
-
-common_support(args::Vararg) = reduce(_support_reducer, args)
-
-supports_contiguosly_binned(::Type) = false
-supports_one_to_one(::Type) = false
-
-supports_contiguosly_binned(x) = supports_contiguosly_binned(typeof(x))
-supports_one_to_one(x) = supports_one_to_one(typeof(x))
-
-supports(layout::AbstractDataLayout, x) = supports(layout, typeof(x))
-supports(::ContiguouslyBinned, T::Type) = supports_contiguosly_binned(T)
-supports(::OneToOne, T::Type) = supports_one_to_one(T)
-
 """
     abstract type AbstractDataset
     
@@ -87,15 +20,16 @@ performance.
 The arrays returned by the `make_*` functions must correspond to the [`AbstractDataLayout`](@ref)
 specified by the caller.
 
-[`ContiguouslyBinned`](@ref) (domain should be `length(objective) + 1`, where the limits of the
-``n^\text{th}`` bin are `domain[n]` and `domain[n+1]` respectively.
-
 - [`make_objective_variance`](@ref)
 - [`make_objective`](@ref)
 - [`make_domain_variance`](@ref)
 - [`make_model_domain`](@ref)
 - [`make_ouput_domain`](@ref)
 
+Additionally there is an objective transformer that transforms the output of the
+model onto the `output` domain:
+
+- [`objective_transformer`](@ref)
 """
 abstract type AbstractDataset end
 
@@ -112,32 +46,47 @@ end
 
 
 """
-    make_objective
+    make_objective(layout::AbstractDataLayout, dataset::AbstractDataset)
 
-Returns the array used as the target for model fitting. The array must correspond to the data
-[`AbstractDataLayout`](@ref) specified by the `layout` parameter.
+Returns the array used as the target for model fitting. The array must
+correspond to the data [`AbstractDataLayout`](@ref) specified by the `layout`
+parameter.
 
-In as far as it can be guarunteed, the memory in the returned array will not be mutated by any fitting procedures.
+In as far as it can be guarunteed, the memory in the returned array will not be
+mutated by any fitting procedures.
 
 Domain for this objective should be returned by [`make_model_domain`](@ref).
 """
 make_objective(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
+
+"""
+    make_objective_variance(layout::AbstractDataLayout, dataset::AbstractDataset)
+
+Make the variance vector associated with each objective point.
+"""
 make_objective_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    make_model_domain
+    make_model_domain(layout::AbstractDataLayout, dataset::AbstractDataset)
 
-Returns the array used as the domain for the modelling. This is paired with [`make_domain_variance`](@ref)
+Returns the array used as the domain for the modelling. This is paired with
+[`make_domain_variance`](@ref)
 """
 make_model_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
+
+"""
+    make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) 
+
+Make the variance vector associated with the domain.
+"""
 make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    make_output_domain
+    make_output_domain(layout::AbstractDataLayout, dataset::AbstractDataset)
 
 Returns the array used as the output domain. That is, in cases where the model
 input and output map to different domains, the input domain is said to be the
@@ -149,6 +98,25 @@ visualising data.
 make_output_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
+"""
+    objective_transformer(layout::AbstractDataLayout, dataset::AbstractDataset)
+
+Used to transform the output of the model onto the output domain. For spectral
+fitting, this is the method used to do response folding and bin masking.
+
+If none provided, uses the `_DEFAULT_TRANSFORMER`
+```julia
+function _DEFAULT_TRANSFORMER()
+    function _transformer!!(domain, objective)
+        objective
+    end
+    function _transformer!!(output, domain, objective)
+        @. output = objective
+    end
+    _transformer!!
+end
+```
+"""
 function objective_transformer(layout::AbstractDataLayout, dataset::AbstractDataset)
     @warn "Using default objective transformer!"
     _DEFAULT_TRANSFORMER()
@@ -173,7 +141,8 @@ Must support the same API, but may also have some query methods for specific int
 """
 abstract type AbstractMultiDataset <: AbstractDataset end
 
-export make_model_domain,
+export AbstractDataset,
+    make_model_domain,
     make_output_domain,
     make_domain_variance,
     make_objective,

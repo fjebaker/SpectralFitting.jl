@@ -40,18 +40,67 @@ function SpectralDataPaths(
     )
 end
 
+"""
+    SpectralData{T} <: AbstractDataset
+
+
+A general spectral data structure, minimally with a [`Spectrum`](@ref) and
+[`ResponseMatrix`](@ref). Optionally also includes the
+[`AncillaryResponse`](@ref) and a background [`Spectrum`](@ref).
+
+## Methods
+
+The following methods are made available through the `SpectralData`:
+
+- [`regroup!`](@ref)
+- [`restrict_domain!`](@ref)
+- [`mask_energies!`](@ref)
+- [`drop_channels!`](@ref)
+- [`drop_bad_channels!`](@ref)
+- [`drop_negative_channels!`](@ref)
+- [`normalize!`](@ref)
+- [`objective_units`](@ref)
+- [`spectrum_energy`](@ref)
+- [`bin_widths`](@ref)
+- [`subtract_background!`](@ref)
+- [`set_domain!`](@ref)
+- [`error_statistic`](@ref)
+
+## Constructors
+
+The available constructors are:
+
+    SpectralData(paths::SpectralDataPaths; kwargs...)
+
+Using [`SpectralDataPaths`](@ref).
+
+If the spectrum and repsonse matrix have already been loaded seperately, use
+
+    SpectralData(
+        spectrum::Spectrum,
+        response::ResponseMatrix;
+        # try to match the domains of the response matrix to the data
+        match_domains = true,
+        background = nothing,
+        ancillary = nothing,
+    )
+"""
 mutable struct SpectralData{T} <: AbstractDataset
+    "Observed spectrum to be fitted."
     spectrum::Spectrum{T}
+    "Instrument response."
     response::ResponseMatrix{T}
-    # background is optional
+    "Background is optional."
     background::Union{Nothing,Spectrum{T}}
-    # ancillary response is optionally, may also have already been folded into response
+    "Ancillary response is also optional, as it may have already been folded
+    through the response matrix"
     ancillary::Union{Nothing,AncillaryResponse{T}}
-
-    energy_low::Vector{T} # energy translated from the response channels
-    energy_high::Vector{T} # energy translated from the response channels
-    domain::Vector{T} # domain fitted in models
-
+    "Energy of the spectrum translated from the response matrix."
+    energy_low::Vector{T}
+    energy_high::Vector{T}
+    "Model domain to evaluate the model on"
+    domain::Vector{T}
+    "Mask representing which bins are to be included in the fit."
     data_mask::BitVector
 end
 
@@ -111,7 +160,7 @@ function SpectralData(
     return data
 end
 
-supports_contiguosly_binned(::Type{<:SpectralData}) = true
+supports(::ContiguouslyBinned, ::Type{<:SpectralData}) = true
 
 function check_units_warning(units)
     if units != u"counts / (s * keV)"
@@ -371,7 +420,7 @@ macro _forward_SpectralData_api(args)
     end
     T, field = args.args
     quote
-        SpectralFitting.supports_contiguosly_binned(t::Type{<:$(T)}) = true
+        SpectralFitting.supports(::ContiguouslyBinned, t::Type{<:$(T)}) = true
         SpectralFitting.make_output_domain(
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),

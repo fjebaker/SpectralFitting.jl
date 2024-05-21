@@ -9,7 +9,7 @@ mutable struct SimulatedSpectrum{T,F} <: AbstractDataset
     seed::Int
 end
 
-supports_contiguosly_binned(::Type{<:SimulatedSpectrum}) = true
+supports(::ContiguouslyBinned, ::Type{<:SimulatedSpectrum}) = true
 
 function make_objective(::ContiguouslyBinned, dataset::SimulatedSpectrum)
     check_units_warning(dataset.units)

@@ -95,10 +95,22 @@ Model reflection is supported by the following functions. These are intended for
 The parametric type parameter `T` is the number type of the model and `K` defines the [`AbstractSpectralModelKind`](@ref).
 """
 abstract type AbstractSpectralModel{T,K<:AbstractSpectralModelKind} end
+supports(::ContiguouslyBinned, ::Type{<:AbstractSpectralModel}) = true
+
+"""
+    numbertype(::AbstractSpectralModel)
+
+Get the numerical type of the model. This goes through [`FitParam`](@ref), so
+that the number type returned is as close to a primative as possible.
+
+## Example
+
+```julia
+numbertype(PowerLaw()) == Float64
+```
+"""
 numbertype(::AbstractSpectralModel{T}) where {T<:Number} = T
 numbertype(::AbstractSpectralModel{FitParam{T}}) where {T<:Number} = T
-
-supports_contiguosly_binned(::Type{<:AbstractSpectralModel}) = true
 
 """
     modelkind(M::Type{<:AbstractSpectralModel})
@@ -231,9 +243,6 @@ model = PowerLaw()
 domain = collect(range(0.1, 20.0, 100))
 output = allocate_model_output(model, domain)
 invokemodel!(output, domain, model)
-
-p0 = [0.1, 2.0] # change K and a
-invokemodel!(output, domain, model, p0)
 ```
 """
 @inline function invokemodel!(f, e, m::AbstractSpectralModel{<:FitParam})
@@ -300,11 +309,18 @@ function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
     basename = Base.typename(M).name
     print(io, "$(basename)\n")
 
-    pad = maximum(i -> length(first(i)), params) + 1
+    info_tuples = [get_info_tuple(val) for (_, val) in params]
+    q1, q2, q3, q4 = map(1:4) do i
+        maximum(j -> length("$(j[i])"), info_tuples) + 1
+    end
 
-    for (s, val) in params
-        print(io, "   $(rpad(s, pad)) => ")
-        println(io, val)
+    param_offset = 5 + maximum(params) do (s, _)
+        length("$s")
+    end
+
+    for (s, param) in params
+        free = param isa FitParam ? !isfrozen(param) : true
+        _print_param(io, free, s, param, param_offset, q1, q2, q3, q4)
     end
 end
 
