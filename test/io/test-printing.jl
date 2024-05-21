@@ -13,10 +13,11 @@ end
 # printing single
 model = DummyAdditive()
 string = showstring(model)
-expected = """┌ DummyAdditive
-│    K  => (1 ± 0.1)
-│    a  => (1 ± 0.1)
-│    b  => (5 ± 0.5)
+expected = """
+┌ DummyAdditive
+│      K ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
+│      a ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
+│      b ->  5\e[36m                     FROZEN\e[0m
 └ """
 @test string == expected
 

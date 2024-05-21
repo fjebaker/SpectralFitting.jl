@@ -21,7 +21,7 @@ include("utils.jl")
     include("reflection/test-reflection.jl")
 end
 
-@testset "model-api" verbose = true begin
+@testset "api" verbose = true begin
     include("models/test-model-api.jl")
 end
 

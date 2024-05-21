@@ -10,8 +10,8 @@ end
 function SpectralFitting.invoke!(out, x, model::DummySimpleLinear)
     @. out = x + (model.c / model.K)
 end
-SpectralFitting.supports_contiguosly_binned(::Type{<:DummySimpleLinear}) = false
-SpectralFitting.supports_one_to_one(::Type{<:DummySimpleLinear}) = true
+SpectralFitting.supports(::ContiguouslyBinned, ::Type{<:DummySimpleLinear}) = false
+SpectralFitting.supports(::OneToOne, ::Type{<:DummySimpleLinear}) = true
 
 x = collect(range(1.0, 10.0, 101))
 y = @. 13.12 * x + 102
