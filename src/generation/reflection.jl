@@ -419,12 +419,42 @@ end # module Reflection
 
 # public API wrappers
 
-@inline @generated function destructure_model(model::AbstractSpectralModel)
-    Reflection.get_info(model, :model; T = Float64)
+struct DestructuredModel{T}
+    "Maps the model symbol to the specific model."
+    model_map::Vector{Pair{Symbol,AbstractSpectralModel}}
+    "Maps model symbols to the parameter symbols."
+    parameter_symbols::Dict{Symbol,Vector{Symbol}}
+    "Maps each parameter symbol to its parameter."
+    parameter_map::Dict{Symbol,T}
+    "Model expression"
+    expression::Expr
+end
+
+@inline function destructure_model(model::AbstractSpectralModel)
+    error("Can only destructure composite models.")
+end
+
+@inline @generated function destructure_model(model::CompositeModel)
+    info = Reflection.get_info(model, :model; T = Float64)
+    lenses = [:($(Meta.quot(s)) => $(i.lens)) for (s, i) in info.models]
+    params = [:($(Meta.quot(s)) => $(lens)) for (s, lens) in info.parameter_symbols]
+    quote
+        DestructuredModel(
+            Pair{Symbol,AbstractSpectralModel}[$(lenses...)],
+            Dict{Symbol,Vector{Symbol}}($(info.model_symbols...)),
+            Dict($(params...)),
+            $(Meta.quot(info.model_expression)),
+        )
+    end
 end
 
 @inline @generated function parameter_named_tuple(model::AbstractSpectralModel)
     Reflection.assemble_parameter_named_tuple(model)
+end
+
+@inline function parameter_tuple(model::AbstractSpectralModel)
+    nt = parameter_named_tuple(model)
+    Tuple(nt)
 end
 
 @inline @generated function remake_model_with_parameters(

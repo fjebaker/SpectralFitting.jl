@@ -40,47 +40,32 @@ function SurrogateSpectralModel(
     SurrogateSpectralModel{T,K,N,S,symbols}(surrogate, params)
 end
 
-FunctionGeneration.model_base_name(::Type{<:SurrogateSpectralModel{T,K}}) where {T,K} =
-    :(SurrogateSpectralModel{$T,$K})
 
-# model generation
-function FunctionGeneration.closure_parameter_symbols(::Type{<:SurrogateSpectralModel})
+# reflection tie-ins
+function Reflection.get_closure_symbols(::Type{<:SurrogateSpectralModel})
     (:surrogate,)
 end
-function FunctionGeneration.all_parameter_symbols(
-    ::Type{<:SurrogateSpectralModel{T,K,N,S,Syms}},
-) where {T,K,N,S,Syms}
-    Syms
+function Reflection.get_parameter_symbols(M::Type{<:SurrogateSpectralModel})
+    last(M.parameters)
 end
-function FunctionGeneration.all_parameters_to_named_tuple(M::Type{<:SurrogateSpectralModel})
-    names = FunctionGeneration.all_parameter_symbols(M)
-    statements = [:(getfield(model, :params)[$i]) for i in eachindex(names)]
-    :(NamedTuple{$(names)}(($(statements...),)))
-end
-function FunctionGeneration._parameter_lens(
-    info::FunctionGeneration.ModelInfo,
-    symbols,
+function Reflection.parameter_lenses(
     ::Type{<:SurrogateSpectralModel},
+    info::Reflection.ModelInfo,
 )
-    map(eachindex(symbols)) do i
+    map(eachindex(info.symbols)) do i
         :(getfield($(info.lens), :params)[$i])
     end
 end
-function FunctionGeneration._build_invoke(
-    ::Type{<:SurrogateSpectralModel{OldT,K,N,S,Syms}},
+function Reflection.make_constructor(
+    M::Type{<:SurrogateSpectralModel},
+    closures::Vector,
+    params::Vector,
     T::Type,
-    flux,
-    model_constructor,
-    closure_params,
-    params,
-) where {OldT,K,N,S,Syms}
-    # assemble the invocation statement
-    :(invokemodel!(
-        $flux,
-        energy,
-        SurrogateSpectralModel{$T,$K,$N,$S,$Syms}($(closure_params...), ($(params...),)),
-    ))
+)
+    _, K, N, S, Syms = M.parameters
+    :(SurrogateSpectralModel{$T,$K,$N,$S,$Syms}($(closures...), ($(params...),)))
 end
+
 function remake_with_number_type(
     model::SurrogateSpectralModel{FitParam{T},K,N,S,Syms},
 ) where {T,K,N,S,Syms}
@@ -182,7 +167,7 @@ function wrap_model_as_objective(model::AbstractSpectralModel; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
         flux = zeros(typeof(x[2]), 1)
-        invokemodel!(flux, energies, model, [x[2:end]...],) |> first
+        invokemodel!(flux, energies, model, [x[2:end]...]) |> first
     end
 end
 

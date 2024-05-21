@@ -8,11 +8,11 @@ export AbstractCompositeOperator,
 """
     abstract type AbstractCompositeOperator
 
-Superype of all composition operators. Used to implement the model algebra of [`AbstractSpectralModelKind`](@ref)
-through a trait system.
+Superype of all composition operators. Used to implement the model algebra of
+[`AbstractSpectralModelKind`](@ref) through a trait system.
 
-The Julia symbol corresponding to a given `AbstractCompositeOperator` may be obtained through
-[`operation_symbol`](@ref).
+The Julia symbol corresponding to a given `AbstractCompositeOperator` may be
+obtained through [`operation_symbol`](@ref).
 """
 abstract type AbstractCompositeOperator end
 """
@@ -50,67 +50,6 @@ operation_symbol(::Type{<:MultiplicationOperator}) = :(*)
 operation_symbol(::Type{<:ConvolutionOperator}) = nothing
 operation_symbol(::O) where {O<:AbstractCompositeOperator} = operation_symbol(O)
 
-"""
-    CompositeModel{M1,M2,O} <: AbstractSpectralModel
-    CompositeModel(left_model, right_model, op::AbstractCompositeOperator)
-
-Type resulting from operations combining any number of [`AbstractSpectralModel`](@ref) via the
-model algebra defined from [`AbstractSpectralModelKind`](@ref).
-
-Each operation binary operation in the model algebra is encoded in the parametric types of the
-`CompositeModel`, where the operation is given by an [`AbstractCompositeOperator`](@ref).
-Composite models adopt the model kind of the `right` model, i.e. `M2`, and obey the model algebra
-accordingly.
-
-Composite models very rarely need to be constructed directly, and are instead obtained by regular
-model operations.
-
-# Example
-
-```julia
-model = XS_PhotoelectricAbsorption() * (XS_PowerLaw() + XS_BlackBody())
-typeof(model) <: CompositeModel # true
-```
-"""
-struct CompositeModel{M1,M2,O,T,K} <: AbstractSpectralModel{T,K}
-    left::M1
-    right::M2
-    op::O
-    CompositeModel(
-        m1::M1,
-        m2::M2,
-        op::O,
-    ) where {M1,M2<:AbstractSpectralModel{T,K},O} where {T,K} = new{M1,M2,O,T,K}(m1, m2, op)
-end
-
-modelkind(::Type{<:CompositeModel{M1,M2,O,T,K}}) where {M1,M2,O,T,K} = K()
-function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
-    if (implementation(M1) isa XSPECImplementation) ||
-       (implementation(M2) isa XSPECImplementation)
-        XSPECImplementation()
-    else
-        JuliaImplementation()
-    end
-end
-
-# invocation wrappers
-function invokemodel(e, m::CompositeModel)
-    fluxes = construct_objective_cache(m, e)
-    invokemodel!(fluxes, e, m)
-    view(fluxes, :, 1)
-end
-
-function invokemodel!(f, e, model::CompositeModel)
-    @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
-    generated_model_call!(f, e, model, model_parameters_tuple(model))
-end
-
-function invokemodel!(f, e, model::CompositeModel, parameters::AbstractArray)
-    @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
-    generated_model_call!(f, e, model, parameters)
-end
-
-
 # algebra grammar
 add_models(_, _, ::M1, ::M2) where {M1,M2} =
     throw("Left and right models must be Additive.")
@@ -134,6 +73,65 @@ conv_models(m1, m2, ::Convolutional, ::Additive) =
 conv_models(m1::M1, m2::M2) where {M1,M2} =
     conv_models(m1, m2, modelkind(M1), modelkind(M2))
 (m1::AbstractSpectralModel)(m2::M2) where {M2<:AbstractSpectralModel} = conv_models(m1, m2)
+
+"""
+    CompositeModel{M1,M2,O} <: AbstractSpectralModel
+    CompositeModel(left_model, right_model, op::AbstractCompositeOperator)
+
+Type resulting from operations combining any number of [`AbstractSpectralModel`](@ref) via the
+model algebra defined from [`AbstractSpectralModelKind`](@ref).
+
+Each operation binary operation in the model algebra is encoded in the parametric types of the
+`CompositeModel`, where the operation is given by an [`AbstractCompositeOperator`](@ref).
+Composite models adopt the model kind of the `right` model, i.e. `M2`, and obey the model algebra
+accordingly.
+
+Composite models very rarely need to be constructed directly, and are instead obtained by regular
+model operations.
+
+# Example
+
+```julia
+model = PhotoelectricAbsorption() * (PowerLaw() + BlackBody())
+typeof(model) <: CompositeModel # true
+```
+"""
+struct CompositeModel{M1,M2,O,T,K} <: AbstractSpectralModel{T,K}
+    left::M1
+    right::M2
+    op::O
+    CompositeModel(
+        m1::M1,
+        m2::M2,
+        op::O,
+    ) where {M1<:AbstractSpectralModel{T},M2<:AbstractSpectralModel{T,K},O} where {T,K} =
+        new{M1,M2,O,T,K}(m1, m2, op)
+end
+
+function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
+    if (implementation(M1) isa XSPECImplementation) ||
+       (implementation(M2) isa XSPECImplementation)
+        XSPECImplementation()
+    else
+        JuliaImplementation()
+    end
+end
+
+# invocation wrappers
+function invokemodel(e, m::CompositeModel)
+    fluxes = allocate_model_output(m, e)
+    invokemodel!(fluxes, e, m)
+    view(fluxes, :, 1)
+end
+
+function invokemodel!(f, e, model::CompositeModel)
+    @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
+    generated_model_call!(f, e, model, model_parameters_tuple(model))
+end
+function invokemodel!(f, e, model::CompositeModel, parameters::AbstractArray)
+    @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
+    generated_model_call!(f, e, model, parameters)
+end
 
 function Base.show(io::IO, @nospecialize(model::CompositeModel))
     expr, infos = _destructure_for_printing(model)
@@ -177,52 +175,50 @@ function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
     println(io)
 end
 
-# such an ugly function
-function _printinfo(io::IO, model::CompositeModel{M1,M2}) where {M1,M2}
-    l_buffer = 5
-    expr, infos = _destructure_for_printing(model)
-    n_components = length(infos)
+function _printinfo(io::IO, @nospecialize(model::CompositeModel))
+    expr_buffer = 5
+    sym_buffer = 5
 
-    print(io, "CompositeModel with $n_components component models:\n")
-    println(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        " "^l_buffer,
-        expr,
-        Crayons.Crayon(reset = true),
-    )
+    destructed = destructure_model(model)
 
-    info_tuples = reduce(vcat, [get_info_tuple.(modelparameters(i[1])) for i in infos])
+    info_tuples = [get_info_tuple(p) for (_, p) in destructed.parameter_map]
     q1, q2, q3, q4 = map(1:4) do i
         maximum(j -> length("$(j[i])"), info_tuples) + 1
     end
 
-    println(io, "Model key and parameters:")
-    sym_buffer = 5
-    param_name_offset = sym_buffer + maximum(infos) do (_, syms)
-        maximum(length(s) for s in syms)
+    param_offset = sym_buffer + maximum(destructed.parameter_map) do (s, _)
+        length("$s")
     end
-    buff = IOBuffer()
-    for (symbol, (m, param_symbols)) in zip(keys(infos), infos)
-        M = typeof(m)
-        basename = FunctionGeneration.model_base_name(M)
+
+    print(io, "CompositeModel with $(length(destructed.model_map)) model components:\n")
+    println(
+        io,
+        Crayons.Crayon(foreground = :cyan),
+        " "^expr_buffer,
+        destructed.expression,
+        Crayons.Crayon(reset = true),
+    )
+    println(io, "Model key and parameters:")
+
+    for (sym, m) in destructed.model_map
+        param_syms = destructed.parameter_symbols[sym]
+        basename = Base.typename(typeof(m)).name
         println(
-            buff,
+            io,
             Crayons.Crayon(foreground = :cyan),
-            lpad("$symbol", sym_buffer),
+            lpad("$sym", sym_buffer),
             Crayons.Crayon(reset = true),
             " => ",
             Crayons.Crayon(foreground = :cyan),
             "$basename",
             Crayons.Crayon(reset = true),
         )
-
-        for (val, s::String) in zip(modelparameters(m), param_symbols)
-            free = val isa FitParam ? !isfrozen(val) : true
-            _print_param(buff, free, s, val, param_name_offset, q1, q2, q3, q4)
+        for ps in param_syms
+            param = destructed.parameter_map[ps]
+            free = param isa FitParam ? !isfrozen(param) : true
+            _print_param(io, free, ps, param, param_offset, q1, q2, q3, q4)
         end
     end
-    print(io, String(take!(buff)))
 end
 
 function remake_with_number_type(model::CompositeModel)
@@ -234,18 +230,34 @@ ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
 ConstructionBase.constructorof(::Type{<:CompositeModel}) =
     throw("Cannot be used with `CompositeModel`.")
 
-function Base.propertynames(model::CompositeModel, private::Bool = false)
-    (all_parameter_symbols(model)..., all_model_symbols(model)...)
+@inline @generated function _composite_parameter_symbols(model::CompositeModel)
+    syms = [:($(Meta.quot(s))) for s in Reflection.get_parameter_symbols(model)]
+    :(($(syms...),))
+end
+
+@inline @generated function _composite_model_symbols(model::CompositeModel)
+    info = Reflection.get_info(model, :model; T = Float64)
+    syms = [:($(Meta.quot(s))) for (s, _) in info.models]
+    :(($(syms...),))
+end
+
+@inline @generated function _composite_model_map(model::CompositeModel)
+    info = Reflection.get_info(model, :model; T = Float64)
+    syms = ([:($s) for (s, _) in info.models]...,)
+    values = [i.lens for (_, i) in info.models]
+    :(NamedTuple{$(syms)}(($(values...),)))
+end
+
+function Base.propertynames(model::CompositeModel)
+    (_composite_parameter_symbols(model)..., _composite_model_symbols(model)...)
 end
 
 # TODO: really ensure this is type stable as it could be a performance killer
 Base.@constprop aggressive function _get_property(model::CompositeModel, symb::Symbol)
-    if symb in all_model_symbols(model)
-        lookup = composite_model_map(model)
-        return lookup[symb]
+    if symb in _composite_model_symbols(model)
+        return _composite_model_map(model)[symb]
     else
-        lookup = all_parameters_to_named_tuple(model)
-        return lookup[symb]
+        return parameter_named_tuple(model)[symb]
     end
 end
 
@@ -262,6 +274,3 @@ function Base.setproperty!(model::CompositeModel, symb::Symbol, x)
         "Only `FitParam` may be directly set with another `FitParam`. Use `set_value!` and related API otherwise.",
     )
 end
-
-# function ConstructionBase.setproperties(m::CompositeModel, patch::NamedTuple)
-# end

@@ -31,12 +31,19 @@ CM = typeof(cm)
 syms = Reflection.get_parameter_symbols(CM)
 @test syms == [:K_1, :a_1, :b_1, :K_2, :a_2, :b_2, :a_3, :b_3]
 
+syms = SpectralFitting._composite_parameter_symbols(cm)
+@test syms == (:K_1, :a_1, :b_1, :K_2, :a_2, :b_2, :a_3, :b_3)
+
 info = Reflection.get_info(CM, :cm)
 
 # test the assembled lenses
 @test eval(info.models[1][2].lens) == getfield(getfield(cm, :right), :right)
 @test eval(info.models[2][2].lens) == getfield(getfield(cm, :right), :left)
 @test eval(info.models[3][2].lens) == getfield(cm, :left)
+
+# test we can get the model symbols
+syms = SpectralFitting._composite_model_symbols(cm)
+@test syms == (:a1, :a2, :m1)
 
 # test lenses work on very deeply nested models 
 cm =
