@@ -44,7 +44,7 @@ function _construct_bound_mapping(bindings, parameter_count)
 end
 
 function _get_index_of_symbol(model::AbstractSpectralModel, symbol)::Int
-    symbols = all_parameter_symbols(model)
+    symbols = keys(parameter_named_tuple(model))
     i = findfirst(==(symbol), symbols)
     if isnothing(i)
         error("Could not match symbol $symbol !")

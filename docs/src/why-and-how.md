@@ -4,6 +4,11 @@ SpectralFitting.jl is a package for fitting models to spectral data, similar to 
 
 The rationale for this package is to provide a unanimous interface for different model libraries, and to leverage advancements in the computional methods that are available in Julia, including the rich statistics ecosystem, with [automatic-differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and [_speed_](https://julialang.org/benchmarks/).
 
+Longer term ambitions include
+- Multi-wavelength fits
+- Radiative transfer embedded into the package
+- Spectral and timing fits
+
 SpectralFitting aims to provide highly optimised and flexible fitting algorithms, along with a library of spectral models, for use in any field of Astronomy that concerns itself with spectral data.
 
 ## Rewriting model calls during invocation
@@ -68,20 +73,13 @@ model = XS_PhotoelectricAbsorption() * (
     XS_PowerLaw() + XS_PowerLaw(a=FitParam(3.0)) + XS_BlackBody()
 )
 
-params = get_value.(SpectralFitting.model_parameters_tuple(model))
-SpectralFitting.FunctionGeneration.generated_model_call!(typeof(fluxes), typeof(energy), typeof(model), typeof(params))
+params = get_value.(SpectralFitting.parameter_tuple(model))
+SpectralFitting.Reflection.assemble_composite_model_call(typeof(model), typeof(params))
 ```
 
 This generated function also takes care of some other things for us, such as unpacking parameters (optionally unpacking frozen parameters separately), and ensuring any closure are passed to [`invokemodel`](@ref) if a model needs them (e.g., [`SurrogateSpectralModel`](@ref)).
 
 This is achieved by moving as much information as possible about the model and its construction to its type, such that all of the invocation and parameter unpacking may be inferred at compile time.
-
-Naturally, the [`CompositeModel`](@ref) types also support the out-of-place [`invokemodel`](@ref) and will allocate the minimum number of flux arrays needed, inferred using [`flux_count`](@ref):
-
-```@example model_invocation
-flux = invokemodel(energy, model)
-sum(flux)
-```
 
 !!! note
     With the addition of more pure-Julia models, non-allocating methods without aggressive pre-allocation are possible, and will be added in the future. Such methods may allow models to add or multiply in-place on the total flux array, instead of relying on later broadcasts.

@@ -9,7 +9,7 @@ mutable struct SimulatedSpectrum{T,F} <: AbstractDataset
     seed::Int
 end
 
-supports_contiguosly_binned(::Type{<:SimulatedSpectrum}) = true
+supports(::ContiguouslyBinned, ::Type{<:SimulatedSpectrum}) = true
 
 function make_objective(::ContiguouslyBinned, dataset::SimulatedSpectrum)
     check_units_warning(dataset.units)
@@ -113,10 +113,12 @@ function _make_simulation_fitting_config(
         _fold_transformer(T, layout, R, ΔE, input_domain),
     )
 
+    free_params = collect(filter(isfree, parameter_tuple(model)))
+
     conf = FittingConfig(
         implementation(model),
         cache,
-        _allocate_free_parameters(model),
+        free_params,
         input_domain,
         output_domain,
         objective,

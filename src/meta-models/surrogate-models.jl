@@ -28,72 +28,42 @@ struct SurrogateSpectralModel{T,K,N,S,Symbols} <: AbstractSpectralModel{T,K}
     params::NTuple{N,T}
 end
 
-function SurrogateSpectralModel(::K, surrogate::S, params::Tuple, symbols) where {K<:AbstractSpectralModelKind,S}
+function SurrogateSpectralModel(
+    ::K,
+    surrogate::S,
+    params::Tuple,
+    symbols,
+) where {K<:AbstractSpectralModelKind,S}
     P = typeof(params)
     N = length(P.parameters)
     T = first(P.parameters)
     SurrogateSpectralModel{T,K,N,S,symbols}(surrogate, params)
 end
 
-closurekind(::Type{<:SurrogateSpectralModel}) = WithClosures()
-FunctionGeneration.model_base_name(::Type{<:SurrogateSpectralModel{T,K}}) where {T,K} =
-    :(SurrogateSpectralModel{$T,$K})
 
-# model generation
-function FunctionGeneration.closure_parameter_symbols(::Type{<:SurrogateSpectralModel})
+# reflection tie-ins
+function Reflection.get_closure_symbols(::Type{<:SurrogateSpectralModel})
     (:surrogate,)
 end
-function FunctionGeneration.all_parameter_symbols(
-    ::Type{<:SurrogateSpectralModel{T,K,N,S,Syms}},
-) where {T,K,N,S,Syms}
-    Syms
+function Reflection.get_parameter_symbols(M::Type{<:SurrogateSpectralModel})
+    last(M.parameters)
 end
-function FunctionGeneration.all_parameters_to_named_tuple(M::Type{<:SurrogateSpectralModel})
-    names = FunctionGeneration.all_parameter_symbols(M)
-    statements = [:(getfield(model, :params)[$i]) for i in eachindex(names)]
-    :(NamedTuple{$(names)}(($(statements...),)))
-end
-function FunctionGeneration._parameter_lens(
-    info::FunctionGeneration.ModelInfo,
-    symbols,
+function Reflection.parameter_lenses(
     ::Type{<:SurrogateSpectralModel},
+    info::Reflection.ModelInfo,
 )
-    map(eachindex(symbols)) do i
+    map(eachindex(info.symbols)) do i
         :(getfield($(info.lens), :params)[$i])
     end
 end
-function FunctionGeneration._build_invoke(
-    ::Type{<:SurrogateSpectralModel{OldT,K,N,S,Syms}},
+function Reflection.make_constructor(
+    M::Type{<:SurrogateSpectralModel},
+    closures::Vector,
+    params::Vector,
     T::Type,
-    flux,
-    model_constructor,
-    closure_params,
-    params,
-) where {OldT,K,N,S,Syms}
-    # assemble the invocation statement
-    :(invokemodel!(
-        $flux,
-        energy,
-        SurrogateSpectralModel{$T,$K,$N,$S,$Syms}($(closure_params...), ($(params...),)),
-    ))
-end
-function remake_with_number_type(
-    model::SurrogateSpectralModel{FitParam{T},K,N,S,Syms},
-) where {T,K,N,S,Syms}
-    params = model_parameters_tuple(model)
-    new_params = convert.(T, params)
-    SurrogateSpectralModel{T,K,N,S,Syms}(model.surrogate, NTuple{N,T}(new_params))
-end
-
-# runtime access
-get_param_symbols(m::SurrogateSpectralModel) = m.params_symbols
-function get_param(m::SurrogateSpectralModel, s::Symbol)
-    i = findfirst(==(s), m.params_symbols)
-    if !isnothing(i)
-        m.params[i]
-    else
-        error("No such symbol: $s")
-    end
+)
+    _, K, N, S, Syms = M.parameters
+    :(SurrogateSpectralModel{$T,$K,$N,$S,$Syms}($(closures...), ($(params...),)))
 end
 
 @fastmath function invoke!(
@@ -178,7 +148,7 @@ function wrap_model_as_objective(model::AbstractSpectralModel; ΔE = 1e-1)
     (x) -> begin
         energies = [first(x), first(x) + ΔE]
         flux = zeros(typeof(x[2]), 1)
-        invokemodel!(flux, energies, model, [x[2:end]...],) |> first
+        invokemodel!(flux, energies, model, [x[2:end]...]) |> first
     end
 end
 
@@ -253,11 +223,12 @@ function make_surrogate_function(
 end
 
 function make_model(harness::SurrogateHarness)
+    params = parameter_named_tuple(harness.model)
     SurrogateSpectralModel(
         modelkind(harness.model),
         harness.surrogate,
-        model_parameters_tuple(harness.model),
-        all_parameter_symbols(harness.model),
+        Tuple(params),
+        keys(params),
     )
 end
 

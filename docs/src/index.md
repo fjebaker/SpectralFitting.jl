@@ -6,14 +6,21 @@ SpectralFitting.jl is a package for defining and using spectral models, with a n
 
 SpectralFitting is designed to be extended, such that new models are simple to create, and new dataset processing pipelines for different missions are brief to define. Where performance is key, SpectralFitting helps you define fast and AD-compatible surrogates of spectral models using [Surrogates.jl](https://github.com/SciML/Surrogates.jl), and embed them in the model composition algebra.
 
-To get started, install LibXSPEC_jll and SpectralFitting:
-```julia
-using Pkg
-Pkg.add(url = "https://github.com/astro-group-bristol/LibXSPEC_jll.jl")
-Pkg.add(url = "https://github.com/fjebaker/SpectralFitting.jl")
+To get started, add the AstroRegistry from the University of Bristol and then install:
 
+```julia
+julia>]
+pkg> registry add https://github.com/astro-group-bristol/AstroRegistry
+pkg> add SpectralFitting
+```
+
+Then use
+
+```julia
 using SpectralFitting
 # ....
 ```
+
+to get started. See [Walkthrough](@ref) for an example walkthrough the package.
 
 For more University of Bristol Astrophysics Group codes, see [our GitHub organisation](https://github.com/astro-group-bristol).

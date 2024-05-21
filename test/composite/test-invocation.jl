@@ -23,23 +23,12 @@ out_flux = invokemodel!(flux, energy, model2)
 @test all(out_flux .== 12)
 
 # just check that it has no errors
-checker_all(model) = SpectralFitting.FunctionGeneration.generated_model_call!(
-    Vector{Float64},
-    Vector{Float64},
-    typeof(model),
-    Vector{Float64},
-)
-_ = checker_all(model)
+checker_all(model) =
+    SpectralFitting.Reflection.assemble_composite_model_call(typeof(model), Vector{Float64})
 _ = checker_all(model + model)
 
 # some other special cases
 _ = checker_all(DummyMultiplicative() * DummyAdditive())
-
-for model in FUZZ_ALL_MODELS
-    _ = checker_all(model)
-end
-
-# check that the generated functions work too
 
 # added models
 out_flux = invokemodel(energy, model + model)

@@ -142,7 +142,7 @@ nothing # hide
 Now that we have the surrogate model, we use [`SurrogateSpectralModel`](@ref) to wrap it into an [`AbstractSpectralModel`](@ref). The constructor also needs to know the model kind, have a copy of the model parameters, and know which symbols to represent the parameters with.
 
 ```@example surrogate_example
-sm = @code_warntype make_model(harness)
+sm = make_model(harness)
 ```
 
 We can now use the familiar API and attempt to benchmark the performance:

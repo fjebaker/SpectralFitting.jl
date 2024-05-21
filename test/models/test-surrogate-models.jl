@@ -32,7 +32,7 @@ f̂ = map(energy[1:end-1]) do e
     surrogate.surrogate(v)
 end
 
-@test sum(f .- f̂) ≈ -0.299 atol=1e-3
+@test sum(f .- f̂) ≈ -0.299 atol = 1e-3
 
 optimize_accuracy!(surrogate; maxiters = 50)
 
@@ -41,9 +41,9 @@ f̂ = map(energy[1:end-1]) do e
     surrogate.surrogate(v)
 end
 
-@test sum(f .- f̂) ≈ 0.196 atol=1e-3
+@test sum(f .- f̂) ≈ 0.196 atol = 1e-3
 
-sm = make_model(surrogate)
+sm = @inferred make_model(surrogate)
 
 # smoke test these
 invokemodel(collect(range(0.01, 10.0, 100)), sm)

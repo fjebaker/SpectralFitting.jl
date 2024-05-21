@@ -19,8 +19,8 @@ function InjectiveData(
     InjectiveData(domain, codomain, domain_variance, codomain_variance, name, data_mask)
 end
 
-supports_contiguosly_binned(::Type{<:InjectiveData}) = true
-supports_one_to_one(::Type{<:InjectiveData}) = true
+supports(::ContiguouslyBinned, ::Type{<:InjectiveData}) = true
+supports(::OneToOne, ::Type{<:InjectiveData}) = true
 
 function make_model_domain(::ContiguouslyBinned, dataset::InjectiveData)
     # need to expand the domain by one

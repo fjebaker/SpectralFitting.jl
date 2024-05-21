@@ -38,8 +38,9 @@ model2 =
     PowerLaw(K = FitParam(5.0), a = FitParam(6.0))    # K_1 a_1   1 2
 
 # parameter array that is constructed -> [ 1 2 3 4  1 2 3 4 5 6]
-@test SpectralFitting.all_parameter_symbols(model1) == (:K_1, :a_1, :K_2, :a_2)
-@test SpectralFitting.all_parameter_symbols(model2) == (:K_1, :a_1, :K_2, :a_2, :K_3, :a_3)
+@test keys(SpectralFitting.parameter_named_tuple(model1)) == (:K_1, :a_1, :K_2, :a_2)
+@test keys(SpectralFitting.parameter_named_tuple(model2)) ==
+      (:K_1, :a_1, :K_2, :a_2, :K_3, :a_3)
 
 prob = FittingProblem(model1 => dummy_data1, model2 => dummy_data1)
 bind!(prob, :K_1, :K_2)

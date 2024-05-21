@@ -13,28 +13,20 @@ end
 # printing single
 model = DummyAdditive()
 string = showstring(model)
-expected = """┌ DummyAdditive
-│    K  => (1 ± 0.1)
-│    a  => (1 ± 0.1)
-│    b  => (5 ± 0.5)
+expected = """
+┌ DummyAdditive
+│      K ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
+│      a ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
+│      b ->  5\e[36m                     FROZEN\e[0m
 └ """
 @test string == expected
 
 # printing composite
 model = DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
 # test destructuring works
-out = @inferred SpectralFitting._destructure_for_printing(model)
-@test out == (
-    "m1 * (a2 + a1)",
-    (
-        a1 = (DummyAdditive(), ("K_1", "a_1", "b_1")),
-        a2 = (DummyAdditive(), ("K_2", "a_2", "b_2")),
-        m1 = (DummyMultiplicative(), ("a_3", "b_3")),
-    ),
-)
 # test the output string is correct
 string = showstring(model)
-expected = """┌ CompositeModel with 3 component models:
+expected = """┌ CompositeModel with 3 model components:
 │ \e[36m     m1 * (a2 + a1)\e[0m
 │ Model key and parameters:
 │ \e[36m   a1\e[0m => \e[36mDummyAdditive\e[0m
@@ -57,7 +49,7 @@ model =
     (DummyMultiplicative() * DummyMultiplicative() * DummyAdditive()) +
     DummyMultiplicative() * DummyAdditive()
 string = showstring(model)
-expected = """┌ CompositeModel with 5 component models:
+expected = """┌ CompositeModel with 5 model components:
 │ \e[36m     (m3 * m2) * a2 + m1 * a1\e[0m
 │ Model key and parameters:
 │ \e[36m   a1\e[0m => \e[36mDummyAdditive\e[0m
