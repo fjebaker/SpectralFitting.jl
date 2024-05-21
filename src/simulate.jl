@@ -88,6 +88,7 @@ function _make_simulation_fitting_config(
     layout = ContiguouslyBinned(),
     input_domain = response_energy(response),
     output_domain = folded_energy(response),
+    stat = ChiSquared(),
     kwargs...,
 ) where {T}
     if !supports(layout, model)
@@ -118,6 +119,8 @@ function _make_simulation_fitting_config(
     conf = FittingConfig(
         implementation(model),
         cache,
+        stat,
+        nothing,
         free_params,
         input_domain,
         output_domain,
@@ -138,7 +141,7 @@ function simulate(
 end
 
 function simulate(model::AbstractSpectralModel, dataset::AbstractDataset; kwargs...)
-    kw, conf = _unpack_fitting_configuration(FittingProblem(model => dataset); kwargs...)
+    kw, conf = _unpack_config(FittingProblem(model => dataset); kwargs...)
     simulate!(conf; kw...)
 end
 

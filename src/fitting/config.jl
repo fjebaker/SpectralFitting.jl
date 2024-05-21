@@ -1,5 +1,7 @@
-struct FittingConfig{ImplType,CacheType,P,D,O}
+struct FittingConfig{ImplType,CacheType,StatT,ProbT,P,D,O}
     cache::CacheType
+    stat::StatT
+    prob::ProbT
     parameters::P
     model_domain::D
     output_domain::D
@@ -9,15 +11,19 @@ struct FittingConfig{ImplType,CacheType,P,D,O}
     function FittingConfig(
         impl::AbstractSpectralModelImplementation,
         cache::C,
+        stat::AbstractStatistic,
+        prob::FP,
         params::P,
         model_domain::D,
         output_domain::D,
         objective::O,
         variance::O;
         covariance::O = inv.(variance),
-    ) where {C,P,D,O}
-        new{typeof(impl),C,P,D,O}(
+    ) where {C<:AbstractFittingCache,FP,P,D,O}
+        new{typeof(impl),C,typeof(stat),FP,P,D,O}(
             cache,
+            stat,
+            prob,
             params,
             model_domain,
             output_domain,
@@ -28,13 +34,16 @@ struct FittingConfig{ImplType,CacheType,P,D,O}
     end
 end
 
-function FittingConfig(model::AbstractSpectralModel{T}, dataset::AbstractDataset) where {T}
+function make_single_config(prob::FittingProblem, stat::AbstractStatistic)
+    model = prob.model.m[1]
+    dataset = prob.data.d[1]
+
     layout = common_support(model, dataset)
     model_domain = make_model_domain(layout, dataset)
     output_domain = make_output_domain(layout, dataset)
     objective = make_objective(layout, dataset)
     variance = make_objective_variance(layout, dataset)
-    params::Vector{T} = collect(filter(isfree, parameter_tuple(model)))
+    params::Vector{paramtype(model)} = collect(filter(isfree, parameter_tuple(model)))
     cache = SpectralCache(
         layout,
         model,
@@ -45,6 +54,8 @@ function FittingConfig(model::AbstractSpectralModel{T}, dataset::AbstractDataset
     FittingConfig(
         implementation(model),
         cache,
+        stat,
+        prob,
         params,
         model_domain,
         output_domain,
@@ -53,7 +64,7 @@ function FittingConfig(model::AbstractSpectralModel{T}, dataset::AbstractDataset
     )
 end
 
-function FittingConfig(prob::FittingProblem)
+function make_multi_config(prob::FittingProblem, stat::AbstractStatistic)
     impl =
         all(model -> implementation(model) isa JuliaImplementation, prob.model.m) ?
         JuliaImplementation() : XSPECImplementation()
@@ -94,12 +105,33 @@ function FittingConfig(prob::FittingProblem)
     FittingConfig(
         impl,
         cache,
+        stat,
+        prob,
         parameters,
         reduce(vcat, domains),
         reduce(vcat, output_domains),
         all_objectives,
         reduce(vcat, variances),
     )
+end
+
+function FittingConfig(prob::FittingProblem; stat = ChiSquared())
+    config = if model_count(prob) == 1 && data_count(prob) == 1
+        make_single_config(prob, stat)
+    elseif model_count(prob) == data_count(prob)
+        make_multi_config(prob, stat)
+    elseif model_count(prob) < data_count(prob)
+        error("Single model, many data not yet implemented.")
+    else
+        error("Multi model, single data not yet implemented.")
+    end
+
+    return config
+end
+
+function _unpack_config(prob::FittingProblem; stat = ChiSquared(), kwargs...)
+    config = FittingConfig(prob; stat = stat)
+    kwargs, config
 end
 
 function _f_objective(config::FittingConfig)

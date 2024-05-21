@@ -35,22 +35,8 @@ function _lsq_fit(
     )
 end
 
-function _unpack_fitting_configuration(prob; kwargs...)
-    config = if model_count(prob) == 1 && data_count(prob) == 1
-        FittingConfig(prob.model.m[1], prob.data.d[1])
-    elseif model_count(prob) == data_count(prob)
-        FittingConfig(prob)
-    elseif model_count(prob) < data_count(prob)
-        error("Single model, many data not yet implemented.")
-    else
-        error("Multi model, single data not yet implemented.")
-    end
-
-    kwargs, config
-end
-
 function configuration(prob::FittingProblem; kwargs...)
-    kw, config = _unpack_fitting_configuration(prob; kwargs...)
+    kw, config = _unpack_config(prob; kwargs...)
     if length(kw) > 0
         throw("Unknown keyword arguments: $(kw)")
     end
@@ -58,7 +44,7 @@ function configuration(prob::FittingProblem; kwargs...)
 end
 
 function fit(prob::FittingProblem, args...; kwargs...)
-    method_kwargs, config = _unpack_fitting_configuration(prob; kwargs...)
+    method_kwargs, config = _unpack_config(prob; kwargs...)
     @inline fit(config, args...; method_kwargs...)
 end
 
