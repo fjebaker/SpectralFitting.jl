@@ -82,10 +82,8 @@ function make_invoke_call(info::ModelInfo, objective::Symbol, domain::Symbol, T:
     :(invokemodel!($objective, $domain, $(constructor)))
 end
 
-function reassemble_model(
-    model::Type{<:AbstractSpectralModel},
-    parameters::Type{<:AbstractVector{T}},
-) where {T}
+function reassemble_model(model::Type{<:AbstractSpectralModel}, parameters)
+    T = eltype(parameters)
     info = get_info(model, DEFAULT_LENS)
     closure_assigns = Expr[]
     for f in info.closure_symbols
@@ -309,10 +307,7 @@ Assemble the full composite model call, with objective unpacking via
 invocation, and objective reduction. Uses [`assemble_fast_call`](@ref) to put
 the final function body together.
 """
-function assemble_composite_model_call(
-    model::Type{<:CompositeModel},
-    parameters::Type{<:AbstractVector},
-)
+function assemble_composite_model_call(model::Type{<:CompositeModel}, parameters)
     # propagate information about free parameters to allow for AD
     info = get_info(model, DEFAULT_LENS; T = eltype(parameters))
     unpack = assemble_objective_unpack(info.maximum_objective_cache_count)
@@ -459,7 +454,24 @@ end
 
 @inline @generated function remake_model_with_parameters(
     model::AbstractSpectralModel,
-    parameters::AbstractVector,
+    parameters::Base.AbstractVecOrTuple,
 )
     Reflection.reassemble_model(model, parameters)
+end
+
+@inline @generated function objective_cache_count(model::CompositeModel)
+    info = Reflection.get_info(model, :model; T = Float64)
+    :($(info.maximum_objective_cache_count))
+end
+@inline function objective_cache_count(model::AbstractSpectralModel)
+    1
+end
+
+@inline @generated function composite_model_call!(
+    objectives,
+    domain,
+    model::CompositeModel,
+    parameters,
+)
+    Reflection.assemble_composite_model_call(model, parameters)
 end

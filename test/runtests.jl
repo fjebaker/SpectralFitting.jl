@@ -17,13 +17,12 @@ end
 
 include("utils.jl")
 
-@testset "function-generation" verbose = true begin
-    @testset "aggregation" begin
-        include("generation/test-aggregate.jl")
-    end
-    @testset "utilities" begin
-        include("generation/test-parsing-utilities.jl")
-    end
+@testset "reflection" verbose = true begin
+    include("reflection/test-reflection.jl")
+end
+
+@testset "model-api" verbose = true begin
+    include("models/test-model-api.jl")
 end
 
 @testset "macro" verbose = true begin
@@ -46,32 +45,22 @@ end
         include("parameters/test-model-parameters.jl")
     end
     @testset "fit-params" begin
-        include("parameters/test-fit-params.jl")
         include("parameters/test-free-frozen.jl")
     end
 end
 
 @testset "model-library" verbose = true begin
-    @testset "table-models" begin
-        include("models/test-table-models.jl")
-    end
-    @testset "julia-models" begin
-        include("models/test-julia-models.jl")
-    end
+    include("models/test-julia-models.jl")
+    include("models/test-general-models.jl")
+    include("models/test-model-consistency.jl")
+    include("models/test-table-models.jl")
+    include("models/test-surrogate-models.jl")
 
     # only test XSPEC models when not using CI
     # since model data access is annoying
     @ciskip @testset "xspec-models" begin
         include("models/test-xspec-models.jl")
-    end
-    @testset "general-models" begin
-        include("models/test-general-models.jl")
-        # include the general xspec models only when not CI
-        @ciskip include("models/test-general-xspec-models.jl")
-    end
-
-    @testset "model-consistency" begin
-        include("models/test-model-consistency.jl")
+        include("models/test-general-xspec-models.jl")
     end
 end
 
@@ -98,9 +87,8 @@ end
     @time include("fitting/test-binding.jl")
     @time include("fitting/test-results.jl")
 
-    @testset "powerlaws" begin
-        @time include("fitting/test-fit-powerlaw.jl")
-    end
+    @time include("fitting/test-fit-powerlaw.jl")
+
     @testset "multifits" begin
         @time include("fitting/test-fit-multi.jl")
         @time include("fitting/test-fit-optim.jl")

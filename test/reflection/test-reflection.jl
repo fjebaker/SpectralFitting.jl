@@ -111,3 +111,20 @@ new = Reflection.reassemble_model(M, Vector{Float64})
 
 M = DummyAdditiveTableModel() |> typeof
 new = Reflection.reassemble_model(M, Vector{Float64})
+
+# test the flattening of composite models works
+model =
+    (DummyMultiplicative() * DummyMultiplicative() * DummyAdditive()) +
+    DummyMultiplicative() * DummyAdditive()
+
+info = SpectralFitting._composite_model_symbols(model)
+@test info == (:a1, :m1, :a2, :m2, :m3)
+
+info = SpectralFitting._composite_model_map(model)
+@test info == (;
+    a1 = DummyAdditive(),
+    m1 = DummyMultiplicative(),
+    a2 = DummyAdditive(),
+    m2 = DummyMultiplicative(),
+    m3 = DummyMultiplicative(),
+)

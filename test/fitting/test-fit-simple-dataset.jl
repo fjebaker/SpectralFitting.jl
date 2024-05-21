@@ -21,7 +21,7 @@ data = InjectiveData(x, y)
 model = DummySimpleLinear()
 
 @test SpectralFitting.preferred_support(model) isa SpectralFitting.OneToOne
-@test size(SpectralFitting.construct_objective_cache(model, x)) == (101, 1)
+@test size(allocate_model_output(model, x)) == (101, 1)
 
 @test SpectralFitting.common_support(model, data) isa SpectralFitting.OneToOne
 

@@ -18,12 +18,4 @@ function Reflection.get_parameter_symbols(model::Type{<:AbstractTableModel})
     fieldnames(model)[2:end]
 end
 
-function remake_with_number_type(model::AbstractTableModel{FitParam{T}}) where {T}
-    M = typeof(model).name.wrapper
-    params = modelparameters(model)
-    new_params = convert.(T, params)
-    M{typeof(model.table),T}(model.table, new_params...)
-end
-
-
 export AbstractTableModel

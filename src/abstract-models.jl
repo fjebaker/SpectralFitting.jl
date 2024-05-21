@@ -1,7 +1,9 @@
 export AbstractSpectralModel,
+    allocate_model_output,
     AbstractSpectralModelKind,
     Multiplicative,
     Additive,
+    numbertype,
     Convolutional,
     modelkind,
     AbstractSpectralModelImplementation,
@@ -11,8 +13,6 @@ export AbstractSpectralModel,
     invokemodel,
     invokemodel!,
     objective_cache_count,
-    modelparameters,
-    updateparameters!,
     make_parameter_cache
 
 """
@@ -143,7 +143,7 @@ function ConstructionBase.setproperties(
     model::M,
     patch::NamedTuple{names},
 ) where {M<:AbstractSpectralModel,names}
-    symbols = all_parameter_symbols(model)
+    symbols = keys(parameter_named_tuple(model))
     args = (s in names ? getproperty(patch, s) : getproperty(model, s) for s in symbols)
     M(args...)
 end
@@ -245,7 +245,7 @@ end
     invokemodel!(f, e, m, cache.parameters)
 end
 @inline function invokemodel!(f, e, m::AbstractSpectralModel, parameters::AbstractArray)
-    invokemodel!(view(f, :, 1), e, remake_with_parameters(m, parameters))
+    invokemodel!(view(f, :, 1), e, remake_model_with_parameters(m, parameters))
 end
 @inline function invokemodel!(
     f::AbstractVector,
@@ -288,7 +288,7 @@ function allocate_model_output(
     model::AbstractSpectralModel{T1},
     domain::AbstractVector{T2},
 ) where {T1,T2}
-    T = promote_type(T1, T2)
+    T = promote_type(T1 <: FitParam ? T1.parameters[1] : T1, T2)
     construct_objective_cache(T, model, domain)
 end
 
@@ -315,71 +315,21 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(model::AbstractSpec
     print(io, encapsulate(s))
 end
 
-modelparameters(model::AbstractSpectralModel{T}) where {T} =
-    T[model_parameters_tuple(model)...]
-
 # todo: this function could be cleaned up with some generated hackery 
 function remake_with_number_type(model::AbstractSpectralModel{P}, T::Type) where {P}
-    M = typeof(model).name.wrapper
-    params = model_parameters_tuple(model)
+    params = parameter_tuple(model)
     new_params = if P <: FitParam
         convert.(T, get_value.(params))
     else
         convert.(T, param)
     end
-    M{T}(new_params...)
+    remake_model_with_parameters(model, new_params)
 end
 remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T} =
     remake_with_number_type(model, T)
 
-"""
-    updatemodel(model::AbstractSpectralModel; kwargs...)
-    updatemodel(model::AbstractSpectralModel, patch::NamedTuple)
-
-Modify parameters in a given model by keyvalue, or with a named tuple.
-"""
-updatemodel(model::AbstractSpectralModel, patch::NamedTuple) =
-    ConstructionBase.setproperties(model, patch)
-updatemodel(model::AbstractSpectralModel; kwargs...) =
-    ConstructionBase.setproperties(model; kwargs...)
-
-@inline function updateparameters(model::AbstractSpectralModel, params)
-    patch = all_parameters_to_named_tuple(params, model)
-    updatemodel(model, patch)
-end
-
-@inline function updateparameters(model::AbstractSpectralModel; params...)
-    updatemodel(model; params...)
-end
-
-# for modifying models with FitParams
-function updateparameters!(model::AbstractSpectralModel{<:FitParam}, params::AbstractVector)
-    for (i, s) in enumerate(all_parameter_symbols(model))
-        v = params[i]
-        if typeof(v) <: FitParam
-            set!(getproperty(model, s), v)
-        else
-            set_value!(getproperty(model, s), get_value(v))
-        end
-    end
-end
-
-function updateparameters!(model::AbstractSpectralModel{<:FitParam}; params...)
-    for (s, v) in params
-        if typeof(v) <: FitParam
-            set!(getproperty(model, s), v)
-        else
-            set_value!(getproperty(model, s), get_value(v))
-        end
-    end
-    model
-end
-
-_allocate_free_parameters(model::AbstractSpectralModel) =
-    filter(isfree, modelparameters(model))
-
 function make_parameter_cache(model::AbstractSpectralModel)
-    parameters = modelparameters(model)
+    parameters = collect(parameter_tuple(model))
     ParameterCache(parameters)
 end
 
@@ -387,7 +337,7 @@ function make_diff_parameter_cache(
     model::AbstractSpectralModel;
     param_diff_cache_size = nothing,
 )
-    parameters = modelparameters(model)
+    parameters = collect(parameter_tuple(model))
     free_mask = _make_free_mask(parameters)
 
     vals = map(get_value, parameters)

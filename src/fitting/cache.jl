@@ -110,13 +110,13 @@ struct FittingConfig{ImplType,CacheType,P,D,O}
     end
 end
 
-function FittingConfig(model::AbstractSpectralModel, dataset::AbstractDataset)
+function FittingConfig(model::AbstractSpectralModel{T}, dataset::AbstractDataset) where {T}
     layout = common_support(model, dataset)
     model_domain = make_model_domain(layout, dataset)
     output_domain = make_output_domain(layout, dataset)
     objective = make_objective(layout, dataset)
     variance = make_objective_variance(layout, dataset)
-    params = _allocate_free_parameters(model)
+    params::Vector{T} = collect(filter(isfree, parameter_tuple(model)))
     cache = SpectralCache(
         layout,
         model,

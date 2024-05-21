@@ -66,25 +66,6 @@ function Reflection.make_constructor(
     :(SurrogateSpectralModel{$T,$K,$N,$S,$Syms}($(closures...), ($(params...),)))
 end
 
-function remake_with_number_type(
-    model::SurrogateSpectralModel{FitParam{T},K,N,S,Syms},
-) where {T,K,N,S,Syms}
-    params = model_parameters_tuple(model)
-    new_params = convert.(T, params)
-    SurrogateSpectralModel{T,K,N,S,Syms}(model.surrogate, NTuple{N,T}(new_params))
-end
-
-# runtime access
-get_param_symbols(m::SurrogateSpectralModel) = m.params_symbols
-function get_param(m::SurrogateSpectralModel, s::Symbol)
-    i = findfirst(==(s), m.params_symbols)
-    if !isnothing(i)
-        m.params[i]
-    else
-        error("No such symbol: $s")
-    end
-end
-
 @fastmath function invoke!(
     flux,
     energy,
@@ -242,11 +223,12 @@ function make_surrogate_function(
 end
 
 function make_model(harness::SurrogateHarness)
+    params = parameter_named_tuple(harness.model)
     SurrogateSpectralModel(
         modelkind(harness.model),
         harness.surrogate,
-        model_parameters_tuple(harness.model),
-        all_parameter_symbols(harness.model),
+        Tuple(params),
+        keys(params),
     )
 end
 

@@ -51,8 +51,7 @@ include("ccall-wrapper.jl")
 
 include("composite-models.jl")
 
-include("generation/function-generation.jl")
-include("generation/wrappers.jl")
+include("reflection.jl")
 
 include("meta-models/table-models.jl")
 include("meta-models/surrogate-models.jl")

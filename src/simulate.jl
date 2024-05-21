@@ -113,10 +113,12 @@ function _make_simulation_fitting_config(
         _fold_transformer(T, layout, R, ΔE, input_domain),
     )
 
+    free_params = collect(filter(isfree, parameter_tuple(model)))
+
     conf = FittingConfig(
         implementation(model),
         cache,
-        _allocate_free_parameters(model),
+        free_params,
         input_domain,
         output_domain,
         objective,

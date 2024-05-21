@@ -32,15 +32,20 @@ function interpolated_rebin!(output, target, input, current)
     output
 end
 
-construct_objective_cache(model::AbstractSpectralModel, domain::AbstractVector) =
-    construct_objective_cache(preferred_support(model), model, domain)
-construct_objective_cache(T::Type, model::AbstractSpectralModel, domain::AbstractVector) =
+function construct_objective_cache(
+    T::Type,
+    model::AbstractSpectralModel,
+    domain::AbstractVector,
+)
     construct_objective_cache(preferred_support(model), T, model, domain)
-construct_objective_cache(
+end
+function construct_objective_cache(
     layout::AbstractDataLayout,
     model::AbstractSpectralModel,
     domain::AbstractVector{T},
-) where {T} = construct_objective_cache(layout, T, model, domain)
+) where {T}
+    construct_objective_cache(layout, T, model, domain)
+end
 function construct_objective_cache(
     layout::AbstractDataLayout,
     T::Type,

@@ -126,18 +126,22 @@ end
 
 function invokemodel!(f, e, model::CompositeModel)
     @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
-    generated_model_call!(f, e, model, model_parameters_tuple(model))
+    (model, parameter_tuple(model))
+    composite_model_call!(f, e, model, parameter_tuple(model))
 end
-function invokemodel!(f, e, model::CompositeModel, parameters::AbstractArray)
+function invokemodel!(f, e, model::CompositeModel, parameters::AbstractVector)
     @assert size(f, 2) == objective_cache_count(model) "Too few flux arrays allocated for this model."
-    generated_model_call!(f, e, model, parameters)
+    composite_model_call!(f, e, model, parameters)
 end
 
 function Base.show(io::IO, @nospecialize(model::CompositeModel))
-    expr, infos = _destructure_for_printing(model)
-    for (symbol, (m, _)) in zip(keys(infos), infos)
-        expr =
-            replace(expr, "$(symbol)" => "$(FunctionGeneration.model_base_name(typeof(m)))")
+    destructure = destructure_model(model)
+    expr = "$(destructure.expression)"
+
+    for (sym, model) in destructure.model_map
+        s = "$sym"
+        name = "$(Base.typename(typeof(model)).name)"
+        expr = replace(expr, s => name)
     end
     print(
         io,

@@ -91,7 +91,8 @@ function update_model!(
     model::AbstractSpectralModel,
     result::Union{<:FittingResult,<:FittingResultSlice},
 )
-    for (i, f) in enumerate(_allocate_free_parameters(model))
+    free_params = filter(isfree, parameter_tuple(model))
+    for (i, f) in enumerate(free_params)
         set_value!(f, result.u[i])
     end
     model

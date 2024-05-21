@@ -30,7 +30,7 @@ function _invoke_and_transform!(cache::MultiModelCache, domain, params)
 end
 
 function _build_parameter_mapping(model::FittableMultiModel, bindings)
-    parameters = map(_allocate_free_parameters, model.m)
+    parameters = map(m -> collect(filter(isfree, parameter_tuple(m))), model.m)
     parameters_counts = _accumulated_indices(map(length, parameters))
 
     all_parameters = reduce(vcat, parameters)
