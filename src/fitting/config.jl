@@ -143,9 +143,19 @@ function _f_objective(config::FittingConfig)
     end
 end
 
-
-supports_autodiff(config::FittingConfig{<:JuliaImplementation}) = true
-supports_autodiff(config::FittingConfig) = false
+function paramtype(
+    ::FittingConfig{ImplType,CacheType,StatT,ProbT,P},
+) where {ImplType,CacheType,StatT,ProbT,P}
+    T = eltype(P)
+    K = if T <: FitParam
+        paramtype(T)
+    else
+        T
+    end
+    Vector{K}
+end
+supports_autodiff(::FittingConfig{<:JuliaImplementation}) = true
+supports_autodiff(::FittingConfig) = false
 
 function Base.show(io::IO, @nospecialize(config::FittingConfig))
     descr = "FittingConfig"

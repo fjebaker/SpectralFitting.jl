@@ -47,8 +47,8 @@ Base.isapprox(f1::FitParam, f2::FitParam; kwargs...) =
 Base.:(==)(f1::FitParam, f2::FitParam) = f1.value == f2.value
 Base.convert(T::Type{<:Number}, f::FitParam) = convert(T, f.value)
 
-parameter_type(::Type{FitParam{T}}) where {T} = T
-parameter_type(::T) where {T<:FitParam} = parameter_type(T)
+paramtype(::Type{FitParam{T}}) where {T} = T
+paramtype(::T) where {T<:FitParam} = paramtype(T)
 
 function get_info_tuple(f::FitParam)
     s1 = Printf.@sprintf "%.3g" get_value(f)

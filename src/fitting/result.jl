@@ -46,7 +46,7 @@ end
 
 function _pretty_print(slice::FittingResultSlice)
     "FittingResultSlice:\n" *
-    _pretty_print_result(get_cache(slice).model, slice.u, slice.σu, slice.χ2)
+    _pretty_print_result(get_model(slice), slice.u, slice.σu, slice.χ2)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(slice::FittingResultSlice))
