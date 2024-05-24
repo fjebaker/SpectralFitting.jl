@@ -352,6 +352,7 @@ mm = mcmc_model(
     # _f_objective returns a function used to evaluate and fold the model through the data
     SpectralFitting._f_objective(config),
 )
+nothing # hide
 ```
 
 That's it! We're now ready to sample our model. Since all our models are implemented in Julia, we can use gradient-boosted samplers with automatic differentiation, such as NUTS. We'll walk 5000 itterations, just as a small example:
