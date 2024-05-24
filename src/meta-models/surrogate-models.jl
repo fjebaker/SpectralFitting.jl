@@ -66,26 +66,9 @@ function Reflection.make_constructor(
     :(SurrogateSpectralModel{$T,$K,$N,$S,$Syms}($(closures...), ($(params...),)))
 end
 
-@fastmath function invoke!(
-    flux,
-    energy,
-    model::SurrogateSpectralModel{T,<:Multiplicative},
-) where {T}
-    @inbounds for i in eachindex(flux)
-        E = T(energy[i])
-        v = (E, model.params...)
-        flux[i] = model.surrogate(v)
-    end
-end
-
-@fastmath function invoke!(
-    flux,
-    energy,
-    model::SurrogateSpectralModel{T,<:Additive},
-) where {T}
-    finite_diff_kernel!(flux, energy) do E
-        model.surrogate((E, model.params...))
-    end
+@fastmath function invoke!(output, domain, model::SurrogateSpectralModel{T}) where {T}
+    # TODO: rebin if different domains
+    output .= model.surrogate(model.params)
 end
 
 """
@@ -118,15 +101,17 @@ function optimize_accuracy!(
     lb,
     ub;
     sample_type::SamplingAlgorithm = SobolSample(),
-    maxiters = 200,
-    N_truth = 5000,
+    maxiters = 50,
     verbose = false,
 )
-    X = sample(N_truth, lb, ub, sample_type)
-    y = obj.(X)
+    samples = _initial_space(obj, lb, ub, sample_type, maxiters * 10)
+    X = samples.x
+    y = samples.y
     for epoch = 1:maxiters
         ŷ = surr.(X)
-        σ = @. (ŷ - y)^2
+        σ = map(eachindex(y)) do i
+            surrogate_error(y[i], ŷ[i])
+        end
         ℳσ, i = findmax(σ)
         if verbose
             println("$(rpad(epoch, 5)): ", ℳσ)
@@ -134,6 +119,10 @@ function optimize_accuracy!(
         add_point!(surr, X[i], y[i])
     end
     surr
+end
+
+function surrogate_error(y, ŷ)
+    sum(j -> (y[j] - ŷ[j])^2, eachindex(y))
 end
 
 """
@@ -144,18 +133,21 @@ Wrap a spectral model into an objective function for building/optimizing a surro
 Returns an anonymous function taking the tuple `(E, params...)` as the argument, and
 returning a single flux value.
 """
-function wrap_model_as_objective(model::AbstractSpectralModel; ΔE = 1e-1)
-    (x) -> begin
-        energies = [first(x), first(x) + ΔE]
-        flux = zeros(typeof(x[2]), 1)
-        invokemodel!(flux, energies, model, [x[2:end]...]) |> first
+function wrap_model_as_objective(model::AbstractSpectralModel, domain)
+    outputs = allocate_model_output(model, domain)
+    function _surr_objective(params)
+        invokemodel!(outputs, domain, model, [params...]) |> copy
     end
 end
 
-function _initial_space(obj, lb, ub, sample_type, N)
-    xys = sample(N, lb, ub, sample_type)
-    zs = obj.(xys)
-    (; x = xys, y = zs)
+function _initial_space(obj, lb::NTuple{N}, ub::NTuple{N}, sample_type, n) where {N}
+    xs = sample(n, lb, ub, sample_type)
+    _xs = if N === 1
+        map(i -> Tuple(i), xs)
+    else
+        xs
+    end
+    (; x = _xs, y = obj.(_xs))
 end
 
 struct SurrogateHarness{M,O,S,L}
@@ -197,8 +189,9 @@ seeded with `seed_samples` points prior to optimization.
     capable of. Results for Additive models likely to be inaccurate. This will be patched in a future
     version.
 """
-function make_surrogate_function(
+function make_surrogate_harness(
     make_surrogate::Function,
+    domain,
     model::M,
     lowerbounds::T,
     upperbounds::T,
@@ -207,7 +200,7 @@ function make_surrogate_function(
     sample_type = SobolSample(),
 ) where {M<:AbstractSpectralModel,T<:NTuple}
     # do tests here to make sure lower and upper bounds are okay
-    obj = wrap_model_as_objective(model)
+    obj = wrap_model_as_objective(model, domain)
 
     K = modelkind(M)
     if K === Additive()
@@ -231,4 +224,4 @@ function make_model(harness::SurrogateHarness)
 end
 
 export SurrogateSpectralModel,
-    optimize_accuracy!, wrap_model_as_objective, make_surrogate_function, make_model
+    optimize_accuracy!, wrap_model_as_objective, make_surrogate_harness, make_model
