@@ -308,3 +308,63 @@ Overplotting this new result:
 ```@example walk
 plot!(data, bbpl_result2)
 ```
+
+## MCMC
+
+We can use libraries like [Pidgeons.jl](https://pigeons.run/dev/) or [Turing.jl](https://turinglang.org/) to perform Bayesian inference on our paramters. SpectralFitting.jl is designed with *BYOO* (Bring Your Own Optimizer) in mind, and so makes it relatively easy to get at the core fitting functions to be used with other packages.
+
+Let's use Turing.jl here, which means we'll also want to use [StatsPlots.jl](https://docs.juliaplots.org/dev/generated/statsplots/) to plot our walker chains.
+```@example walk
+using StatsPlots
+using Turing
+```
+
+Turing.jl provides enormous control over the definition of the model, and this is not control SpectralFitting.jl wants to take away from you. Although we will provide utility scripts to do the basics, here we'll show you everything step by step to give you an overview of what you can do.
+
+Let's go back to our first model:
+```@example walk
+model
+```
+
+This gave a pretty good fit but the errors on our paramters are not well defined, being estimated only from a convariance matrix in the least-squares solver. MCMC can give us better confidence regions, and even help us uncover dependencies between paramters. Here we'll take all of our parameters and convert them into a Turing.jl model with use of their macro:
+
+```@example walk
+@model function mcmc_model(domain, objective, variance, f)
+    K ~ Normal(20.0, 1.0)
+    a ~ Normal(2.2, 0.3)
+    ηH ~ truncated(Normal(0.5, 0.1); lower = 0)
+
+    pred = f(domain, [K, a, ηH])
+    return objective ~ MvNormal(pred, sqrt.(variance))
+end
+```
+
+A few things to note here: we use the Turing.jl sampling syntax `~` to say that a variable is sampled from a certain type of prior distribution. There are no fixed criteria for what a distribution can be, and we encourage you to consult the Turing.jl documentation to learn how to define your own custom probability distributions. In this case, we will use Gaussians for all our parameters, and for the means and standard deviations use the best fit and estimated errors.
+
+At the moment we haven't explicitly used our model, but `f` in this case takes the roll of invoking our model, and folding through instrument responses. We call it in much the same way as [`invokemodel`](@ref), despite it going the extra step to fold our model. To instantiate this, we can use the SpectralFitting.jl helper functions:
+
+```@example walk
+config = FittingConfig(FittingProblem(model => data))
+mm = mcmc_model(
+    make_model_domain(ContiguouslyBinned(), data),
+    make_objective(ContiguouslyBinned(), data),
+    make_objective_variance(ContiguouslyBinned(), data),
+    # _f_objective returns a function used to evaluate and fold the model through the data
+    SpectralFitting._f_objective(config),
+)
+nothing # hide
+```
+
+That's it! We're now ready to sample our model. Since all our models are implemented in Julia, we can use gradient-boosted samplers with automatic differentiation, such as NUTS. We'll walk 5000 itterations, just as a small example:
+
+```@example walk
+chain = sample(mm, NUTS(), 5_000)
+```
+
+In the printout we see summary statistics about or model, in this case that it has converged well (`rhat` close to 1 for all parameters), better estimates of the standard deviation, and various quantiles. We can plot our chains to make sure the caterpillers are healthy and fuzzy, making use of StatsPlots.jl recipes:
+
+```@example walk
+plot(chain)
+```
+
+Corner plots are currently broken at time of writing.
