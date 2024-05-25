@@ -47,7 +47,7 @@ Benchmarking with [BenchmarkTools.jl](https://juliaci.github.io/BenchmarkTools.j
 
 ```@example surrogate_example
 using BenchmarkTools
-@btime invokemodel!($flux, $energy, $model);
+@benchmark invokemodel!($flux, $energy, $model)
 ```
 
 The surrogate we'll construct will have to be tailored a little to the data we wish to fit, as we need to specify the parameter ranges our surrogate should learn. For example, we might be interested in energies between ``0.1`` and ``20`` keV (expressed in our domain), with equivalent hydrogen column ``\eta``H anywhere between ``10^{-3}`` and ``30``. We specify the parameter bounds using tuples:
@@ -73,7 +73,9 @@ harness = make_surrogate_harness(
     energy,
     model,
     lower_bounds,
-    upper_bounds,
+    upper_bounds;
+    # default is 50, but to illustrate the training behaviour we'll set this low
+    seed_samples = 2,
 )
 
 # number of points the surrogate has been trained on
@@ -84,10 +86,8 @@ We can examine how well our surrogate reconstructs the model for a given test pa
 
 ```@example surrogate_example
 using Plots
-import Random # hide
-Random.seed!(1) # hide
 # random test value
-ηh_test = rand() * 3 + lower_bounds[1]
+ηh_test = 22.9
 
 model.ηH.value = ηh_test
 f = invokemodel(energy, model)
@@ -133,7 +133,7 @@ sm = make_model(harness)
 We can now use the familiar API and attempt to benchmark the performance:
 
 ```@example surrogate_example
-@btime invokemodel!($flux, $energy, $sm);
+@benchmark invokemodel!($flux, $energy, $sm)
 ```
 
 Comparing this to the initial benchmark of [`XS_PhotoelectricAbsorption`](@ref), we see about a significant speedup, with no allocations, _and_ this surrogate model is now automatic differentiation ready.
