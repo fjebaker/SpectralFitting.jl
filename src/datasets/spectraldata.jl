@@ -160,7 +160,7 @@ function SpectralData(
     return data
 end
 
-supports(::ContiguouslyBinned, ::Type{<:SpectralData}) = true
+supports(::Type{<:SpectralData}) = (ContiguouslyBinned(),)
 
 function check_units_warning(units)
     if units != u"counts / (s * keV)"
@@ -425,7 +425,7 @@ macro _forward_SpectralData_api(args)
     end
     T, field = args.args
     quote
-        SpectralFitting.supports(::ContiguouslyBinned, t::Type{<:$(T)}) = true
+        SpectralFitting.supports(t::Type{<:$(T)}) = (ContiguouslyBinned(),)
         SpectralFitting.make_output_domain(
             layout::SpectralFitting.AbstractLayout,
             t::$(T),

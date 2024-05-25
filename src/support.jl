@@ -110,19 +110,26 @@ end
 common_support(args::Vararg) = reduce(_support_reducer, args)
 
 """
-    supports(layout::AbstractLayout, x::Type)::Bool
+    supports(x::Type)
 
 Used to define whether a given type has support for a specific
-[`AbstractLayout`](@ref). This method should be implemented to express new
-support, not the query method.
+[`AbstractLayout`](@ref). Should return a tuple of the supported layouts. This
+method should be implemented to express new support, not the query method. 
 
 To query, there is
 
-    support(layout::AbstractLayout, x)::Bool
+    supports(layout::AbstractLayout, x)::Bool
+
+# Example
+
+```julia
+supports(::Type{typeof(x)}) = (OneToOne(),)
+@assert supports(ContiguouslyBinned(), x) == false
+```
 """
-supports(layout::AbstractLayout, x) = supports(layout, typeof(x))
-supports(::ContiguouslyBinned, T::Type) = false
-supports(::OneToOne, T::Type) = false
+supports(layout::AbstractLayout, x)::Bool = layout in supports(x)
+supports(::T) where {T} = supports(T)
+supports(::Type) = ()
 
 export OneToOne,
     ContiguouslyBinned, AbstractLayout, supports, preferred_support, common_support

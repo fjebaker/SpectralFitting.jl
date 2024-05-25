@@ -28,7 +28,7 @@ function normalize!(spectrum::Spectrum)
     spectrum
 end
 
-supports(::ContiguouslyBinned, ::Type{<:Spectrum}) = true
+supports(::Type{<:Spectrum}) = (ContiguouslyBinned(),)
 
 function make_objective(::ContiguouslyBinned, dataset::Spectrum)
     check_units_warning(dataset.units)
