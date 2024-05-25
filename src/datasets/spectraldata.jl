@@ -286,7 +286,12 @@ function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     dataset
 end
 
-regroup!(dataset::SpectralData) = regroup!(dataset, dataset.spectrum.grouping)
+function regroup!(dataset::SpectralData; min_counts = nothing)
+    if !isnothing(min_counts)
+        group_min_counts!(dataset.spectrum, min_counts)
+    end
+    regroup!(dataset, dataset.spectrum.grouping)
+end
 
 function normalize!(dataset::SpectralData)
     ΔE = bin_widths(dataset)
@@ -445,8 +450,8 @@ macro _forward_SpectralData_api(args)
             layout::SpectralFitting.AbstractDataLayout,
             t::$(T),
         ) = SpectralFitting.objective_transformer(layout, getfield(t, $(field)))
-        SpectralFitting.regroup!(t::$(T), args...) =
-            SpectralFitting.regroup!(getfield(t, $(field)), args...)
+        SpectralFitting.regroup!(t::$(T), args...; kwargs...) =
+            SpectralFitting.regroup!(getfield(t, $(field)), args...; kwargs...)
         SpectralFitting.restrict_domain!(t::$(T), args...) =
             SpectralFitting.restrict_domain!(getfield(t, $(field)), args...)
         SpectralFitting.mask_energies!(t::$(T), args...) =
