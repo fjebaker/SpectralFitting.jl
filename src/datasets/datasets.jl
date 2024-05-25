@@ -8,7 +8,7 @@ Fitting data is considered to have an *objective* and a *domain*. As
 the domain may be, for example, energy bins (high and low), or
 fourier frequencies (single value), the purpose of this abstraction
 is to provide some facility for translating between these representations
-for the models to fit with. This is done by checking that the [`AbstractDataLayout`](@ref)
+for the models to fit with. This is done by checking that the [`AbstractLayout`](@ref)
 of the model and data are compatible, or at least have compatible translations.
 
 Must implement a minimal set of accessor methods. These are paired with
@@ -17,7 +17,7 @@ Must implement a minimal set of accessor methods. These are paired with
 into the translation. Usage of these functions should be sparse in the interest of
 performance.
 
-The arrays returned by the `make_*` functions must correspond to the [`AbstractDataLayout`](@ref)
+The arrays returned by the `make_*` functions must correspond to the [`AbstractLayout`](@ref)
 specified by the caller.
 
 - [`make_objective_variance`](@ref)
@@ -46,10 +46,10 @@ end
 
 
 """
-    make_objective(layout::AbstractDataLayout, dataset::AbstractDataset)
+    make_objective(layout::AbstractLayout, dataset::AbstractDataset)
 
 Returns the array used as the target for model fitting. The array must
-correspond to the data [`AbstractDataLayout`](@ref) specified by the `layout`
+correspond to the data [`AbstractLayout`](@ref) specified by the `layout`
 parameter.
 
 In as far as it can be guarunteed, the memory in the returned array will not be
@@ -57,36 +57,36 @@ mutated by any fitting procedures.
 
 Domain for this objective should be returned by [`make_model_domain`](@ref).
 """
-make_objective(layout::AbstractDataLayout, dataset::AbstractDataset) =
+make_objective(layout::AbstractLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    make_objective_variance(layout::AbstractDataLayout, dataset::AbstractDataset)
+    make_objective_variance(layout::AbstractLayout, dataset::AbstractDataset)
 
 Make the variance vector associated with each objective point.
 """
-make_objective_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
+make_objective_variance(layout::AbstractLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    make_model_domain(layout::AbstractDataLayout, dataset::AbstractDataset)
+    make_model_domain(layout::AbstractLayout, dataset::AbstractDataset)
 
 Returns the array used as the domain for the modelling. This is paired with
 [`make_domain_variance`](@ref)
 """
-make_model_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
+make_model_domain(layout::AbstractLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) 
+    make_domain_variance(layout::AbstractLayout, dataset::AbstractDataset) 
 
 Make the variance vector associated with the domain.
 """
-make_domain_variance(layout::AbstractDataLayout, dataset::AbstractDataset) =
+make_domain_variance(layout::AbstractLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    make_output_domain(layout::AbstractDataLayout, dataset::AbstractDataset)
+    make_output_domain(layout::AbstractLayout, dataset::AbstractDataset)
 
 Returns the array used as the output domain. That is, in cases where the model
 input and output map to different domains, the input domain is said to be the
@@ -95,11 +95,11 @@ model domain, the input domain is said to be the model domain.
 The distinction is mainly used for the purposes of simulating data and for
 visualising data.
 """
-make_output_domain(layout::AbstractDataLayout, dataset::AbstractDataset) =
+make_output_domain(layout::AbstractLayout, dataset::AbstractDataset) =
     error("Layout $(layout) is not implemented for $(typeof(dataset))")
 
 """
-    objective_transformer(layout::AbstractDataLayout, dataset::AbstractDataset)
+    objective_transformer(layout::AbstractLayout, dataset::AbstractDataset)
 
 Used to transform the output of the model onto the output domain. For spectral
 fitting, this is the method used to do response folding and bin masking.
@@ -117,7 +117,7 @@ function _DEFAULT_TRANSFORMER()
 end
 ```
 """
-function objective_transformer(layout::AbstractDataLayout, dataset::AbstractDataset)
+function objective_transformer(layout::AbstractLayout, dataset::AbstractDataset)
     @warn "Using default objective transformer!"
     _DEFAULT_TRANSFORMER()
 end

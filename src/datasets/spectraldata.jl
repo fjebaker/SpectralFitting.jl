@@ -168,12 +168,12 @@ function check_units_warning(units)
     end
 end
 
-function make_objective(layout::AbstractDataLayout, dataset::SpectralData)
+function make_objective(layout::AbstractLayout, dataset::SpectralData)
     check_units_warning(dataset.spectrum.units)
     make_objective(layout, dataset.spectrum)[dataset.data_mask]
 end
 
-function make_objective_variance(layout::AbstractDataLayout, dataset::SpectralData)
+function make_objective_variance(layout::AbstractLayout, dataset::SpectralData)
     check_units_warning(dataset.spectrum.units)
     make_objective_variance(layout, dataset.spectrum)[dataset.data_mask]
 end
@@ -427,27 +427,23 @@ macro _forward_SpectralData_api(args)
     quote
         SpectralFitting.supports(::ContiguouslyBinned, t::Type{<:$(T)}) = true
         SpectralFitting.make_output_domain(
-            layout::SpectralFitting.AbstractDataLayout,
+            layout::SpectralFitting.AbstractLayout,
             t::$(T),
         ) = SpectralFitting.make_output_domain(layout, getfield(t, $(field)))
-        SpectralFitting.make_model_domain(
-            layout::SpectralFitting.AbstractDataLayout,
-            t::$(T),
-        ) = SpectralFitting.make_model_domain(layout, getfield(t, $(field)))
+        SpectralFitting.make_model_domain(layout::SpectralFitting.AbstractLayout, t::$(T)) =
+            SpectralFitting.make_model_domain(layout, getfield(t, $(field)))
         SpectralFitting.make_domain_variance(
-            layout::SpectralFitting.AbstractDataLayout,
+            layout::SpectralFitting.AbstractLayout,
             t::$(T),
         ) = SpectralFitting.make_domain_variance(layout, getfield(t, $(field)))
-        SpectralFitting.make_objective(
-            layout::SpectralFitting.AbstractDataLayout,
-            t::$(T),
-        ) = SpectralFitting.make_objective(layout, getfield(t, $(field)))
+        SpectralFitting.make_objective(layout::SpectralFitting.AbstractLayout, t::$(T)) =
+            SpectralFitting.make_objective(layout, getfield(t, $(field)))
         SpectralFitting.make_objective_variance(
-            layout::SpectralFitting.AbstractDataLayout,
+            layout::SpectralFitting.AbstractLayout,
             t::$(T),
         ) = SpectralFitting.make_objective_variance(layout, getfield(t, $(field)))
         SpectralFitting.objective_transformer(
-            layout::SpectralFitting.AbstractDataLayout,
+            layout::SpectralFitting.AbstractLayout,
             t::$(T),
         ) = SpectralFitting.objective_transformer(layout, getfield(t, $(field)))
         SpectralFitting.regroup!(t::$(T), args...; kwargs...) =

@@ -6,7 +6,7 @@
 end
 
 """
-    abstract type AbstractDataLayout end
+    abstract type AbstractLayout end
 
 The data layout primarily concerns the relationship between the objective and
 the domain. It is used to work out whether a model and a dataset are fittable,
@@ -20,10 +20,10 @@ The following methods may be used to interrogate support:
 The following method is also used to define the support of a model or dataset:
 - [`supports`](@ref)
 """
-abstract type AbstractDataLayout end
+abstract type AbstractLayout end
 
 """
-    struct OneToOne <: AbstractDataLayout end
+    struct OneToOne <: AbstractLayout end
 
 Indicates there is a one-to-one (injective) correspondence between each input
 value and each output value. That is to say
@@ -31,10 +31,10 @@ value and each output value. That is to say
 length(objective) == length(domain)
 ```
 """
-struct OneToOne <: AbstractDataLayout end
+struct OneToOne <: AbstractLayout end
 
 """
-    struct ContiguouslyBinned <: AbstractDataLayout end
+    struct ContiguouslyBinned <: AbstractLayout end
 
 Contiguously binned data layout means that the domain describes high and low
 bins, with the objective being the value in that bin. This means
@@ -47,14 +47,14 @@ Note that the _contiguous_ qualifer is to mean there is no gaps in the bins, and
 ```
 
 """
-struct ContiguouslyBinned <: AbstractDataLayout end
+struct ContiguouslyBinned <: AbstractLayout end
 
 const DEFAULT_SUPPORT_ORDERING = (ContiguouslyBinned(), OneToOne())
 
 """
     preferred_support(x)
 
-Get the preffered [`AbstractDataLayout`](@ref) of `x`. If multiple supports are available, 
+Get the preffered [`AbstractLayout`](@ref) of `x`. If multiple supports are available, 
 the `DEFAULT_SUPPORT_ORDERING` is followed:
 
 ```
@@ -73,7 +73,7 @@ end
 """
     common_support(x, y)
 
-Find the common [`AbstractDataLayout`](@ref) of `x` and `y`, following the ordering of
+Find the common [`AbstractLayout`](@ref) of `x` and `y`, following the ordering of
 [`preferred_support`](@ref).
 """
 function common_support(x, y)
@@ -110,19 +110,19 @@ end
 common_support(args::Vararg) = reduce(_support_reducer, args)
 
 """
-    supports(layout::AbstractDataLayout, x::Type)::Bool
+    supports(layout::AbstractLayout, x::Type)::Bool
 
 Used to define whether a given type has support for a specific
-[`AbstractDataLayout`](@ref). This method should be implemented to express new
+[`AbstractLayout`](@ref). This method should be implemented to express new
 support, not the query method.
 
 To query, there is
 
-    support(layout::AbstractDataLayout, x)::Bool
+    support(layout::AbstractLayout, x)::Bool
 """
-supports(layout::AbstractDataLayout, x) = supports(layout, typeof(x))
+supports(layout::AbstractLayout, x) = supports(layout, typeof(x))
 supports(::ContiguouslyBinned, T::Type) = false
 supports(::OneToOne, T::Type) = false
 
 export OneToOne,
-    ContiguouslyBinned, AbstractDataLayout, supports, preferred_support, common_support
+    ContiguouslyBinned, AbstractLayout, supports, preferred_support, common_support
