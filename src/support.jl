@@ -19,8 +19,20 @@ The following methods may be used to interrogate support:
 
 The following method is also used to define the support of a model or dataset:
 - [`supports`](@ref)
+
+For cases where unit information needs to be propagated, an `AbstractLayout` can also be used to ensure the units are compatible. To query the units of a layout, use
+- [`support_units`](@ref)
 """
 abstract type AbstractLayout end
+
+"""
+    support_units(x)
+
+Return the units of a particular layout. If this method returns `nothing`,
+assume the layout does not care about the units and handle that information
+appropriately (throw an error or set defaults).
+"""
+support_units(::T) where {T<:AbstractLayout} = nothing
 
 """
     struct OneToOne <: AbstractLayout end
@@ -31,7 +43,11 @@ value and each output value. That is to say
 length(objective) == length(domain)
 ```
 """
-struct OneToOne <: AbstractLayout end
+struct OneToOne{U} <: AbstractLayout
+    units::U
+end
+OneToOne() = OneToOne(nothing)
+support_units(l::OneToOne) = l.units
 
 """
     struct ContiguouslyBinned <: AbstractLayout end
@@ -47,7 +63,11 @@ Note that the _contiguous_ qualifer is to mean there is no gaps in the bins, and
 ```
 
 """
-struct ContiguouslyBinned <: AbstractLayout end
+struct ContiguouslyBinned{U} <: AbstractLayout
+    units::U
+end
+ContiguouslyBinned() = ContiguouslyBinned(nothing)
+support_units(l::ContiguouslyBinned) = l.units
 
 const DEFAULT_SUPPORT_ORDERING = (ContiguouslyBinned(), OneToOne())
 
@@ -131,5 +151,5 @@ supports(layout::AbstractLayout, x)::Bool = layout in supports(x)
 supports(::T) where {T} = supports(T)
 supports(::Type) = ()
 
-export OneToOne,
-    ContiguouslyBinned, AbstractLayout, supports, preferred_support, common_support
+export AbstractLayout,
+    common_support, ContiguouslyBinned, OneToOne, preferred_support, supports, support_units
