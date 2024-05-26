@@ -51,6 +51,14 @@ end
     @views (x[I], rate[I])
 end
 
+# ratio plots
+@userplot plotbackground
+@recipe function _plotting_func(p::plotbackground)
+    data = p.args[1]
+    background_dataset(data)
+end
+
+
 @recipe _plotting_func(::Type{<:FittingResult}, result::FittingResult) = result[1]
 
 @recipe function _plotting_func(result::FittingResultSlice)
