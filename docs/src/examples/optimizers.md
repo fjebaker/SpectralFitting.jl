@@ -2,7 +2,7 @@
 
 Let's fit a spectrum:
 
-```@example optimizers
+```julia
 using SpectralFitting, Plots
 
 DATADIR = "..."
