@@ -64,7 +64,9 @@ result = fit(prob, LevenbergMarquadt())
 
 # todo: with background subtraction
 data1_nobkg = deepcopy(data1)
+set_units!(data1_nobkg, u"counts")
 subtract_background!(data1_nobkg)
+set_units!(data1_nobkg, u"counts / (s * keV)")
 
 prob = FittingProblem(model, data1_nobkg)
 result = fit(prob, LevenbergMarquadt())
