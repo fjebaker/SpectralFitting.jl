@@ -158,7 +158,6 @@ end
     data = r.args[1]
     results = r.args[2] isa Base.AbstractVecOrTuple ? r.args[2] : (r.args[2],)
 
-
     if xscale == :log10
         _x = plotting_domain(data)
         _xerr = SpectralFitting.bin_widths(data) ./ 2
@@ -167,10 +166,10 @@ end
         xticks --> get_tickslogscale((min_x, max_x))
     end
 
+    ylabel --> SpectralFitting.objective_units(data)
     @series begin
         subplot := 1
         xlabel := ""
-        ylabel := SpectralFitting.objective_units(data)
         data
     end
 
@@ -188,6 +187,8 @@ end
             link := :x
             seriestype --> :stepmid
             yscale := :identity
+            ylabel := "Residuals"
+            ylims := :auto
             label := false
             fill --> (0, 0.3, :auto)
             y_residuals = residuals(r)
