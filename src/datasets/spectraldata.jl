@@ -329,6 +329,10 @@ objective_units(data::SpectralData) = data.spectrum.units
 
 error_statistic(data::SpectralData) = error_statistic(data.spectrum)
 
+preferred_units(::Type{<:SpectralData}, ::AbstractStatistic) = nothing
+preferred_units(::Type{<:SpectralData}, ::ChiSquared) = u"counts / (s * keV)"
+preferred_units(::Type{<:SpectralData}, ::Cash) = u"counts"
+
 # internal methods
 
 function rebin_if_different_domains!(output, data_domain, model_domain, input)
@@ -426,6 +430,8 @@ macro _forward_SpectralData_api(args)
     T, field = args.args
     quote
         SpectralFitting.supports(t::Type{<:$(T)}) = (ContiguouslyBinned(),)
+        SpectralFitting.preferred_units(t::Type{<:$(T)}, u::AbstractStatistic) =
+            SpectralFitting.preferred_units(SpectralData, u)
         SpectralFitting.make_output_domain(
             layout::SpectralFitting.AbstractLayout,
             t::$(T),

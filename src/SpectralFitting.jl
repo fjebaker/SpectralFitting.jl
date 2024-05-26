@@ -36,6 +36,8 @@ abstract type AbstractMission end
 struct NoMission <: AbstractMission end
 
 abstract type AbstractStatistic end
+struct ChiSquared <: AbstractStatistic end
+struct Cash <: AbstractStatistic end
 
 # unitful units
 include("units.jl")

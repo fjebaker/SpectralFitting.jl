@@ -12,12 +12,10 @@ end
 supports(::Type{<:SimulatedSpectrum}) = (ContiguouslyBinned(),)
 
 function make_objective(::ContiguouslyBinned, dataset::SimulatedSpectrum)
-    check_units_warning(dataset.units)
     dataset.data
 end
 
 function make_objective_variance(::ContiguouslyBinned, dataset::SimulatedSpectrum)
-    check_units_warning(dataset.units)
     dataset.variance
 end
 

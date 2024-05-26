@@ -2,7 +2,6 @@ function measure(stat::AbstractStatistic, result::FittingResult, args...; kwargs
     measure(stat, result[1], args...; kwargs...)
 end
 
-struct ChiSquared <: AbstractStatistic end
 function measure(::ChiSquared, y, ŷ, σ²)
     sum(@.((y - ŷ)^2 / σ²))
 end
@@ -22,7 +21,6 @@ function _f_wrap_objective(stat::ChiSquared, config::FittingConfig)
     end
 end
 
-struct Cash <: AbstractStatistic end
 function measure(::Cash, S, ŷ)
     2 * sum(@.(ŷ - S + S * (log(S) - log(ŷ))))
 end

@@ -30,6 +30,15 @@ Additionally there is an objective transformer that transforms the output of the
 model onto the `output` domain:
 
 - [`objective_transformer`](@ref)
+
+Finally, to make all of the fitting for different statistical regimes work
+efficiently, datasets should inform which units are preferred to fit. They may
+also give the error statistics they prefer, and a label name primarily used to
+disambiguate:
+
+- [`preferred_units`](@ref)
+- [`error_statistic`](@ref)
+- [`make_label`](@ref)
 """
 abstract type AbstractDataset end
 
@@ -132,9 +141,41 @@ function _DEFAULT_TRANSFORMER()
     _transformer!!
 end
 
-make_label(d::AbstractDataset) = "$(Base.typename(typeof(d)).name)"
+"""
+    preferred_units(::Type{<:AbstractDataset}, s::AbstractStatistic)
+    preferred_units(x, s::AbstractStatistic)
 
+Get the preferred units that a given dataset would use to fit the
+[`AbstractStatistic`](@ref) in. For example, for [`ChiSquared`](@ref), the units
+of the model may be a rate, however for [`Cash`](@ref) the preferred units might
+be counts.
+
+Returning `nothing` from this function implies there is no unit preference.
+
+If undefined for a derived type, returns `nothing`.
+
+See also [`support_units`](@ref).
+"""
+preferred_units(::T, s::AbstractStatistic) where {T<:AbstractDataset} =
+    preferred_units(T, s)
+preferred_units(::Type{<:AbstractDataset}, s::AbstractStatistic) = nothing
+
+"""
+    error_statistic(::AbstractDataset)
+
+Should return an [`ErrorStatistics`](@ref) describing which error statistic this
+data uses.
+
+If undefined for a derived type, returns `ErrorStatistics.Unknown`.
+"""
 error_statistic(::AbstractDataset) = ErrorStatistics.Unknown
+
+"""
+    make_label(d::AbstractDataset)
+
+Return a string that gives a descriptive label for this dataset.
+"""
+make_label(d::AbstractDataset) = "$(Base.typename(typeof(d)).name)"
 
 """
 Must support the same API, but may also have some query methods for specific internals.
@@ -142,13 +183,16 @@ Must support the same API, but may also have some query methods for specific int
 abstract type AbstractMultiDataset <: AbstractDataset end
 
 export AbstractDataset,
-    make_model_domain,
-    make_output_domain,
+    error_statistic,
     make_domain_variance,
+    make_label,
+    make_model_domain,
     make_objective,
     make_objective_variance,
+    make_output_domain,
     normalize!,
-    objective_transformer
+    objective_transformer,
+    preferred_units
 
 include("spectrum.jl")
 include("response.jl")

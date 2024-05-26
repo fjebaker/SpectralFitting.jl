@@ -41,7 +41,7 @@ function make_single_config(prob::FittingProblem, stat::AbstractStatistic)
     model = prob.model.m[1]
     dataset = prob.data.d[1]
 
-    layout = common_support(model, dataset)
+    layout = with_units(common_support(model, dataset), preferred_units(dataset, stat))
     model_domain = make_model_domain(layout, dataset)
     output_domain = make_output_domain(layout, dataset)
     objective = make_objective(layout, dataset)

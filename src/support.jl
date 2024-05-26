@@ -35,6 +35,14 @@ appropriately (throw an error or set defaults).
 support_units(::T) where {T<:AbstractLayout} = nothing
 
 """
+    with_units(::AbstractLayout, units)
+
+Remake the [`AbstractLayout`](@ref) with the desired units. This may be a no-op
+if the layout does not care about units, see [`support_units`](@ref).
+"""
+with_units(layout::AbstractLayout, units) = layout
+
+"""
     struct OneToOne <: AbstractLayout end
 
 Indicates there is a one-to-one (injective) correspondence between each input
@@ -48,6 +56,7 @@ struct OneToOne{U} <: AbstractLayout
 end
 OneToOne() = OneToOne(nothing)
 support_units(l::OneToOne) = l.units
+with_units(::OneToOne, units) = OneToOne(units)
 
 """
     struct ContiguouslyBinned <: AbstractLayout end
@@ -68,13 +77,14 @@ struct ContiguouslyBinned{U} <: AbstractLayout
 end
 ContiguouslyBinned() = ContiguouslyBinned(nothing)
 support_units(l::ContiguouslyBinned) = l.units
+with_units(::ContiguouslyBinned, units) = ContiguouslyBinned(units)
 
 const DEFAULT_SUPPORT_ORDERING = (ContiguouslyBinned(), OneToOne())
 
 """
     preferred_support(x)
 
-Get the preffered [`AbstractLayout`](@ref) of `x`. If multiple supports are available, 
+Get the preferred [`AbstractLayout`](@ref) of `x`. If multiple supports are available, 
 the `DEFAULT_SUPPORT_ORDERING` is followed:
 
 ```
