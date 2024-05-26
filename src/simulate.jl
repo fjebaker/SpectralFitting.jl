@@ -109,7 +109,7 @@ function _make_simulation_fitting_config(
         model,
         input_domain,
         objective,
-        _fold_transformer(T, layout, R, ΔE, input_domain),
+        _fold_transformer(T, one(eltype(ΔE)), layout, R, ΔE, input_domain),
     )
 
     free_params = collect(filter(isfree, parameter_tuple(model)))

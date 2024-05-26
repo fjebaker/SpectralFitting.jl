@@ -72,8 +72,11 @@ function make_multi_config(prob::FittingProblem, stat::AbstractStatistic)
         all(model -> implementation(model) isa JuliaImplementation, prob.model.m) ?
         JuliaImplementation() : XSPECImplementation()
 
-    layout = common_support(prob.model.m..., prob.data.d...)
-
+    # TODO: preferred units needs to be the same for all datasets?
+    layout = with_units(
+        common_support(prob.model.m..., prob.data.d...),
+        preferred_units(first(prob.data.d), stat),
+    )
     variances = map(d -> make_objective_variance(layout, d), prob.data.d)
     # build index mappings for pulling out the data
     domains, domain_mapping = _build_domain_mapping(layout, prob.data)

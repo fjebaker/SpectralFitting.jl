@@ -108,24 +108,6 @@ end
 
 function SpectralData(paths::SpectralDataPaths; kwargs...)
     spec, resp, back, anc = _read_all_ogip(paths; kwargs...)
-
-    # convert everything to rates
-    if spec.units == u"counts"
-        spec.units = u"counts / s"
-        @. spec.data /= spec.exposure_time
-        if !isnothing(spec.errors)
-            @. spec.errors /= spec.exposure_time
-        end
-    end
-
-    if !isnothing(back) && back.units == u"counts"
-        back.units = u"counts / s"
-        @. back.data /= back.exposure_time
-        if !isnothing(back.errors)
-            @. back.errors /= back.exposure_time
-        end
-    end
-
     SpectralData(spec, resp; background = back, ancillary = anc)
 end
 
@@ -162,20 +144,25 @@ end
 
 supports(::Type{<:SpectralData}) = (ContiguouslyBinned(),)
 
-function check_units_warning(units)
-    if units != u"counts / (s * keV)"
-        @warn "Data is currently still in $(units). Most models fit in rate (count / (s * keV)). Use `normalize!(dataset)` to ensure the dataset is in a standard format."
+function _objective_to_units(dataset::SpectralData, obj, units)
+    adj = if !isnothing(units)
+        alt = copy(obj)
+        adjust_to_units!(dataset, dataset.spectrum, alt, units)
+        alt
+    else
+        obj
     end
+    adj[dataset.data_mask]
 end
 
 function make_objective(layout::AbstractLayout, dataset::SpectralData)
-    check_units_warning(dataset.spectrum.units)
-    make_objective(layout, dataset.spectrum)[dataset.data_mask]
+    obj = make_objective(layout, dataset.spectrum)
+    _objective_to_units(dataset, obj, support_units(layout))
 end
 
 function make_objective_variance(layout::AbstractLayout, dataset::SpectralData)
-    check_units_warning(dataset.spectrum.units)
-    make_objective_variance(layout, dataset.spectrum)[dataset.data_mask]
+    var = make_objective_variance(layout, dataset.spectrum)
+    _objective_to_units(dataset, var, support_units(layout))
 end
 
 make_model_domain(::ContiguouslyBinned, dataset::SpectralData) = dataset.domain
@@ -198,17 +185,28 @@ function restrict_domain!(dataset::SpectralData, condition)
     dataset
 end
 
-function _fold_transformer(T::Type, layout, R, ΔE, E)
+function _fold_transformer(T::Type, exposure_time, layout::AbstractLayout, R, ΔE, E)
     cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
+    units = support_units(layout)
     function _transformer!!(energy, flux)
         f = rebin_if_different_domains!(get_tmp(cache, flux), E, energy, flux)
         f = R * f
-        @. f = f / ΔE
+        if units === u"counts / (s * keV)"
+            @. f = f / ΔE
+        elseif units === u"counts"
+            @. f = f * exposure_time
+        end
+        f
     end
     function _transformer!!(output, energy, flux)
         f = rebin_if_different_domains!(get_tmp(cache, flux), E, energy, flux)
         mul!(output, R, f)
-        @. output = output / ΔE
+        if units === u"counts / (s * keV)"
+            @. output = output / ΔE
+        elseif units === u"counts"
+            @. output = output * exposure_time
+        end
+        output
     end
     _transformer!!
 end
@@ -225,7 +223,7 @@ function objective_transformer(
     R = R_folded[dataset.data_mask, :]
     ΔE = bin_widths(dataset)
     model_domain = response_energy(dataset.response)
-    _fold_transformer(T, layout, R, ΔE, model_domain)
+    _fold_transformer(T, dataset.spectrum.exposure_time, layout, R, ΔE, model_domain)
 end
 
 
@@ -294,22 +292,8 @@ function regroup!(dataset::SpectralData; min_counts = nothing)
 end
 
 function normalize!(dataset::SpectralData)
-    ΔE = bin_widths(dataset)
-    normalize!(dataset.spectrum)
-    if !(dataset.spectrum.units == u"counts / (s * keV)")
-        @. dataset.spectrum.data /= ΔE
-        @. dataset.spectrum.errors /= ΔE
-        dataset.spectrum.units = u"counts / (s * keV)"
-    end
-    if has_background(dataset)
-        normalize!(dataset.background)
-        if !(dataset.background.units == u"counts / (s * keV)")
-            @. dataset.background.data /= ΔE
-            @. dataset.background.errors /= ΔE
-            dataset.background.units = u"counts / (s * keV)"
-        end
-    end
-    dataset
+    Base.depwarn("`normalize!` is deprecated. Use `set_units!` instead.", :normalize!)
+    set_units!(dataset, u"counts / (s * keV)")
 end
 
 function subtract_background!(dataset::SpectralData)
@@ -332,6 +316,53 @@ error_statistic(data::SpectralData) = error_statistic(data.spectrum)
 preferred_units(::Type{<:SpectralData}, ::AbstractStatistic) = nothing
 preferred_units(::Type{<:SpectralData}, ::ChiSquared) = u"counts / (s * keV)"
 preferred_units(::Type{<:SpectralData}, ::Cash) = u"counts"
+
+_as_unit(::Unitful.FreeUnits{U}) where {U} = first(U)
+
+function _adjust_by_unit_difference!(
+    ΔE,
+    exposure_time,
+    x,
+    ::Unitful.FreeUnits{Units},
+) where {Units}
+    foreach(Units) do u
+        if u === _as_unit(u"s")
+            @. x = x * exposure_time
+        elseif u === _as_unit(u"s^-1")
+            @. x = x / exposure_time
+        elseif u === _as_unit(u"keV")
+            @. x = x * ΔE
+        elseif u === _as_unit(u"keV^-1")
+            @. x = x / ΔE
+        else
+            throw(
+                ErrorException(
+                    "Cannot adjust units: unhandled unit difference: $(u) (if you are expecting to be able to use specific units, please open a bug report).",
+                ),
+            )
+        end
+    end
+    nothing
+end
+
+function adjust_to_units!(data::SpectralData, s::Spectrum, x, units)
+    ΔE = bin_widths(data)
+    exposure_time = s.exposure_time
+    _adjust_by_unit_difference!(ΔE, exposure_time, x, units / s.units)
+    x
+end
+
+function set_units!(s::SpectralData, units)
+    adjust_to_units!(s, s.spectrum, s.spectrum.data, units)
+    adjust_to_units!(s, s.spectrum, s.spectrum.errors, units)
+    s.spectrum.units = units
+    if has_background(s)
+        adjust_to_units!(s, s.background, s.background.data, units)
+        adjust_to_units!(s, s.background, s.background.errors, units)
+        s.background.units = units
+    end
+    s
+end
 
 # internal methods
 
@@ -478,9 +509,10 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.set_domain!(getfield(t, $(field)), args...)
         SpectralFitting.error_statistic(t::$(T)) =
             SpectralFitting.error_statistic(getfield(t, $(field)))
+        SpectralFitting.set_units!(t::$(T), args...) =
+            SpectralFitting.set_units!(getfield(t, $(field)), args...)
     end |> esc
 end
-
 
 # printing utilities
 
@@ -576,4 +608,5 @@ export SpectralData,
     drop_channels!,
     normalize!,
     subtract_background!,
-    set_domain!
+    set_domain!,
+    set_units!
