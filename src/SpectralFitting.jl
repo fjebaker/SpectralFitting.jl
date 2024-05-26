@@ -81,8 +81,6 @@ include("fitting/methods.jl")
 include("simulate.jl")
 include("fitting/goodness.jl")
 
-include("plotting-recipes.jl")
-
 # include xspec models
 include("xspec-models/additive.jl")
 include("xspec-models/multiplicative.jl")
@@ -94,11 +92,17 @@ include("julia-models/additive.jl")
 include("julia-models/multiplicative.jl")
 include("julia-models/convolutional.jl")
 
+include("plots-recipes.jl")
+
 function __init__()
     # check if we have the minimum model data already
     _check_model_directory_present()
     # init HEASOFT
-    ccall((:FNINIT, libXSFunctions), Cvoid, ())
+    if get(ENV, "SPECTRAL_FITTING_XSPEC_INIT", "") == ""
+        ccall((:FNINIT, libXSFunctions), Cvoid, ())
+        # set an environment variable so we don't accidentally init again
+        ENV["SPECTRAL_FITTING_XSPEC_INIT"] = "true"
+    end
 end
 
 end # module

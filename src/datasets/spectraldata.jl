@@ -346,7 +346,7 @@ function _adjust_by_unit_difference!(
 end
 
 function adjust_to_units!(data::SpectralData, s::Spectrum, x, units)
-    ΔE = bin_widths(data)
+    ΔE = unmasked_bin_widths(data)
     exposure_time = s.exposure_time
     _adjust_by_unit_difference!(ΔE, exposure_time, x, units / s.units)
     x
