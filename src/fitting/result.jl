@@ -40,9 +40,14 @@ fit_statistic(f::FittingResultSlice) = fit_statistic(f.parent.config)
 estimated_error(r::FittingResultSlice) = r.σu
 estimated_params(r::FittingResultSlice) = r.u
 
-function invoke_result(slice::FittingResultSlice, u)
+function invoke_result(slice::FittingResultSlice{P}, u) where {P}
     @assert length(u) == length(slice.u)
-    _invoke_and_transform!(get_cache(slice), slice.domain, u)
+    cache = if P <: MultiFittingResult
+        get_cache(slice).caches[slice.index]
+    else
+        get_cache(slice)
+    end
+    _invoke_and_transform!(cache, slice.domain, u)
 end
 
 function _pretty_print(slice::FittingResultSlice)
