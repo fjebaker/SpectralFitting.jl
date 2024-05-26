@@ -29,4 +29,4 @@ plot(energy[1:end-1], flux)
 
 Note this energy grid may be arbitrarily spaced, but, like XSPEC, assumes the bins are contiguous, i.e. that the high energy limit of one bin is the low energy limit of the next.
 
-The full model library of available models is listed in [Model index](./models.md).
+The full model library of available models is listed in [Model index](@ref).

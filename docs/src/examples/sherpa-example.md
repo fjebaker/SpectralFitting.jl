@@ -34,7 +34,7 @@ The data prints the _data card_, which provides us some high level information a
 plot(data, markersize = 3)
 ```
 
-Next we want to specify a model to fit to this data. Models that are prefixed with `XS_` are models that are linked from the XSPEC model library, provided via [LibXSPEC_jll](https://github.com/astro-group-bristol/LibXSPEC_jll.jl). For a full list of the models, see [Models library](@ref).
+Next we want to specify a model to fit to this data. Models that are prefixed with `XS_` are models that are linked from the XSPEC model library, provided via [LibXSPEC_jll](https://github.com/astro-group-bristol/LibXSPEC_jll.jl). For a full list of the models, see [Models index](@ref).
 
 !!! warning
     It is advised to **use the Julia implemented models**. This allows various calculations to benefit from automatic differentiation, efficient multi-threading, GPU offloading, and various other useful things, see [Why & how](@ref).

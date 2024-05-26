@@ -56,7 +56,7 @@ function plotmodel(energy, model)
     lineplot(
         energy[1:end-1], 
         flux, 
-        title=String(SpectralFitting.FunctionGeneration.model_base_name(typeof(model))), 
+        title=String(Base.typename(typeof(model)).name), 
         xlabel="E (keV)", 
         canvas=DotCanvas
     )

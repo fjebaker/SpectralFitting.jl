@@ -8,7 +8,7 @@ using SpectralFitting
 SpectralFitting.download_all_model_data()
 
 makedocs(
-    warnonly = true,
+    warnonly = [:cross_references, :autodocs_block, :missing_docs],
     modules = [SpectralFitting],
     clean = true,
     sitename = "SpectralFitting.jl",

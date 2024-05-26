@@ -8,15 +8,6 @@ For spectral fitting specifics, the main dataset type is
 SpectralData
 ```
 
-This is comprised out of
-
-```@docs
-Spectrum
-ResponseMatrix
-AncillaryResponse
-```
-
-
 ## Dataset abstraction
 
 Datasets must define a small API to make fitting possible. The picture to have in mind when considering the different domains is as follows: the model is trying to predict the objective. It does so by taking in input domain and maps it to some output domain.

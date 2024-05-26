@@ -3,7 +3,7 @@
 Let's fit a spectrum:
 
 ```@example optimizers
-using SpectralFitting
+using SpectralFitting, Plots
 
 DATADIR = "..."
 DATADIR = length(get(ENV, "CI", "")) > 0 ? @__DIR__() * "/../../ex-datadir" : "/home/lilith/Developer/jl/datasets/xspec/walkthrough" # hide
