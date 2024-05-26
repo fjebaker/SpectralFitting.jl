@@ -6,10 +6,10 @@ Used to wrap a surrogate function into an [`AbstractSpectralModel`](@ref).
 
 # Example
 
-Creating a surrogate function using [`make_surrogate_function`](@ref):
+Creating a surrogate function using [`make_surrogate_harness`](@ref):
 ```julia
 # build and optimize a surrogate model
-surrogate = make_surrogate_function(model, lower_bounds, upper_bounds)
+surrogate = make_surrogate_harness(model, lower_bounds, upper_bounds)
 
 # create surrogate spectral model
 sm = SurrogateSpectralModel(
@@ -169,7 +169,7 @@ function optimize_accuracy!(harness::SurrogateHarness, ; kwargs...)
 end
 
 """
-    make_surrogate_function(
+    make_surrogate_harness(
         model::M,
         lowerbounds::T,
         upperbounds::T;

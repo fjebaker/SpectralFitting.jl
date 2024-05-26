@@ -48,6 +48,19 @@ function unsafe_parameter_vector_conditioned(
     unsafe_parameter_vector(alloc_model)
 end
 
+"""
+    function _unsafe_ffi_invoke!(
+        output,
+        error_vec,
+        input,
+        params,
+        ModelType::Type{<:AbstractSpectralModel},
+    )
+
+Wrapper to do a foreign function call to an XSPEC model.
+
+See also [`_safe_ffi_invoke!`](@ref).
+"""
 function _unsafe_ffi_invoke!(
     output,
     error_vec,
@@ -63,6 +76,11 @@ function _unsafe_ffi_invoke!(
           """)
 end
 
+"""
+    function _safe_ffi_invoke!(output, input, params, ModelType::Type{<:AbstractSpectralModel})
+
+Wrapper to do a foreign function call to an XSPEC model.
+"""
 function _safe_ffi_invoke!(output, input, params, ModelType::Type{<:AbstractSpectralModel})
     error(
         "This error should be unreachable. Please open an issue with your use-case and include the stack trace.",
