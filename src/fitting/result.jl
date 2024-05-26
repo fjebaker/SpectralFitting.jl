@@ -35,13 +35,19 @@ end
 get_cache(f::FittingResultSlice) = f.parent.config.cache
 get_model(f::FittingResultSlice) = f.parent.config.prob.model.m[f.index]
 get_dataset(f::FittingResultSlice) = f.parent.config.prob.data.d[f.index]
+fit_statistic(f::FittingResultSlice) = fit_statistic(f.parent.config)
 
 estimated_error(r::FittingResultSlice) = r.σu
 estimated_params(r::FittingResultSlice) = r.u
 
-function invoke_result(slice::FittingResultSlice, u)
+function invoke_result(slice::FittingResultSlice{P}, u) where {P}
     @assert length(u) == length(slice.u)
-    _invoke_and_transform!(get_cache(slice), slice.domain, u)
+    cache = if P <: MultiFittingResult
+        get_cache(slice).caches[slice.index]
+    else
+        get_cache(slice)
+    end
+    _invoke_and_transform!(cache, slice.domain, u)
 end
 
 function _pretty_print(slice::FittingResultSlice)
@@ -77,7 +83,7 @@ function Base.getindex(result::FittingResult, i)
             result.config.objective[:],
             result.config.variance[:],
             result.u[:],
-            result.σu[:],
+            isnothing(result.σu) ? nothing : result.σu[:],
             result.χ2,
         )
     else
@@ -208,3 +214,18 @@ function finalize(
         config,
     )
 end
+
+function determine_layout(result::FittingResultSlice)
+    dataset = get_dataset(result)
+    with_units(
+        common_support(get_model(result), dataset),
+        preferred_units(dataset, fit_statistic(result)),
+    )
+end
+
+function residuals(result::FittingResultSlice)
+    y = invoke_result(result, result.u)
+    y_residual = @. (result.objective - y) / sqrt(result.variance)
+    y_residual
+end
+residuals(result::FittingResult; kwargs...) = residuals(result[1]; kwargs...)
