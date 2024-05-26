@@ -69,7 +69,7 @@ The result card tells us a little bit about how successful the fit was. We furth
 
 ```@example sherpa
 plot(data, markersize = 3)
-plot!(data, result)
+plot!(result)
 ```
 
 We can create a contour plot of the fit statistic by evaluating the result everywhere on the grid and measuring the statistic:

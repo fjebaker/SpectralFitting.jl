@@ -99,7 +99,7 @@ plot(data,
     xscale = :log10, 
     yscale = :log10
 )
-plot!(data, result)
+plot!(result)
 ```
 
 Our model does not account for the high energy range well. We can ignore that range for now, and select everything from 0 to 15 keV and refit:
@@ -115,7 +115,7 @@ plot(data,
     xscale = :log10, 
     yscale = :log10
 )
-plot!(data, result, label = "PowerLaw")
+plot!(result, label = "PowerLaw")
 ```
 
 The result is not yet baked into our model, and represents just the outcome of the fit. To update the parameters and errors in the model, we can use [`update_model!`](@ref)
@@ -179,7 +179,7 @@ plot(data,
     xscale = :log10, 
     yscale = :log10
 )
-plot!(data, flux_result)
+plot!(flux_result)
 vspan!([flux_model.c1.E_min.value, flux_model.c1.E_max.value], alpha = 0.5)
 ```
 
@@ -205,8 +205,8 @@ dp = plot(data,
     yscale = :log10,
     legend = :bottomleft,
 )
-plot!(dp, data, result, label = "PowerLaw $(round(result.χ2))")
-plot!(dp, data, result2, label = "BlackBody $(round(result2.χ2))")
+plot!(dp, result, label = "PowerLaw $(round(result.χ2))")
+plot!(dp, result2, label = "BlackBody $(round(result2.χ2))")
 ```
 
 Or a bremsstrahlung model:
@@ -218,13 +218,13 @@ result3 = fit(prob3, LevenbergMarquadt())
 ```
 
 ```@example walk
-plot!(dp, data, result3, label = "Brems $(round(result3.χ2))")
+plot!(dp, result3, label = "Brems $(round(result3.χ2))")
 ```
 
 Let's take a look at the residuals of these three models. There are utility methods for this in SpectralFitting.jl, but we can easily just interact with the result directly:
 
 ```@example walk
-function residuals(result)
+function calc_residuals(result)
     # select which result we want (only have one, but for generalisation to multi-model fits)
     r = result[1] 
     y = invoke_result(r)
@@ -234,9 +234,9 @@ end
 domain = SpectralFitting.plotting_domain(data)
 
 rp = hline([0], linestyle = :dash, legend = false)
-plot!(rp,domain, residuals(result), seriestype = :stepmid)
-plot!(rp, domain, residuals(result2), seriestype = :stepmid)
-plot!(rp, domain, residuals(result3), seriestype = :stepmid)
+plot!(rp,domain, calc_residuals(result), seriestype = :stepmid)
+plot!(rp, domain, calc_residuals(result2), seriestype = :stepmid)
+plot!(rp, domain, calc_residuals(result3), seriestype = :stepmid)
 rp
 ```
 
@@ -244,6 +244,19 @@ We can compose this figure with our previous one, and change to a linear x scale
 
 ```@example walk
 plot(dp, rp, layout = grid(2, 1, heights = [0.7, 0.3]), link = :x, xscale = :linear)
+```
+
+We can do all that plotting work in one go with the [`plotresult`](@ref) recipe:
+
+```@example walk
+plotresult(
+    data,
+    [result, result2, result3],
+    ylims = (0.001, 2.0), 
+    xscale = :log10, 
+    yscale = :log10,
+    legend = :bottomleft,
+)
 ```
 
 Let's modify the black body model with a continuum component
@@ -281,7 +294,7 @@ plot(data,
     yscale = :log10,
     legend = :bottomleft,
 )
-plot!(data, bbpl_result)
+plot!(bbpl_result)
 ```
 
 Update the model and fix the black body temperature to 2 keV:
@@ -306,7 +319,7 @@ bbpl_result2 = fit(
 Overplotting this new result:
 
 ```@example walk
-plot!(data, bbpl_result2)
+plot!(bbpl_result2)
 ```
 
 ## MCMC
