@@ -37,7 +37,7 @@ invokemodel(domain, model)
     ```julia
     length(flux) == length(energy) - 1
     ```
-    Models need not be defined as such, however. See [`AbstractDataLayout`](@ref) for more.
+    Models need not be defined as such, however. See [`AbstractLayout`](@ref) for more.
 
 Models can be composed together following the [Model algebra](@ref). That means to expressive a photoelectric absorption component acting on the power law we can write
 

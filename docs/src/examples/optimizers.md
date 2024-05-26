@@ -10,4 +10,16 @@ DATADIR = length(get(ENV, "CI", "")) > 0 ? @__DIR__() * "/../../ex-datadir" : "/
 spec1_path = joinpath(DATADIR, "s54405.pha")
 data = OGIPDataset(spec1_path) 
 normalize!(data)
+
+mask_energies!(data, 1, 15)
+
+# a plotting utility
+my_plot(data) = plot(
+    data, 
+    xscale = :log10, 
+    yscale = :log10,
+    ylims = (1e-3, 1.3)
+)
+
+my_plot(data)
 ```

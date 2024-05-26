@@ -28,15 +28,13 @@ function normalize!(spectrum::Spectrum)
     spectrum
 end
 
-supports(::ContiguouslyBinned, ::Type{<:Spectrum}) = true
+supports(::Type{<:Spectrum}) = (ContiguouslyBinned(),)
 
 function make_objective(::ContiguouslyBinned, dataset::Spectrum)
-    check_units_warning(dataset.units)
     dataset.data
 end
 
 function make_objective_variance(::ContiguouslyBinned, dataset::Spectrum)
-    check_units_warning(dataset.units)
     dataset.errors .^ 2
 end
 
@@ -83,6 +81,31 @@ function regroup!(spectrum::Spectrum{T}, grouping) where {T}
     resize!(spectrum, length(itt))
     spectrum.grouping .= 1
     spectrum
+end
+
+function group_min_counts!(spectrum::Spectrum, min_counts::Int)
+    NEW_GRP = 1
+    CONTINUE_GRP = 0
+
+    function _counts(x)
+        if spectrum.units == u"counts"
+            convert(Int, x)
+        elseif spectrum.units == u"counts / s"
+            convert(Int, x * spectrum.exposure_time)
+        end
+    end
+
+    sum::Int = 0
+    for (i, f) in enumerate(spectrum.data)
+        c = _counts(f)
+        sum += c
+        if sum >= min_counts
+            spectrum.grouping[i] = NEW_GRP
+            sum = 0
+        else
+            spectrum.grouping[i] = CONTINUE_GRP
+        end
+    end
 end
 
 function Base.resize!(spectrum::Spectrum, n::Int)

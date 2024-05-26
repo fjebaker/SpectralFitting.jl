@@ -68,15 +68,16 @@ end
     @testset "printing" begin
         include("io/test-printing.jl")
     end
-    if has_test_dir
-        @testset "datasets" begin
+    @testset "datasets" begin
+        if has_test_dir
             include("datasets/test-ogip.jl")
-            include("datasets/test-grouping.jl")
-            include("datasets/test-binning.jl")
-            include("datasets/test-datasets.jl")
+        else
+            @warn "Skipping OGIP dataset tests."
         end
-    else
-        @warn "Skipping dataset tests."
+        include("datasets/test-grouping.jl")
+        include("datasets/test-units.jl")
+        include("datasets/test-binning.jl")
+        include("datasets/test-datasets.jl")
     end
     include("io/test-remote-pathname-compression.jl")
 end

@@ -9,15 +9,13 @@ mutable struct SimulatedSpectrum{T,F} <: AbstractDataset
     seed::Int
 end
 
-supports(::ContiguouslyBinned, ::Type{<:SimulatedSpectrum}) = true
+supports(::Type{<:SimulatedSpectrum}) = (ContiguouslyBinned(),)
 
 function make_objective(::ContiguouslyBinned, dataset::SimulatedSpectrum)
-    check_units_warning(dataset.units)
     dataset.data
 end
 
 function make_objective_variance(::ContiguouslyBinned, dataset::SimulatedSpectrum)
-    check_units_warning(dataset.units)
     dataset.variance
 end
 
@@ -111,7 +109,7 @@ function _make_simulation_fitting_config(
         model,
         input_domain,
         objective,
-        _fold_transformer(T, layout, R, ΔE, input_domain),
+        _fold_transformer(T, one(eltype(ΔE)), layout, R, ΔE, input_domain),
     )
 
     free_params = collect(filter(isfree, parameter_tuple(model)))

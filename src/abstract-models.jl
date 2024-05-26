@@ -96,7 +96,7 @@ Model reflection is supported by the following functions. These are intended for
 The parametric type parameter `T` is the number type of the model and `K` defines the [`AbstractSpectralModelKind`](@ref).
 """
 abstract type AbstractSpectralModel{T,K<:AbstractSpectralModelKind} end
-supports(::ContiguouslyBinned, ::Type{<:AbstractSpectralModel}) = true
+supports(::Type{<:AbstractSpectralModel}) = (ContiguouslyBinned(),)
 
 """
     numbertype(::AbstractSpectralModel)
