@@ -142,6 +142,19 @@ function SpectralData(
     return data
 end
 
+function Base.copy(data::SpectralData)
+    SpectralData(
+        data.spectrum,
+        data.response,
+        data.background,
+        data.ancillary,
+        copy(data.energy_low),
+        copy(data.energy_high),
+        copy(data.domain),
+        copy(data.data_mask),
+    )
+end
+
 supports(::Type{<:SpectralData}) = (ContiguouslyBinned(),)
 
 function _objective_to_units(dataset::SpectralData, obj, units)
@@ -454,6 +467,47 @@ function match_domains!(data::SpectralData)
     )
 end
 
+function background_dataset(data::SpectralData)
+    new_data = copy(data)
+    new_data.spectrum = new_data.background
+    new_data.background = nothing
+    new_data
+end
+
+function rescale!(data::SpectralData)
+    @. data.spectrum.data = data.spectrum.data / data.spectrum.area_scale
+    @. data.spectrum.errors = data.spectrum.errors / data.spectrum.area_scale
+    data.spectrum.area_scale = 1
+    if has_background(data)
+        rescale_background!(data)
+    end
+    data
+end
+
+function rescale_background!(data::SpectralData)
+    if has_background(data)
+        data.background.data = _scaled_background(
+            data.background.data,
+            data.background.area_scale,
+            data.spectrum.background_scale,
+            data.background.background_scale,
+        )
+        data.background.errors = _scaled_background(
+            data.background.errors,
+            data.background.area_scale,
+            data.spectrum.background_scale,
+            data.background.background_scale,
+        )
+
+        data.spectrum.background_scale = 1
+        data.background.background_scale = 1
+        data.background.area_scale = 1
+    else
+        throw("No background to subtract")
+    end
+    data
+end
+
 macro _forward_SpectralData_api(args)
     if args.head !== :.
         error("Bad syntax")
@@ -511,6 +565,16 @@ macro _forward_SpectralData_api(args)
             SpectralFitting.error_statistic(getfield(t, $(field)))
         SpectralFitting.set_units!(t::$(T), args...) =
             SpectralFitting.set_units!(getfield(t, $(field)), args...)
+        SpectralFitting.background_dataset(t::$(T), args...; kwargs...) =
+            SpectralFitting.background_dataset(getfield(t, $(field)), args...; kwargs...)
+        SpectralFitting.rescale_background!(t::$(T), args...; kwargs...) =
+            SpectralFitting.rescale_background!(
+                getfield(t, $(field)),
+                args...;
+                kwargs...,
+            )
+        SpectralFitting.rescale!(t::$(T), args...; kwargs...) =
+            SpectralFitting.rescale!(getfield(t, $(field)), args...; kwargs...)
     end |> esc
 end
 
@@ -609,4 +673,7 @@ export SpectralData,
     normalize!,
     subtract_background!,
     set_domain!,
-    set_units!
+    set_units!,
+    background_dataset,
+    rescale!,
+    rescale_background!

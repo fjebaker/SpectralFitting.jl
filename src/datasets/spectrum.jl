@@ -150,7 +150,7 @@ end
 error_statistic(spec::Spectrum) = spec.error_statistics
 
 function subtract_background!(spectrum::Spectrum, background::Spectrum)
-    # should all already be rates
+    @assert spectrum.units == u"counts"
     # errors added in quadrature
     # TODO: this needs fixing to propagate errors properly
     data_variance = spectrum.errors .^ 2
@@ -163,6 +163,8 @@ function subtract_background!(spectrum::Spectrum, background::Spectrum)
         background.area_scale,
         spectrum.background_scale,
         background.background_scale,
+        spectrum.exposure_time,
+        background.exposure_time,
     )
     @. spectrum.errors = √abs(spectrum.errors)
     _subtract_background!(
@@ -173,12 +175,21 @@ function subtract_background!(spectrum::Spectrum, background::Spectrum)
         background.area_scale,
         spectrum.background_scale,
         background.background_scale,
+        spectrum.exposure_time,
+        background.exposure_time,
     )
     spectrum
 end
 
-_subtract_background!(output, spec, back, aD, aB, bD, bB) =
-    @. output = (spec / aD) - (bD / bB) * (back / aB)
+"""
+Does the background subtraction and returns units of counts. That means we have
+multiplied through by a factor ``t_D`` relative to the reference equation (2.3)
+in the XSPEC manual.
+"""
+_subtract_background!(output, spec, back, aD, aB, bD, bB, tD, tB) =
+    @. output = (spec / (aD)) - (tD / tB) * _scaled_background(back, aB, bD, bB)
+
+_scaled_background(back, aB, bD, bB) = (bD / bB) * (back / aB)
 
 
 export Spectrum
