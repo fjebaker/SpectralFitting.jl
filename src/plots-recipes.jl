@@ -205,6 +205,59 @@ end
     end
 end
 
+# unfolded data plots
+# TODO: complete this WIP
+# TODO: update from the XSPEC-like implimentation
+# TODO: allow power of E to be a parameter; current default is E F_E
+@userplot UnfoldedPlot
+@recipe function _plotting_fun(
+    r::UnfoldedPlot;
+    datacolor = :auto,
+    modelcolor = :auto,
+    label = :auto,
+)
+    if length(r.args) != 1 || !(typeof(r.args[1]) <: AbstractFittingResult)
+        error(
+            "Unfolded plots first argument must be `AbstractDataset` and second argument of type `AbstractFittingResult`.",
+        )
+    end
+
+    result = r.args[1] isa FittingResult ? r.args[1][1] : r.args[1]
+    data = get_dataset(result)
+    x = plotting_domain(data)
+    y = invoke_result(result, result.u)
+
+    y_unfolded = @. x^2 * result.objective / y # <-- allow power of x to be a parameter
+    # TODO: multiply this by the unfolded model
+
+    ylabel --> "Unfolded spectrum [E F_E]" # <-- check units
+    xlabel --> "Energy (keV)"
+    minorgrid --> true
+
+    if (label == :auto)
+        label = make_label(data)
+    end
+
+    @series begin
+        linestyle --> :dash
+        seriestype --> :hline
+        label --> false
+        color --> modelcolor
+        [1.0]
+    end
+
+    @series begin
+        markerstrokecolor --> datacolor
+        label --> label
+        seriestype --> :scatter
+        markershape --> :none
+        markersize --> 0.5
+        yerror --> @. sqrt(result.variance) * x^2 * result.objective / y
+        xerror --> SpectralFitting.bin_widths(data) ./ 2
+        x, y_unfolded
+    end
+end
+
 """
     get_tickslogscale(lims; skiplog=false)
 
