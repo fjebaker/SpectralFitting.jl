@@ -208,10 +208,12 @@ end
 # unfolded data plots
 # TODO: complete this WIP
 # TODO: update from the XSPEC-like implimentation
-# TODO: allow power of E to be a parameter; current default is E F_E
+# TODO: allow legend to be switched on or off
+# TODO: allow model to be switched on or off
 @userplot UnfoldedPlot
 @recipe function _plotting_fun(
     r::UnfoldedPlot;
+    pow = 2,
     datacolor = :auto,
     modelcolor = :auto,
     label = :auto,
@@ -221,6 +223,8 @@ end
             "Unfolded plots first argument must be `AbstractDataset` and second argument of type `AbstractFittingResult`.",
         )
     end
+
+    println("pow = ", pow)
 
     result = r.args[1] isa FittingResult ? r.args[1][1] : r.args[1]
     data = get_dataset(result)
@@ -233,13 +237,21 @@ end
     update_model!(model, result)
     y_unfolded = invokemodel(x_domain, model)[data.data.data_mask]
 
-    unfolded_spectrum = @. x_plot^0 * result.objective * (y_unfolded / y)
-    unfolded_std = @. sqrt(result.variance) * x_plot^0 * result.objective * (y_unfolded / y)
+    # TODO: fix data.data.
+    Δx = (data.data.energy_high .- data.data.energy_low)[data.data.data_mask]
+    println("length of delta_x = ", length(Δx))
 
-    unfolded_spectrum = @. y_unfolded 
-    unfolded_std = @. unfolded_spectrum / 100
+    unfolded_spectrum = @. x_plot^pow * result.objective * (y_unfolded / y) / Δx
+    unfolded_std = @. sqrt(result.variance) * x_plot^pow * (y_unfolded / y) / Δx
 
-    ylabel --> "Unfolded spectrum [E F_E]" # <-- check units
+    unfolded_model = @. x_plot^pow * y_unfolded / Δx
+
+    println("length of unfolded spectrum = ", length(unfolded_spectrum))
+    println("data points are")
+    println(unfolded_spectrum)
+
+    # TODO: use unitful units to automatically label the x and y axes - this would be a great feature
+    ylabel --> "Unfolded spectrum [E F_E]"
     xlabel --> "Energy (keV)"
     minorgrid --> true
 
@@ -247,15 +259,28 @@ end
         label = make_label(data)
     end
 
+    # unfolded data
     @series begin
         markerstrokecolor --> datacolor
         label --> label
+        legend --> :false
         seriestype --> :scatter
         markershape --> :none
         markersize --> 0.5
         yerror --> unfolded_std
         xerror --> SpectralFitting.bin_widths(data) ./ 2
         x_plot, unfolded_spectrum
+    end
+
+    # unfolded model
+    @series begin
+        markerstrokecolor --> modelcolor
+        label -->  label
+        legend --> :false
+        seriestype --> :line
+        markershape --> :none
+        markersize --> 0.5
+        x_plot, unfolded_model
     end
 end
 
