@@ -224,11 +224,20 @@ end
 
     result = r.args[1] isa FittingResult ? r.args[1][1] : r.args[1]
     data = get_dataset(result)
-    x = plotting_domain(data)
-    y = invoke_result(result, result.u)
+    model = get_model(result)
 
-    y_unfolded = @. x^2 * result.objective / y # <-- allow power of x to be a parameter
-    # TODO: multiply this by the unfolded model
+    x_plot = plotting_domain(data)
+    y = invoke_result(result, result.u)
+    x_domain = make_output_domain(ContiguouslyBinned(), data)
+    # TODO: pass the result.u to invokemodel (currently not possible without knowing frozen paramters)
+    update_model!(model, result)
+    y_unfolded = invokemodel(x_domain, model)[data.data.data_mask]
+
+    unfolded_spectrum = @. x_plot^0 * result.objective * (y_unfolded / y)
+    unfolded_std = @. sqrt(result.variance) * x_plot^0 * result.objective * (y_unfolded / y)
+
+    unfolded_spectrum = @. y_unfolded 
+    unfolded_std = @. unfolded_spectrum / 100
 
     ylabel --> "Unfolded spectrum [E F_E]" # <-- check units
     xlabel --> "Energy (keV)"
@@ -239,22 +248,14 @@ end
     end
 
     @series begin
-        linestyle --> :dash
-        seriestype --> :hline
-        label --> false
-        color --> modelcolor
-        [1.0]
-    end
-
-    @series begin
         markerstrokecolor --> datacolor
         label --> label
         seriestype --> :scatter
         markershape --> :none
         markersize --> 0.5
-        yerror --> @. sqrt(result.variance) * x^2 * result.objective / y
+        yerror --> unfolded_std
         xerror --> SpectralFitting.bin_widths(data) ./ 2
-        x, y_unfolded
+        x_plot, unfolded_spectrum
     end
 end
 
