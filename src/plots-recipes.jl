@@ -251,7 +251,9 @@ end
     println(unfolded_spectrum)
 
     # TODO: use unitful units to automatically label the x and y axes - this would be a great feature
-    ylabel --> "Unfolded spectrum [E F_E]"
+    pow_prefix = pow == 0 ? "" : "E^$pow ("
+    pow_suffix = pow == 0 ? "" : ")"
+    ylabel --> pow_prefix * "Photons cm^-2 s^-1 keV^-1" * pow_suffix
     xlabel --> "Energy (keV)"
     minorgrid --> true
 
