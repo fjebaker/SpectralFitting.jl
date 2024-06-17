@@ -4,7 +4,7 @@ using RecipesBase
 plotting_domain(dataset::AbstractDataset) = SpectralFitting.spectrum_energy(dataset)
 plotting_domain(dataset::InjectiveData) = dataset.domain
 
-@recipe function _plotting_func(dataset::InjectiveData; data_layout=OneToOne())
+@recipe function _plotting_func(dataset::InjectiveData; data_layout = OneToOne())
     seriestype --> :scatter
     markersize --> 1.0
     markershape --> :none
@@ -18,8 +18,8 @@ end
 
 @recipe function _plotting_func(
     dataset::AbstractDataset;
-    data_layout=ContiguouslyBinned(),
-    xscale=:linear,
+    data_layout = ContiguouslyBinned(),
+    xscale = :linear,
 )
     seriestype --> :scatter
     markersize --> 0.5
@@ -74,9 +74,9 @@ end
 @userplot RatioPlot
 @recipe function _plotting_func(
     r::RatioPlot;
-    datacolor=:auto,
-    modelcolor=:auto,
-    label=:auto,
+    datacolor = :auto,
+    modelcolor = :auto,
+    label = :auto,
 )
     if length(r.args) != 1 || !(typeof(r.args[1]) <: AbstractFittingResult)
         error(
@@ -147,7 +147,7 @@ end
 end
 
 @userplot PlotResult
-@recipe function _plotting_fun(r::PlotResult; xscale=:identity)
+@recipe function _plotting_fun(r::PlotResult; xscale = :identity)
     if length(r.args) != 2 ||
        !(typeof(r.args[1]) <: AbstractDataset) ||
        !(
@@ -209,10 +209,10 @@ end
 @userplot UnfoldedPlot
 @recipe function _plotting_fun(
     r::UnfoldedPlot;
-    pow=2,
-    datacolor=:auto,
-    modelcolor=:auto,
-    label=:auto,
+    pow = 2,
+    datacolor = :auto,
+    modelcolor = :auto,
+    label = :auto,
 )
     if length(r.args) != 1 || !(typeof(r.args[1]) <: AbstractFittingResult)
         error(
@@ -279,7 +279,7 @@ skiplog argument should be set to true if `lims` is already in log scale.
 
 Modified from [https://github.com/JuliaPlots/Plots.jl/issues/3318](Plots.jl/#3318).
 """
-function get_tickslogscale(lims::Tuple{T,T}; skiplog::Bool=false) where {T<:AbstractFloat}
+function get_tickslogscale(lims::Tuple{T,T}; skiplog::Bool = false) where {T<:AbstractFloat}
     mags = if skiplog
         # if the limits are already in log scale
         floor.(lims)
@@ -295,17 +295,17 @@ function get_tickslogscale(lims::Tuple{T,T}; skiplog::Bool=false) where {T<:Abst
     total_tickvalues = []
     total_ticknames = []
 
-    rgs = range(mags..., step=1)
+    rgs = range(mags..., step = 1)
     for (i, m) in enumerate(rgs)
         if m >= 0
-            tickvalues = range(Int(10^m), Int(10^(m + 1)); step=Int(10^m))
+            tickvalues = range(Int(10^m), Int(10^(m + 1)); step = Int(10^m))
             ticknames = vcat(
                 [string(round(Int, 10^(m)))],
                 ["" for i = 2:9],
                 [string(round(Int, 10^(m + 1)))],
             )
         else
-            tickvalues = range(10^m, 10^(m + 1); step=10^m)
+            tickvalues = range(10^m, 10^(m + 1); step = 10^m)
             ticknames = vcat([string(10^(m))], ["" for i = 2:9], [string(10^(m + 1))])
         end
 
