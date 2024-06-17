@@ -225,17 +225,13 @@ end
     model = get_model(result)
 
     x_plot = plotting_domain(data)
-    y = invoke_result(result, result.u)
-    x_domain = make_output_domain(ContiguouslyBinned(), data)
-    # TODO: pass the result.u to invokemodel (currently not possible without knowing frozen paramters)
-    update_model!(model, result)
-    y_unfolded = invokemodel(x_domain, model)[data.data.data_mask]
 
-    # TODO: fix data.data.
-    Δx = (data.data.energy_high.-data.data.energy_low)[data.data.data_mask]
+    y_folded = invoke_result(result, result.u)
+    y_unfolded = invokemodel(data.data, model, result.u)
+    Δx = bin_widths(data)
 
-    unfolded_spectrum = @. x_plot^pow * result.objective * (y_unfolded / y) / Δx
-    unfolded_std = @. sqrt(result.variance) * x_plot^pow * (y_unfolded / y) / Δx
+    unfolded_spectrum = @. x_plot^pow * result.objective * (y_unfolded / y_folded) / Δx
+    unfolded_std = @. sqrt(result.variance) * x_plot^pow * (y_unfolded / y_folded) / Δx
     unfolded_model = @. x_plot^pow * y_unfolded / Δx
 
     # TODO: use unitful units to automatically label the x and y axes - this would be a great feature
