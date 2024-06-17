@@ -4,7 +4,7 @@ using RecipesBase
 plotting_domain(dataset::AbstractDataset) = SpectralFitting.spectrum_energy(dataset)
 plotting_domain(dataset::InjectiveData) = dataset.domain
 
-@recipe function _plotting_func(dataset::InjectiveData; data_layout = OneToOne())
+@recipe function _plotting_func(dataset::InjectiveData; data_layout=OneToOne())
     seriestype --> :scatter
     markersize --> 1.0
     markershape --> :none
@@ -18,8 +18,8 @@ end
 
 @recipe function _plotting_func(
     dataset::AbstractDataset;
-    data_layout = ContiguouslyBinned(),
-    xscale = :linear,
+    data_layout=ContiguouslyBinned(),
+    xscale=:linear,
 )
     seriestype --> :scatter
     markersize --> 0.5
@@ -74,9 +74,9 @@ end
 @userplot RatioPlot
 @recipe function _plotting_func(
     r::RatioPlot;
-    datacolor = :auto,
-    modelcolor = :auto,
-    label = :auto,
+    datacolor=:auto,
+    modelcolor=:auto,
+    label=:auto,
 )
     if length(r.args) != 1 || !(typeof(r.args[1]) <: AbstractFittingResult)
         error(
@@ -147,7 +147,7 @@ end
 end
 
 @userplot PlotResult
-@recipe function _plotting_fun(r::PlotResult; xscale = :identity)
+@recipe function _plotting_fun(r::PlotResult; xscale=:identity)
     if length(r.args) != 2 ||
        !(typeof(r.args[1]) <: AbstractDataset) ||
        !(
@@ -205,26 +205,20 @@ end
     end
 end
 
-# unfolded data plots
-# TODO: complete this WIP
-# TODO: update from the XSPEC-like implimentation
-# TODO: allow legend to be switched on or off
-# TODO: allow model to be switched on or off
+# unfolded plots
 @userplot UnfoldedPlot
 @recipe function _plotting_fun(
     r::UnfoldedPlot;
-    pow = 2,
-    datacolor = :auto,
-    modelcolor = :auto,
-    label = :auto,
+    pow=2,
+    datacolor=:auto,
+    modelcolor=:auto,
+    label=:auto,
 )
     if length(r.args) != 1 || !(typeof(r.args[1]) <: AbstractFittingResult)
         error(
             "Unfolded plots first argument must be `AbstractDataset` and second argument of type `AbstractFittingResult`.",
         )
     end
-
-    println("pow = ", pow)
 
     result = r.args[1] isa FittingResult ? r.args[1][1] : r.args[1]
     data = get_dataset(result)
@@ -238,17 +232,11 @@ end
     y_unfolded = invokemodel(x_domain, model)[data.data.data_mask]
 
     # TODO: fix data.data.
-    Δx = (data.data.energy_high .- data.data.energy_low)[data.data.data_mask]
-    println("length of delta_x = ", length(Δx))
+    Δx = (data.data.energy_high.-data.data.energy_low)[data.data.data_mask]
 
     unfolded_spectrum = @. x_plot^pow * result.objective * (y_unfolded / y) / Δx
     unfolded_std = @. sqrt(result.variance) * x_plot^pow * (y_unfolded / y) / Δx
-
     unfolded_model = @. x_plot^pow * y_unfolded / Δx
-
-    println("length of unfolded spectrum = ", length(unfolded_spectrum))
-    println("data points are")
-    println(unfolded_spectrum)
 
     # TODO: use unitful units to automatically label the x and y axes - this would be a great feature
     pow_prefix = pow == 0 ? "" : "E^$pow ("
@@ -265,7 +253,7 @@ end
     @series begin
         markerstrokecolor --> datacolor
         label --> label
-        legend --> :false
+        legend --> :none
         seriestype --> :scatter
         markershape --> :none
         markersize --> 0.5
@@ -277,8 +265,8 @@ end
     # unfolded model
     @series begin
         markerstrokecolor --> modelcolor
-        label -->  label
-        legend --> :false
+        label --> label
+        legend --> :none
         seriestype --> :line
         markershape --> :none
         markersize --> 0.5
@@ -295,7 +283,7 @@ skiplog argument should be set to true if `lims` is already in log scale.
 
 Modified from [https://github.com/JuliaPlots/Plots.jl/issues/3318](Plots.jl/#3318).
 """
-function get_tickslogscale(lims::Tuple{T,T}; skiplog::Bool = false) where {T<:AbstractFloat}
+function get_tickslogscale(lims::Tuple{T,T}; skiplog::Bool=false) where {T<:AbstractFloat}
     mags = if skiplog
         # if the limits are already in log scale
         floor.(lims)
@@ -311,17 +299,17 @@ function get_tickslogscale(lims::Tuple{T,T}; skiplog::Bool = false) where {T<:Ab
     total_tickvalues = []
     total_ticknames = []
 
-    rgs = range(mags..., step = 1)
+    rgs = range(mags..., step=1)
     for (i, m) in enumerate(rgs)
         if m >= 0
-            tickvalues = range(Int(10^m), Int(10^(m + 1)); step = Int(10^m))
+            tickvalues = range(Int(10^m), Int(10^(m + 1)); step=Int(10^m))
             ticknames = vcat(
                 [string(round(Int, 10^(m)))],
                 ["" for i = 2:9],
                 [string(round(Int, 10^(m + 1)))],
             )
         else
-            tickvalues = range(10^m, 10^(m + 1); step = 10^m)
+            tickvalues = range(10^m, 10^(m + 1); step=10^m)
             ticknames = vcat([string(10^(m))], ["" for i = 2:9], [string(10^(m + 1))])
         end
 
