@@ -508,6 +508,21 @@ function rescale_background!(data::SpectralData)
     data
 end
 
+# for invoking a model on the same domain as the spectral data
+function invokemodel(
+    data::SpectralData,
+    model::AbstractSpectralModel,
+    new_free_params = nothing,
+)
+    domain = make_output_domain(common_support(data, model), data)
+    cache = make_parameter_cache(model)
+    if !isnothing(new_free_params)
+        update_free_parameters!(cache, new_free_params)
+    end
+    output = allocate_model_output(model, domain)
+    invokemodel!(output, domain, model, cache)[data.data_mask]
+end
+
 macro _forward_SpectralData_api(args)
     if args.head !== :.
         error("Bad syntax")

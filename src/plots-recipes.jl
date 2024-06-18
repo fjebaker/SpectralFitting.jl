@@ -205,6 +205,71 @@ end
     end
 end
 
+# unfolded plots
+@userplot UnfoldedPlot
+@recipe function _plotting_fun(
+    r::UnfoldedPlot;
+    pow = 2,
+    datacolor = :auto,
+    modelcolor = :auto,
+    label = :auto,
+)
+    if length(r.args) != 1 || !(typeof(r.args[1]) <: AbstractFittingResult)
+        error(
+            "Unfolded plots first argument must be `AbstractDataset` and second argument of type `AbstractFittingResult`.",
+        )
+    end
+
+    result = r.args[1] isa FittingResult ? r.args[1][1] : r.args[1]
+    data = get_dataset(result)
+    model = get_model(result)
+
+    x_plot = plotting_domain(data)
+
+    y_folded = invoke_result(result, result.u)
+    y_unfolded = invokemodel(data.data, model, result.u)
+    Δx = bin_widths(data)
+
+    unfolded_spectrum = @. x_plot^pow * result.objective * (y_unfolded / y_folded) / Δx
+    unfolded_std = @. sqrt(result.variance) * x_plot^pow * (y_unfolded / y_folded) / Δx
+    unfolded_model = @. x_plot^pow * y_unfolded / Δx
+
+    # TODO: use unitful units to automatically label the x and y axes - this would be a great feature
+    pow_prefix = pow == 0 ? "" : "E^$pow ("
+    pow_suffix = pow == 0 ? "" : ")"
+    ylabel --> pow_prefix * "Photons cm^-2 s^-1 keV^-1" * pow_suffix
+    xlabel --> "Energy (keV)"
+    minorgrid --> true
+
+    if (label == :auto)
+        label = make_label(data)
+    end
+
+    # unfolded data
+    @series begin
+        markerstrokecolor --> datacolor
+        label --> label
+        legend --> :none
+        seriestype --> :scatter
+        markershape --> :none
+        markersize --> 0.5
+        yerror --> unfolded_std
+        xerror --> SpectralFitting.bin_widths(data) ./ 2
+        x_plot, unfolded_spectrum
+    end
+
+    # unfolded model
+    @series begin
+        markerstrokecolor --> modelcolor
+        label --> label
+        legend --> :none
+        seriestype --> :line
+        markershape --> :none
+        markersize --> 0.5
+        x_plot, unfolded_model
+    end
+end
+
 """
     get_tickslogscale(lims; skiplog=false)
 
