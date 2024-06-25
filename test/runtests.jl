@@ -55,6 +55,7 @@ end
     include("models/test-model-consistency.jl")
     include("models/test-table-models.jl")
     include("models/test-surrogate-models.jl")
+    include("models/test-auto-cache.jl")
 
     # only test XSPEC models when not using CI
     # since model data access is annoying

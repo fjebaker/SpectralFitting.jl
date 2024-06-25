@@ -289,7 +289,8 @@ end
 )
     invoke!(output, domain, model)
     # perform additive normalisation
-    @. output *= model.K
+    K = normalisation(model)
+    @. output *= K
     output
 end
 @inline function invokemodel!(
@@ -301,6 +302,8 @@ end
     invoke!(output, domain, model)
     output
 end
+
+normalisation(model::AbstractSpectralModel{T,Additive}) where {T} = model.K
 
 """
     allocate_model_output(model::AbstractSpectralModel, domain::AbstractVector)

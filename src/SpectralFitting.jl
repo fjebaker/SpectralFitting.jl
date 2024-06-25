@@ -56,8 +56,10 @@ include("composite-models.jl")
 
 include("reflection.jl")
 
+include("meta-models/wrappers.jl")
 include("meta-models/table-models.jl")
 include("meta-models/surrogate-models.jl")
+include("meta-models/caching.jl")
 
 include("poisson.jl")
 
