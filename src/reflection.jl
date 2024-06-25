@@ -86,8 +86,7 @@ function reassemble_model(model::Type{<:AbstractSpectralModel}, parameters)
     T = eltype(parameters)
     info = get_info(model, DEFAULT_LENS)
     closure_assigns = Expr[]
-    for f in info.closure_symbols
-        c_lens = :(getfield($(info.lens), $(Meta.quot(f))))
+    for c_lens in closure_parameter_lenses(info)
         push!(closure_assigns, c_lens)
     end
 
@@ -320,8 +319,8 @@ function assemble_composite_model_call(model::Type{<:CompositeModel}, parameters
             push!(parameter_assigns, assignment)
         end
 
-        for (f, c) in zip(info.closure_symbols, info.generated_closure_symbols)
-            c_lens = :(getfield($(info.lens), $(Meta.quot(f))))
+        for (c_lens, c) in
+            zip(closure_parameter_lenses(info), info.generated_closure_symbols)
             c_assingment = :($c = $c_lens)
             push!(closure_assigns, c_assingment)
         end
@@ -407,8 +406,14 @@ function parameter_lenses(::Type{<:AbstractSpectralModel}, info::ModelInfo)
         :(getfield($(info.lens), $(Meta.quot(symb))))
     end
 end
-# parameter_lenses(infos::Vector{<:ModelInfo}) = reduce(vcat, map(parameter_lenses(info, info.symbols), infos))
 parameter_lenses(info::ModelInfo) = parameter_lenses(info.model, info)
+
+function closure_parameter_lenses(::Type{<:AbstractSpectralModel}, info::ModelInfo)
+    map(info.closure_symbols) do symb
+        :(getfield($(info.lens), $(Meta.quot(symb))))
+    end
+end
+closure_parameter_lenses(info::ModelInfo) = closure_parameter_lenses(info.model, info)
 
 end # module Reflection
 
