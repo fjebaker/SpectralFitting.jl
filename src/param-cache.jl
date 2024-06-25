@@ -1,9 +1,10 @@
 # these should work for both single models and composite models
 # so that the parameters can all be allocated in one go
 # for multi model: give a view to each cache
-struct ParameterCache{M<:AbstractArray,V}
+struct ParameterCache{M<:AbstractArray,V,T<:Number}
     free_mask::M # bit vector or a view into one
     parameters::V
+    frozen_values::Vector{T}
 end
 
 function _make_free_mask(params::AbstractArray{<:FitParam})
@@ -16,15 +17,20 @@ end
 
 function ParameterCache(params::AbstractArray{<:FitParam})
     free_mask = _make_free_mask(params)
-    ParameterCache(free_mask, map(get_value, params))
+    frozen = params[.!free_mask]
+    ParameterCache(free_mask, map(get_value, params), map(get_value, frozen))
 end
 
-function _update_conditional!(parameters, mask, new_parameters, condition)
+function _update_conditional!(parameters, mask, new_parameters, frozen)
     j::Int = 1
+    k::Int = 1
     for (i, free) in enumerate(mask)
-        if condition(free)
+        if free
             parameters[i] = new_parameters[j]
             j += 1
+        else
+            parameters[i] = frozen[k]
+            k += 1
         end
     end
 end
@@ -35,15 +41,13 @@ _get_parameters(cache::ParameterCache{M,V}, params) where {M<:AbstractArray,V<:D
 
 function update_free_parameters!(cache::ParameterCache, params)
     @assert count(cache.free_mask) == length(params)
-    _update_conditional!(_get_parameters(cache, params), cache.free_mask, params, ==(true))
+    _update_conditional!(
+        _get_parameters(cache, params),
+        cache.free_mask,
+        params,
+        cache.frozen_values,
+    )
     cache
 end
 
-function update_frozen_parameters!(cache::ParameterCache, params)
-    parameters = _get_parameters(cache, params)
-    @assert length(parameters) - count(cache.free_mask) == length(params)
-    _update_conditional!(parameters, cache.free_mask, params, ==(false))
-    cache
-end
-
-export ParameterCache, update_free_parameters!, update_frozen_parameters!
+export ParameterCache, update_free_parameters!

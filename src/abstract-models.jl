@@ -378,9 +378,5 @@ function make_diff_parameter_cache(
     N = isnothing(param_diff_cache_size) ? length(vals) : param_diff_cache_size
     diffcache = DiffCache(vals, ForwardDiff.pickchunksize(N))
 
-    # embed current parameter values inside of the dual cache
-    # else all frozens will be zero
-    get_tmp(diffcache, ForwardDiff.Dual(one(eltype(vals)))) .= vals
-
-    ParameterCache(free_mask, diffcache)
+    ParameterCache(free_mask, diffcache, vals[.!free_mask])
 end
