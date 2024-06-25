@@ -15,9 +15,10 @@ function _make_free_mask(params::AbstractArray{<:FitParam})
     free_mask
 end
 
-function ParameterCache(params::AbstractArray{<:FitParam}, frozen_values::Vector{<:Number})
+function ParameterCache(params::AbstractArray{<:FitParam})
     free_mask = _make_free_mask(params)
-    ParameterCache(free_mask, map(get_value, params), frozen_values)
+    frozen = params[.!free_mask]
+    ParameterCache(free_mask, map(get_value, params), map(get_value, frozen))
 end
 
 function _update_conditional!(parameters, mask, new_parameters, frozen)
