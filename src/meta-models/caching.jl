@@ -52,7 +52,7 @@ function _reinterpret_dual(
     reinterpret(DualType, view(v, 1:n_elems)), needs_resize
 end
 
-function invoke!(output, domain, model::AutoCache{M,T}) where {M,T}
+function invoke!(output, domain, model::AutoCache{M,T,K}) where {M,T,K}
     D = promote_type(eltype(domain), T)
 
     _new_params = parameter_tuple(model.model)
@@ -65,8 +65,14 @@ function invoke!(output, domain, model::AutoCache{M,T}) where {M,T}
 
     # if the parameter size has changed, need to rerun the model
     if (!out_resized) && (model.cache.size_of_element == sizeof(D)) && (same_domain)
+        # ignore the normalisation, since that's applied later
+        _pc, _np = @views if K === Additive
+            param_cache[2:end], _new_params[2:end]
+        else
+            param_cache, _new_params
+        end
         # if all parameters within some tolerance, then just return the cache
-        within_tolerance = all(zip(param_cache, _new_params)) do I
+        within_tolerance = all(zip(_pc, _np)) do I
             p, pm = I
             abs((get_value(p) - get_value(pm)) / p) < model.abstol
         end
