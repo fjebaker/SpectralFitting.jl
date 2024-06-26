@@ -78,3 +78,21 @@ _, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
 # prob = FittingProblem(model1 => dummy_data1, model2 => dummy_data1)
 # bind!(prob, :K)
 # note that this does not work at present because `_get_index_of_symbol` throws an error if the symbol is not found
+
+# 3 models, 1 frozen parameter (that needs to be skipped), 1 bound parameter
+model1 = PowerLaw() + PowerLaw()
+prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => dummy_data1)
+model1.K_1.frozen = true
+bind!(prob, :a_1)
+bind!(prob, :a_2)
+_, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@test mapping == ([1, 2, 3], [1, 4, 3], [1, 5, 3])
+
+# 3 models, 1 frozen parameter (that doesn't need to be skipped), 1 bound parameter
+prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => dummy_data1)
+model1.K_1.frozen = false
+model1.a_2.frozen = true
+bind!(prob, :K_1)
+bind!(prob, :a_1)
+_, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@test mapping == ([1, 2, 3], [1, 2, 4], [1, 2, 5])

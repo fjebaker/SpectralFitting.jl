@@ -44,10 +44,17 @@ function _construct_bound_mapping(bindings, parameter_count)
 end
 
 function _get_index_of_symbol(model::AbstractSpectralModel, symbol)::Int
-    symbols = keys(parameter_named_tuple(model))
+    pnt = parameter_named_tuple(model)
+    symbols = keys(pnt)
     i = findfirst(==(symbol), symbols)
     if isnothing(i)
         error("Could not match symbol $symbol !")
+    end
+    # don't count frozen parameters if they are prior to the parameter of interest
+    for s = 1:i
+        if isfrozen(pnt[s])
+            i -= 1
+        end
     end
     i
 end
