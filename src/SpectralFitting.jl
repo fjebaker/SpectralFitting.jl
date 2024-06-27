@@ -22,6 +22,7 @@ import DataInterpolations
 using SpecialFunctions
 using PreallocationTools
 using EnumX
+using LoopVectorization
 
 import Crayons
 # fitting backends
@@ -43,6 +44,7 @@ struct Cash <: AbstractStatistic end
 include("units.jl")
 SpectralUnits.@reexport using .SpectralUnits
 
+include("utils.jl")
 include("print-utilities.jl")
 include("support.jl")
 
