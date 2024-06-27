@@ -147,7 +147,7 @@ end
 end
 
 @userplot PlotResult
-@recipe function _plotting_fun(r::PlotResult; xscale = :identity)
+@recipe function _plotting_fun(r::PlotResult; xscale = :identity, residual_ylims = :auto)
     if length(r.args) != 2 ||
        !(typeof(r.args[1]) <: AbstractDataset) ||
        !(
@@ -196,7 +196,7 @@ end
             seriestype --> :stepmid
             yscale := :identity
             ylabel := "Residuals"
-            ylims := :auto
+            ylims --> residual_ylims
             label := false
             fill --> (0, 0.3, :auto)
             y_residuals = residuals(r)
