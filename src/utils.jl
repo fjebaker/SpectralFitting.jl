@@ -1,19 +1,38 @@
-function _convolve_1d_same_domain!(
-    output::Vector{T},
-    vec_A::Vector{T},
-    kernel::Vector{T},
-) where {T<:Real}
+function _convolve_implementation!(
+    output::AbstractVector{T},
+    vec_A::AbstractVector{T},
+    kernel::AbstractVector{T},
+) where {T<:Number}
     # Based on https://discourse.julialang.org/t/97658/15
-    @assert length(output) == length(vec_A)
-    @assert length(output) == length(kernel)
+    J = length(vec_A)
+    K = length(kernel)
+    @assert length(output) == J + K - 1 "Ouput is $(length(output)); should be $(J + K - 1)"
 
-    fill!(output, 0)
-
-    @turbo for i in eachindex(output)
+    # do the kernel's side first
+    for i = 1:K-1
         total = zero(T)
-        for k in eachindex(output)
-            ib0 = (i >= k)
-            oa = ib0 ? vec_A[i-k+1] : zero(T)
+        for k = 1:K
+            ib = (i >= k)
+            oa = ib ? vec_A[i-k+1] : zero(T)
+            total += kernel[k] * oa
+        end
+        output[i] = total
+    end
+    # now the middle
+    for i = K:J-1
+        total = zero(T)
+        for k = 1:K
+            oa = vec_A[i-k+1]
+            total += kernel[k] * oa
+        end
+        output[i] = total
+    end
+    # and finally the end
+    for i = J:(J+K-1)
+        total = zero(T)
+        for k = 1:K
+            ib = (i < J + k)
+            oa = ib ? vec_A[i-k+1] : zero(T)
             total += kernel[k] * oa
         end
         output[i] = total
@@ -21,8 +40,8 @@ function _convolve_1d_same_domain!(
     output
 end
 
-convolve!(output, A, kernel) = _convolve_1d_same_domain!(output, A, kernel)
+convolve!(output, A, kernel) = _convolve_implementation!(output, A, kernel)
 function convolve(A, kernel)
-    output = similar(A)
+    output = zeros(eltype(A), length(A) + length(kernel) - 1)
     convolve!(output, A, kernel)
 end

@@ -62,6 +62,7 @@ include("meta-models/wrappers.jl")
 include("meta-models/table-models.jl")
 include("meta-models/surrogate-models.jl")
 include("meta-models/caching.jl")
+include("meta-models/functions.jl")
 
 include("poisson.jl")
 

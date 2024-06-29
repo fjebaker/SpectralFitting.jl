@@ -30,15 +30,21 @@ function AutoCache(model::AbstractSpectralModel{T,K}; abstol = 1e-3) where {T,K}
     AutoCache(model, cache, abstol)
 end
 
-function _reinterpret_dual(::Type, v::AbstractArray, n::Int)
+function _reinterpret_dual(
+    M::Type{<:AbstractSpectralModel},
+    ::Type,
+    v::AbstractArray,
+    n::Int,
+)
     needs_resize = n > length(v)
     if needs_resize
-        @warn "AutoCache: Growing dual buffer..."
+        @warn "$(Base.typename(M).name): Growing dual buffer..."
         resize!(v, n)
     end
     view(v, 1:n), needs_resize
 end
 function _reinterpret_dual(
+    M::Type{<:AbstractSpectralModel},
     DualType::Type{<:ForwardDiff.Dual},
     v::AbstractArray{T},
     n::Int,
@@ -46,7 +52,7 @@ function _reinterpret_dual(
     n_elems = div(sizeof(DualType), sizeof(T)) * n
     needs_resize = n_elems > length(v)
     if needs_resize
-        @warn "AutoCache: Growing dual buffer..."
+        @warn "$(Base.typename(M).name): Growing dual buffer..."
         resize!(v, n_elems)
     end
     reinterpret(DualType, view(v, 1:n_elems)), needs_resize
@@ -58,8 +64,10 @@ function invoke!(output, domain, model::AutoCache{M,T,K}) where {M,T,K}
     _new_params = parameter_tuple(model.model)
     _new_limits = (first(domain), last(domain))
 
-    output_cache, out_resized = _reinterpret_dual(D, model.cache.cache, length(output))
-    param_cache, _ = _reinterpret_dual(D, model.cache.params, length(_new_params))
+    output_cache, out_resized =
+        _reinterpret_dual(typeof(model), D, model.cache.cache, length(output))
+    param_cache, _ =
+        _reinterpret_dual(typeof(model), D, model.cache.params, length(_new_params))
 
     same_domain = model.cache.domain_limits == _new_limits
 
