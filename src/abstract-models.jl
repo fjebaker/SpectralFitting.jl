@@ -322,6 +322,10 @@ function allocate_model_output(
     construct_objective_cache(T, model, domain)
 end
 
+function Base.copy(m::AbstractSpectralModel)
+    typeof(m)((copy(getproperty(m, f)) for f in fieldnames(typeof(m)))...)
+end
+
 # printing
 
 function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}

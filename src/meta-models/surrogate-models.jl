@@ -28,6 +28,8 @@ struct SurrogateSpectralModel{T,K,N,S,Symbols} <: AbstractSpectralModel{T,K}
     params::NTuple{N,T}
 end
 
+Base.copy(s::SurrogateSpectralModel) = typeof(s)(deepcopy(s.surrogate), deepcopy(s.params))
+
 function SurrogateSpectralModel(
     ::K,
     surrogate::S,
