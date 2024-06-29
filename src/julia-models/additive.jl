@@ -130,4 +130,27 @@ end
     end
 end
 
-export PowerLaw, BlackBody, GaussianLine
+struct DeltaLine{W<:Number,T} <: AbstractSpectralModel{T,Additive}
+    _width::W
+    "Normalisation."
+    K::T
+    "Energy at which the delta function spikes."
+    E::T
+end
+
+function DeltaLine(; K = FitParam(1.0), E = FitParam(5.0), width = 1e-2)
+    DeltaLine{typeof(width),typeof(K)}(width, K, E)
+end
+
+Reflection.get_closure_symbols(::Type{<:DeltaLine}) = (:_width,)
+
+Reflection.get_parameter_symbols(model::Type{<:DeltaLine}) = fieldnames(model)[2:end]
+
+@inline function invoke!(flux, energy, model::DeltaLine{T}) where {T}
+    # we can't actually have a diract delta because that would ruin
+    # the ability to run dual numbers through the system. What we can do instead
+    # is have a miniscule gaussian
+    invoke!(flux, energy, GaussianLine(promote(model.K, model.E, model._width)...))
+end
+
+export PowerLaw, BlackBody, GaussianLine, DeltaLine
