@@ -65,3 +65,5 @@ function _or_else(value::Union{Nothing,T}, v::T)::T where {T}
         value
     end
 end
+
+export AsConvolution
