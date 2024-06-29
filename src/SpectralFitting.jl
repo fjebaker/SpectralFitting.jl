@@ -22,7 +22,6 @@ import DataInterpolations
 using SpecialFunctions
 using PreallocationTools
 using EnumX
-using LoopVectorization
 
 import Crayons
 # fitting backends
