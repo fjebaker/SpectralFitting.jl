@@ -14,9 +14,6 @@ model = conv(lines)
 
 domain = collect(range(0.0, 10.0, 150))
 
-plot(domain[1:end-1], invokemodel(domain, lines))
-plot(domain[1:end-1], invokemodel(domain, model))
-
 output = invokemodel(domain, model)
 
 @test sum(output) ≈ 3.2570820013702395 atol = 1e-4
