@@ -43,6 +43,7 @@ struct Cash <: AbstractStatistic end
 include("units.jl")
 SpectralUnits.@reexport using .SpectralUnits
 
+include("utils.jl")
 include("print-utilities.jl")
 include("support.jl")
 
@@ -60,6 +61,7 @@ include("meta-models/wrappers.jl")
 include("meta-models/table-models.jl")
 include("meta-models/surrogate-models.jl")
 include("meta-models/caching.jl")
+include("meta-models/functions.jl")
 
 include("poisson.jl")
 

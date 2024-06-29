@@ -53,6 +53,7 @@ function fit(
     alg::LevenbergMarquadt;
     verbose = false,
     max_iter = 1000,
+    autodiff = supports_autodiff(config) ? :forward : :finite,
     method_kwargs...,
 )
     @assert fit_statistic(config) == ChiSquared() "Least squares only for χ2 statistics."
@@ -66,7 +67,7 @@ function fit(
         alg;
         verbose = verbose,
         max_iter = max_iter,
-        autodiff = supports_autodiff(config) ? :forward : :finite,
+        autodiff = autodiff,
         method_kwargs...,
     )
     params = LsqFit.coef(lsq_result)
