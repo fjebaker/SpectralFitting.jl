@@ -13,6 +13,15 @@ struct AsConvolution{M,T,V,P} <: AbstractModelWrapper{M,T,Convolutional}
     end
 end
 
+"""
+    Base.copy(m::AsConvolution)
+
+Creates a copy of an [`AsConvolution`](@ref) wrapped model. Will make a 
+`deepcopy` of the cache to elimiate possible thread contention, but does not
+copy the domain.
+"""
+Base.copy(m::AsConvolution) = AsConvolution(copy(m.model), m.domain, deepcopy(m.cache))
+
 function AsConvolution(
     model::AbstractSpectralModel{T};
     domain = collect(range(0, 2, 100)),

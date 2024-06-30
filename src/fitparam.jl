@@ -4,7 +4,7 @@ function fit_param_default_error(val)
 end
 
 # concrete types
-mutable struct FitParam{T}
+mutable struct FitParam{T<:Number}
     value::T
     error::T
 
@@ -46,6 +46,14 @@ Base.isapprox(f1::FitParam, f2::FitParam; kwargs...) =
     isapprox(f1.value, f2.value; kwargs...)
 Base.:(==)(f1::FitParam, f2::FitParam) = f1.value == f2.value
 Base.convert(T::Type{<:Number}, f::FitParam) = convert(T, f.value)
+
+Base.copy(f::FitParam) = FitParam(
+    f.value;
+    error = f.error,
+    lower_limit = f.lower_limit,
+    upper_limit = f.upper_limit,
+    frozen = f.frozen,
+)
 
 paramtype(::Type{FitParam{T}}) where {T} = T
 paramtype(::T) where {T<:FitParam} = paramtype(T)

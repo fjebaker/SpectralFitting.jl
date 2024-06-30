@@ -24,6 +24,10 @@ struct AutoCache{M,T,K,C<:CacheEntry} <: AbstractModelWrapper{M,T,K}
     end
 end
 
+function Base.copy(m::AutoCache)
+    AutoCache(copy(m.model), deepcopy(m.cache), m.abstol)
+end
+
 function AutoCache(model::AbstractSpectralModel{T,K}; abstol = 1e-3) where {T,K}
     params = [get_value.(parameter_tuple(model))...]
     cache = CacheEntry(params)
