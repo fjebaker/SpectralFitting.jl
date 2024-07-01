@@ -34,22 +34,17 @@ function invoke!(output, domain, model::AsConvolution{M,T}) where {M,T}
     D = promote_type(eltype(domain), T)
     model_output, _ =
         _reinterpret_dual(typeof(model), D, model.cache[1], length(model.domain) - 1)
-    convolution_cache, _ = _reinterpret_dual(
-        typeof(model),
-        D,
-        model.cache[2],
-        length(output) + length(model_output) - 1,
-    )
+    convolution_cache, _ =
+        _reinterpret_dual(typeof(model), D, model.cache[2], length(output))
 
     # invoke the child model
     invoke!(model_output, model.domain, model.model)
 
     # do the convolution
-    convolve!(convolution_cache, output, model_output)
+    convolve!(convolution_cache, output, domain, model_output, model.domain)
 
     # overwrite the output
-    shift = div(length(model_output), 2)
-    @views output .= convolution_cache[1+shift:length(output)+shift]
+    @views output .= convolution_cache
 end
 
 function Reflection.get_parameter_symbols(

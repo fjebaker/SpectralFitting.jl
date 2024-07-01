@@ -40,8 +40,50 @@ function _convolve_implementation!(
     output
 end
 
-convolve!(output, A, kernel) = _convolve_implementation!(output, A, kernel)
+function convolve!(output, A, kernel)
+    if length(kernel) <= length(A)
+        _convolve_implementation!(output, A, kernel)
+    else
+        _convolve_implementation!(output, kernel, A)
+    end
+end
 function convolve(A, kernel)
     output = zeros(eltype(A), length(A) + length(kernel) - 1)
-    convolve!(output, A, kernel)
+    convolve!(output, A, A_domain, kernel, kernel_domain)
+end
+
+"""
+Assumes A is binned in X1 and kernel is binned in X2. Output will also be binned on X1
+"""
+function _convolve_irregular_grid!(output, A, X1, kernel, X2)
+    @assert length(X1) == length(A) + 1
+    @assert length(X2) == length(kernel) + 1
+
+    function _kernel_func(x)
+        i1 = searchsortedfirst(X2, x)
+        if i1 >= length(X2) || i1 <= 1
+            return zero(x)
+        end
+        w = (x - X2[i1-1]) / (X2[i1] - X2[i1-1])
+        w * kernel[i1] + (1 - w) * kernel[i1-1]
+    end
+
+    fill!(output, 0)
+    for i in eachindex(output)
+        for j in eachindex(output)
+            x = X1[i] / X1[j]
+            k = A[j] * _kernel_func(x)
+            if k > 0
+                output[i] += k
+            end
+        end
+    end
+end
+
+function convolve!(output, A, A_domain, kernel, kernel_domain)
+    _convolve_irregular_grid!(output, A, A_domain, kernel, kernel_domain)
+end
+function convolve(A, A_domain, kernel, kernel_domain)
+    output = zeros(eltype(A), length(A) + length(kernel) - 1)
+    convolve!(output, A, A_domain, kernel, kernel_domain)
 end
