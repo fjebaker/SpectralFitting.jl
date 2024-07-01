@@ -19,10 +19,19 @@ function interpolated_rebin!(output, target, input, current)
 
     # use DataInterpolations cus no allocation :D 
     interp = @views DataInterpolations.LinearInterpolation(input, current[1:end-1])
+
+    function _interp_safe(x)
+        if x < current[1] || x > current[end-1]
+            zero(x)
+        else
+            interp(x)
+        end
+    end
+
     for i in eachindex(output)
         bin_high, bin_low = target[i+1], target[i]
         Δ = bin_high - bin_low
-        output[i] = Δ * interp(bin_low)
+        output[i] = Δ * _interp_safe(bin_low)
     end
 
     # restore like a good mannered citizen
