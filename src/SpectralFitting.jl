@@ -22,6 +22,7 @@ import DataInterpolations
 using SpecialFunctions
 using PreallocationTools
 using EnumX
+using MultiLinearInterpolations
 
 import Crayons
 # fitting backends
