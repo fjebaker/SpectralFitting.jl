@@ -38,6 +38,7 @@ jobs:
           tar -xf 1E-1048-5937.tar -C ex-datadir/
       - name: Build documentation
         run: |
+          julia -e 'import Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/astro-group-bristol/AstroRegistry/"))'
           julia --project=docs -e '
             using Pkg
             Pkg.add("Plots")
