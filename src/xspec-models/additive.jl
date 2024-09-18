@@ -702,10 +702,29 @@ energy = collect(range(0.1, 20.0, 100))
 invokemodel(energy, XS_Optxagnf())
 ```
 ```
-# A nice plotting example will be put here
+                                        XS_Optxagnf                
+                        ┌────────────────────────────────────────┐ 
+                      0 │                                        │ 
+                        │:                                       │ 
+                        │:                                       │ 
+                        │:                                       │ 
+                        │'.                                      │ 
+                        │ :                                      │ 
+                        │ '.                                     │ 
+   Flux (log scale)     │  :.                                    │ 
+                        │   :                                    │ 
+                        │    '.                                  │ 
+                        │     ''':.....                          │ 
+                        │              '''''''':.............    │ 
+                        │                                    ''''│ 
+                        │                                        │ 
+                    -30 │                                        │ 
+                        └────────────────────────────────────────┘ 
+                         0                                     20  
+                                          E (keV)               
 ```
 """
-@xspecmodel :C_optxagnf struct XS_Optxagnf{T} <: AbstractSpectraModel{T, Additive}
+@xspecmodel :C_optxagnf struct XS_Optxagnf{T} <: AbstractSpectralModel{T, Additive}
     "Normalisation must be frozen."
     K::T
     "Black hole mass in solar masses."
