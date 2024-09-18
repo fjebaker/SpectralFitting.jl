@@ -690,6 +690,137 @@ function XS_Jet(;
     )
 end
 
+"""
+    XS_Optxagnf()
+
+$(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokemodel(energy, XS_Optxagnf())
+```
+```
+# A nice plotting example will be put here
+```
+"""
+@xspecmodel :C_optxagnf struct XS_Optxagnf{T} <: AbstractSpectraModel{T, Additive}
+    "Normalisation must be frozen."
+    K::T
+    "Black hole mass in solar masses."
+    mass::T
+    "Comoving (proper) distance in Mpc."
+    Dco::T
+    "The Eddington ratio. log(L/L_Edd)."
+    logLoLEdd::T
+    "The dimensionless black hole spin."
+    astar::T
+    "The coronal radius in Rg = GM/c^2."
+    rcor::T
+    "The log of the outer radius of the disk in units of Rg."
+    logrout::T
+    "The electron temperature for the soft Comptonisation component (soft excess), in keV."
+    kT_e::T
+    "The optical depth of the soft Comptonisation component."
+    τ::T
+    "The spectral index of the hard Comptonisation component (‘power law’) which has temperature fixed to 100 keV."
+    Gamma::T
+    "the fraction of the power below rcor which is emitted in the hard comptonisation component."
+    fpl::T
+    "Redshift."
+    z::T
+end
+function XS_Optxagnf(;
+    K = FitParam(1.0, frozen = true, lower_limit = 1.0, upper_limit = 1.0, error = 0.01),
+    mass = FitParam(
+        1.0e7,
+        frozen = true,
+        lower_limit = 1.0,
+        upper_limit = 1.0e10,
+        error = 1.0e5,
+    ),
+    Dco = FitParam(
+        100.0,
+        frozen = true,
+        lower_limit = 0.01,
+        upper_limit = 1.0e9,
+        error = 10,
+    ),
+    logLoLEdd = FitParam(
+        -1.0,
+        frozen = false,
+        lower_limit = -10.0,
+        upper_limit = 2.0,
+        error = 0.01,
+    ),
+    astar = FitParam(
+        0.0,
+        frozen = true,
+        lower_limit = 0.0,
+        upper_limit = 0.998,
+        error = 0.01,
+    ),
+    rcor = FitParam(
+        10.0,
+        frozen = false,
+        lower_limit = 1.0,
+        upper_limit = 100.0,
+        error = 0.1,
+    ),
+    logrout = FitParam(
+        5.0,
+        frozen = true,
+        lower_limit = 3.0,
+        upper_limit = 7.0,
+        error = 0.01,
+    ),
+    kT_e = FitParam(
+        0.2,
+        frozen = false,
+        lower_limit = 0.01,
+        upper_limit = 10.0,
+        error = 0.01,
+    ),
+    τ = FitParam(
+        10.0,
+        frozen = false,
+        lower_limit = 0.1,
+        upper_limit = 100.0,
+        error = 0.1,
+    ),
+    Gamma = FitParam(
+        2.1,
+        frozen = false,
+        lower_limit = 1.05,
+        upper_limit = 5.0,
+        error = 0.01,
+    ),
+    fpl = FitParam(
+        1.0e-4,
+        frozen = false,
+        lower_limit = 0.0,
+        upper_limit = 1.0,
+        error = 0.01,
+    ),
+    z = FitParam(0.0, frozen = true, lower_limit = 0.0, upper_limit = 10.0, error = 1.0),
+)
+    XS_Optxagnf(
+        K,
+        mass,
+        Dco,
+        logLoLEdd,
+        astar,
+        rcor,
+        logrout,
+        kT_e,
+        τ,
+        Gamma,
+        fpl,
+        z,
+    )
+end
+
 export XS_PowerLaw,
     XS_CutOffPowerLaw,
     XS_BlackBody,
@@ -699,4 +830,5 @@ export XS_PowerLaw,
     XS_KerrDisk,
     XS_KyrLine,
     XS_Gaussian,
-    XS_Jet
+    XS_Jet,
+    XS_Optxagnf
