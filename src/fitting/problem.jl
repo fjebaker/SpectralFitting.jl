@@ -88,14 +88,57 @@ end
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProblem))
     buff = IOBuffer()
     println(buff, "FittingProblem:")
-    println(buff, "  Models:")
-    for model in prob.model.m
-        println(buff, " "^4 * ". $(model)")
+    println(buff, "  . Models     : $(length(prob.model.m))")
+    println(buff, "  . Datasets   : $(length(prob.data.d))")
+    println(buff, "  Parameter Summary:")
+
+    factor = div(length(prob.data.d), length(prob.model.m))
+
+    total = 0
+    free = 0
+    frozen = 0
+    for m in prob.model.m
+        for p in parameter_tuple(m)
+            total += factor
+            if isfrozen(p)
+                frozen += factor
+            else
+                free += factor
+            end
+        end
     end
-    println(buff, "  Data:")
-    for data in prob.data.d
-        println(buff, " "^4 * ". $(data)")
+
+    bound = 0
+    for binding in prob.bindings
+        bound += length(Set(first.(binding))) - 1
     end
+    free = free - bound
+
+    println(buff, "  . Total      : $(total)")
+    println(
+        buff,
+        "  . ",
+        Crayons.Crayon(foreground = :cyan),
+        "Frozen",
+        Crayons.Crayon(reset = true),
+        "     : $(frozen)",
+    )
+    println(
+        buff,
+        "  . ",
+        Crayons.Crayon(foreground = :magenta),
+        "Bound",
+        Crayons.Crayon(reset = true),
+        "      : $(bound)",
+    )
+    println(
+        buff,
+        "  . ",
+        Crayons.Crayon(foreground = :green),
+        "Free (DOF)",
+        Crayons.Crayon(reset = true),
+        " : $(free)",
+    )
     print(io, encapsulate(String(take!(buff))))
 end
 
