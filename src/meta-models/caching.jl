@@ -15,23 +15,29 @@ struct AutoCache{M,T,K,C<:CacheEntry} <: AbstractModelWrapper{M,T,K}
     model::M
     cache::C
     abstol::Float64
+    enabled::Bool
     function AutoCache(
         model::AbstractSpectralModel{T,K},
         cache::CacheEntry,
         abstol,
+        enabled::Bool,
     ) where {T,K}
-        new{typeof(model),T,K,typeof(cache)}(model, cache, abstol)
+        new{typeof(model),T,K,typeof(cache)}(model, cache, abstol, enabled)
     end
 end
 
 function Base.copy(m::AutoCache)
-    AutoCache(copy(m.model), deepcopy(m.cache), m.abstol)
+    AutoCache(copy(m.model), deepcopy(m.cache), m.abstol, m.enabled)
 end
 
-function AutoCache(model::AbstractSpectralModel{T,K}; abstol = 1e-3) where {T,K}
+function AutoCache(
+    model::AbstractSpectralModel{T,K};
+    abstol = 1e-3,
+    enabled = true,
+) where {T,K}
     params = [get_value.(parameter_tuple(model))...]
     cache = CacheEntry(params)
-    AutoCache(model, cache, abstol)
+    AutoCache(model, cache, abstol, enabled)
 end
 
 function _reinterpret_dual(
@@ -63,6 +69,9 @@ function _reinterpret_dual(
 end
 
 function invoke!(output, domain, model::AutoCache{M,T,K}) where {M,T,K}
+    if model.enabled == false
+        return invoke!(output, domain, model.model)
+    end
     D = promote_type(eltype(domain), T)
 
     _new_params = parameter_tuple(model.model)
