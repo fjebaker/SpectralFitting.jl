@@ -12,6 +12,18 @@ struct FittableMultiModel{M}
     FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
 end
 
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize(model::FittableMultiModel))
+    buff = IOBuffer()
+    println(buff, "Models:")
+    for m in model.m
+        buf = IOBuffer()
+        print(buf, "- ")
+        _printinfo(buf, m)
+        print(buff, indent(String(take!(buf)), 2))
+    end
+    print(io, encapsulate(String(take!(buff))))
+end
+
 function Base.getindex(multimodel::FittableMultiModel, i)
     multimodel.m[i]
 end
