@@ -724,7 +724,7 @@ invokemodel(energy, XS_Optxagnf())
                                           E (keV)               
 ```
 """
-@xspecmodel :C_optxagnf struct XS_Optxagnf{T} <: AbstractSpectralModel{T, Additive}
+@xspecmodel :C_optxagnf struct XS_Optxagnf{T} <: AbstractSpectralModel{T,Additive}
     "Normalisation must be frozen."
     K::T
     "Black hole mass in solar masses."
@@ -801,13 +801,7 @@ function XS_Optxagnf(;
         upper_limit = 10.0,
         error = 0.01,
     ),
-    τ = FitParam(
-        10.0,
-        frozen = false,
-        lower_limit = 0.1,
-        upper_limit = 100.0,
-        error = 0.1,
-    ),
+    τ = FitParam(10.0, frozen = false, lower_limit = 0.1, upper_limit = 100.0, error = 0.1),
     Gamma = FitParam(
         2.1,
         frozen = false,
@@ -824,20 +818,7 @@ function XS_Optxagnf(;
     ),
     z = FitParam(0.0, frozen = true, lower_limit = 0.0, upper_limit = 10.0, error = 1.0),
 )
-    XS_Optxagnf(
-        K,
-        mass,
-        Dco,
-        logLoLEdd,
-        astar,
-        rcor,
-        logrout,
-        kT_e,
-        τ,
-        Gamma,
-        fpl,
-        z,
-    )
+    XS_Optxagnf(K, mass, Dco, logLoLEdd, astar, rcor, logrout, kT_e, τ, Gamma, fpl, z)
 end
 
 export XS_PowerLaw,
