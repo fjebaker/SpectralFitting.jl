@@ -39,6 +39,7 @@ jobs:
       - name: Build documentation
         run: |
           julia -e 'import Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/astro-group-bristol/AstroRegistry/"))'
+          julia -e 'import Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JuliaRegistries/General"))'
           julia --project=docs -e '
             using Pkg
             Pkg.add("Plots")
