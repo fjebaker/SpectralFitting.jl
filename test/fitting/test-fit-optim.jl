@@ -30,7 +30,7 @@ result = fit(prob, NelderMead(), autodiff = SpectralFitting.Optimization.SciMLBa
 @test sum(result.χ2s) ≈ 5.7238519700611725 atol = 1e-2
 
 # now with the AD backend
-result = fit(prob, IPNewton())
+result = fit(prob, BFGS())
 
 # both models should fit more or less the same
 @test sum(result[1].u) ≈ sum(result[2].u) atol = 1e-2
@@ -40,17 +40,18 @@ result = fit(prob, IPNewton())
 # do a single model
 
 prob = FittingProblem(model => dummy_data)
-result = fit(prob, IPNewton())
+
+result = fit(prob, BFGS())
 
 # both models should fit more or less the same
-@test result.u ≈ [17.254, 0.285, 14.970, 3.0974] atol = 1e-2
+@test result.u ≈ [14.970, 3.0974, 17.254, 0.285] atol = 1e-2
 @test result.χ2 ≈ 2.8619 atol = 1e-2
 
 # now with different statistic
 
 prob = FittingProblem(model => dummy_data)
-result = fit(prob, IPNewton(); stat = Cash())
+result = fit(prob, BFGS(); stat = Cash())
 
 # both models should fit more or less the same
-@test result.u ≈ [12.217, 3.288, 19.053, 0.339] atol = 1e-2
+@test result.u ≈ [19.053, 0.339, 12.217, 3.288] atol = 1e-2
 @test result.χ2 ≈ 0.305 atol = 1e-2

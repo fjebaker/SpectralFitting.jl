@@ -101,7 +101,6 @@ function fit(
 
     # build problem and solve
     opt_f = Optimization.OptimizationFunction(objective, autodiff)
-    # todo: something is broken with passing the boundaries
     opt_prob =
         Optimization.OptimizationProblem(opt_f, u0, config.model_domain; lb = lb, ub = ub)
 
@@ -129,7 +128,7 @@ end
 
 function _determine_ad_backend(config)
     if supports_autodiff(config)
-        Optimization.AutoForwardDiff()
+        Optimization.ADTypes.AutoForwardDiff()
     else
         Optimization.SciMLBase.NoAD()
     end
