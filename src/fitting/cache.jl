@@ -111,11 +111,18 @@ function _invoke_and_transform!(cache::MultiModelCache, domain, params)
     all_outputs
 end
 
-function _build_parameter_mapping(model::FittableMultiModel, bindings)
-    parameters = map(m -> collect(filter(isfree, parameter_tuple(m))), model.m)
-    parameters_counts = _accumulated_indices(map(length, parameters))
+function _build_parameter_mapping(model::FittableMultiModel{M}, bindings) where {M}
+    T = paramtype(M.parameters[1])
 
-    all_parameters = reduce(vcat, parameters)
+    all_parameters = Vector{T}()
+    # use the tuple hack to enforce type stability and unroll the loop
+    parameters = map((1:length(M.parameters)...,)) do i
+        m = model.m[i]
+        v::Vector{T} = collect(filter(isfree, parameter_tuple(m)))
+        append!(all_parameters, v)
+        v
+    end
+    parameters_counts = _accumulated_indices(map(length, parameters))
 
     parameter_mapping, remove = _construct_bound_mapping(bindings, parameters_counts)
     # remove duplicate parameters that are bound

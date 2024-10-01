@@ -17,6 +17,11 @@ prob = FittingProblem(
     FittableMultiDataset(dummy_data, dummy_data),
 )
 
+# check inferred types for multi models
+@inferred SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@inferred SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@inferred SpectralFitting._unpack_config(prob)
+
 result = fit(prob, NelderMead(), autodiff = SpectralFitting.Optimization.SciMLBase.NoAD())
 
 # both models should fit more or less the same
