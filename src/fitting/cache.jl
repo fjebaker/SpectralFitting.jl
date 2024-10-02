@@ -111,24 +111,73 @@ function _invoke_and_transform!(cache::MultiModelCache, domain, params)
     all_outputs
 end
 
+"""
+    adjust_free_bindings(model::FittableMultiModel, bindings::Vector{Vector{Pair{Int,Int}}})
+
+Returns a new parameter binding list with the parameter indices adjusted to
+omit the frozen parameter. That is, if a model has three parameters `a`, `b`
+(frozen) and `c`, and parameter `c` (index 3) is bound; then the new bindings
+will instead give the index of `c` as 2. 
+
+In that sense, the new bindings refer to the _free parameter_ vector, and not the full parameter vector. 
+
+If the binding refers to a frozen parameter, it is removed from the binding list.
+"""
+function adjust_free_bindings(model::FittableMultiModel, bindings)
+    new_bindings = map(bindings) do binding
+        pairs = Vector{Pair{Int,Int}}()
+        for pair in binding
+            model_index, parameter_index = pair
+
+            new_index = parameter_index
+            refers_to_frozen = false
+
+            for (i, param) in enumerate(parameter_tuple(model.m[model_index]))
+                if i > parameter_index
+                    break
+                end
+
+                if isfrozen(param)
+                    if i == parameter_index
+                        refers_to_frozen = true
+                        break
+                    end
+                    new_index -= 1
+                end
+            end
+
+            if !refers_to_frozen
+                push!(pairs, model_index => new_index)
+            end
+        end
+        pairs
+    end
+
+    # remove those that have become redundant
+    filter(i -> length(i) > 1, new_bindings)
+end
+
 function _build_parameter_mapping(model::FittableMultiModel{M}, bindings) where {M}
     T = paramtype(M.parameters[1])
 
-    all_parameters = Vector{T}()
+    all_free_parameters = Vector{T}()
     # use the tuple hack to enforce type stability and unroll the loop
     parameters = map((1:length(M.parameters)...,)) do i
         m = model.m[i]
         v::Vector{T} = collect(filter(isfree, parameter_tuple(m)))
-        append!(all_parameters, v)
+        append!(all_free_parameters, v)
         v
     end
     parameters_counts = _accumulated_indices(map(length, parameters))
 
-    parameter_mapping, remove = _construct_bound_mapping(bindings, parameters_counts)
-    # remove duplicate parameters that are bound
-    deleteat!(all_parameters, remove)
+    # need to adjust the bindings to remove the frozen indices
+    free_bindings = adjust_free_bindings(model, bindings)
 
-    all_parameters, parameter_mapping
+    parameter_mapping, remove = _construct_bound_mapping(free_bindings, parameters_counts)
+    # remove duplicate parameters that are bound
+    deleteat!(all_free_parameters, remove)
+
+    all_free_parameters, parameter_mapping
 end
 
 function _build_mapping_length(f, itt::Tuple)
