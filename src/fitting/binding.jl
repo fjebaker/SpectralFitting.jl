@@ -50,12 +50,6 @@ function _get_index_of_symbol(model::AbstractSpectralModel, symbol)::Int
     if isnothing(i)
         error("Could not match symbol $symbol !")
     end
-    # don't count frozen parameters if they are prior to the parameter of interest
-    for s = 1:i
-        if isfrozen(pnt[s])
-            i -= 1
-        end
-    end
     i
 end
 

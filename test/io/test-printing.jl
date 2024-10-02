@@ -17,7 +17,7 @@ expected = """
 ┌ DummyAdditive
 │      K ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
 │      a ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b ->  5\e[36m                     FROZEN\e[0m
+│      b ->  5  \e[36m                     FROZEN\e[0m
 └ """
 @test string == expected
 
@@ -32,14 +32,14 @@ expected = """┌ CompositeModel with 3 model components:
 │ \e[36m   a1\e[0m => \e[36mDummyAdditive\e[0m
 │      K_1 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
 │      a_1 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_1 ->  5\e[36m                     FROZEN\e[0m
+│      b_1 ->  5  \e[36m                     FROZEN\e[0m
 │ \e[36m   a2\e[0m => \e[36mDummyAdditive\e[0m
 │      K_2 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
 │      a_2 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_2 ->  5\e[36m                     FROZEN\e[0m
+│      b_2 ->  5  \e[36m                     FROZEN\e[0m
 │ \e[36m   m1\e[0m => \e[36mDummyMultiplicative\e[0m
 │      a_3 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_3 ->  5\e[36m                     FROZEN\e[0m
+│      b_3 ->  5  \e[36m                     FROZEN\e[0m
 └ """
 @test string == expected
 
@@ -55,20 +55,20 @@ expected = """┌ CompositeModel with 5 model components:
 │ \e[36m   a1\e[0m => \e[36mDummyAdditive\e[0m
 │      K_1 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
 │      a_1 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_1 ->  5\e[36m                     FROZEN\e[0m
+│      b_1 ->  5  \e[36m                     FROZEN\e[0m
 │ \e[36m   m1\e[0m => \e[36mDummyMultiplicative\e[0m
 │      a_2 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_2 ->  5\e[36m                     FROZEN\e[0m
+│      b_2 ->  5  \e[36m                     FROZEN\e[0m
 │ \e[36m   a2\e[0m => \e[36mDummyAdditive\e[0m
 │      K_2 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
 │      a_3 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_3 ->  5\e[36m                     FROZEN\e[0m
+│      b_3 ->  5  \e[36m                     FROZEN\e[0m
 │ \e[36m   m2\e[0m => \e[36mDummyMultiplicative\e[0m
 │      a_4 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_4 ->  5\e[36m                     FROZEN\e[0m
+│      b_4 ->  5  \e[36m                     FROZEN\e[0m
 │ \e[36m   m3\e[0m => \e[36mDummyMultiplicative\e[0m
 │      a_5 ->  1 ± 0.1  ∈ [ 0, Inf ]\e[32m   FREE\e[0m
-│      b_5 ->  5\e[36m                     FROZEN\e[0m
+│      b_5 ->  5  \e[36m                     FROZEN\e[0m
 └ """
 @test string == expected
 

@@ -85,6 +85,11 @@ prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => du
 model1.K_1.frozen = true
 bind!(prob, :a_1)
 bind!(prob, :a_2)
+
+# check that the free parameter binding adjustment works okay
+new_bindings = SpectralFitting.adjust_free_bindings(prob.model, prob.bindings)
+@test new_bindings == [[1 => 1, 2 => 1, 3 => 1], [1 => 3, 2 => 3, 3 => 3]]
+
 _, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
 @test mapping == ([1, 2, 3], [1, 4, 3], [1, 5, 3])
 
@@ -94,5 +99,27 @@ model1.K_1.frozen = false
 model1.a_2.frozen = true
 bind!(prob, :K_1)
 bind!(prob, :a_1)
+
+new_bindings = SpectralFitting.adjust_free_bindings(prob.model, prob.bindings)
+@test new_bindings == [[1 => 1, 2 => 1, 3 => 1], [1 => 2, 2 => 2, 3 => 2]]
+
 _, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
 @test mapping == ([1, 2, 3], [1, 2, 4], [1, 2, 5])
+
+
+prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => dummy_data1)
+
+# bind model 1's K_1 parameter to model 2's K_2 parameter
+bind!(prob, 1 => :K_1, 2 => :K_2)
+
+new_bindings = SpectralFitting.adjust_free_bindings(prob.model, prob.bindings)
+@test new_bindings == [[1 => 1, 2 => 3]]
+
+# bind model 1's a_1 parameter to model 2's a_2 to model 3's a_2
+# these are all frozen so should not appear in the adjust_free_bindings
+bind!(prob, 1 => :a_1, 2 => :a_2, 3 => :a_2)
+
+new_bindings = SpectralFitting.adjust_free_bindings(prob.model, prob.bindings)
+@test new_bindings == [[1 => 1, 2 => 3]]
+
+# TODO: free parameters should not be allowed to bind to frozen parameters

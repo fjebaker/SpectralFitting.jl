@@ -157,7 +157,7 @@ function Base.show(io::IO, @nospecialize(model::CompositeModel))
     )
 end
 
-function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
+function _print_param(io, free, name, val, q0, q1, q2, q3, q4; binding = nothing)
     print(io, lpad("$name", q0), " ->")
     if val isa FitParam
         info = get_info_tuple(val)
@@ -165,6 +165,17 @@ function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
         if free
             print(io, " ± ", rpad(info[2], q2))
             print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
+        end
+
+        if !isnothing(binding)
+            print(
+                io,
+                "   ",
+                Crayons.Crayon(foreground = :magenta),
+                lpad(binding, 7),
+                Crayons.Crayon(reset = true),
+            )
+        elseif free
             print(
                 io,
                 Crayons.Crayon(foreground = :green),
@@ -174,6 +185,7 @@ function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
         else
             print(
                 io,
+                "  ",
                 Crayons.Crayon(foreground = :cyan),
                 lpad("FROZEN", 15 + q1 + q2 + q3 + q4),
                 Crayons.Crayon(reset = true),
@@ -183,7 +195,7 @@ function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
     println(io)
 end
 
-function _printinfo(io::IO, @nospecialize(model::CompositeModel))
+function _printinfo(io::IO, @nospecialize(model::CompositeModel); bindings = nothing)
     expr_buffer = 5
     sym_buffer = 5
 
@@ -208,6 +220,7 @@ function _printinfo(io::IO, @nospecialize(model::CompositeModel))
     )
     println(io, "Model key and parameters:")
 
+    param_index = 1
     for (sym, m) in destructed.model_map
         param_syms = destructed.parameter_symbols[sym]
         basename = Base.typename(typeof(m)).name
@@ -224,7 +237,13 @@ function _printinfo(io::IO, @nospecialize(model::CompositeModel))
         for ps in param_syms
             param = destructed.parameter_map[ps]
             free = param isa FitParam ? !isfrozen(param) : true
-            _print_param(io, free, ps, param, param_offset, q1, q2, q3, q4)
+            val, binding = if !isnothing(bindings) && !isempty(bindings)
+                get(bindings, param_index, param => nothing)
+            else
+                param, nothing
+            end
+            _print_param(io, free, ps, val, param_offset, q1, q2, q3, q4; binding)
+            param_index += 1
         end
     end
 end
