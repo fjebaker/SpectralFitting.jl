@@ -12,12 +12,45 @@ struct FittableMultiModel{M}
     FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
 end
 
+function translate_bindings(
+    model_index::Int,
+    m::FittableMultiModel,
+    bindings::Vector{Vector{Pair{Int,Int}}},
+)
+    # map the parameter index to a string to display
+    translation = Dict{Int,Pair{paramtype(m.m[1]),String}}()
+    for b in bindings
+        # we skip the first item in the list since that is the root of the binding
+        root = b[1]
+
+        params = parameter_named_tuple(m.m[first(root)])
+        symbol = propertynames(params)[last(root)]
+        value = params[last(root)]
+
+        for pair in @views b[2:end]
+            # check if this binding applies to the current model
+            if first(pair) == model_index
+                translation[last(pair)] = value => "~Model $(first(root)) $(symbol)"
+            end
+        end
+    end
+
+    translation
+end
+
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(model::FittableMultiModel))
     buff = IOBuffer()
     println(buff, "Models:")
-    for m in model.m
+    for (i, m) in enumerate(model.m)
         buf = IOBuffer()
-        print(buf, "- ")
+        print(
+            buf,
+            "\n",
+            Crayons.Crayon(foreground = :yellow),
+            "Model $i",
+            Crayons.Crayon(reset = true),
+            ": ",
+        )
         _printinfo(buf, m)
         print(buff, indent(String(take!(buf)), 2))
     end
@@ -135,11 +168,38 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProble
         buff,
         "  . ",
         Crayons.Crayon(foreground = :green),
-        "Free (DOF)",
+        "Free",
         Crayons.Crayon(reset = true),
-        " : $(free)",
+        "       : $(free)",
     )
     print(io, encapsulate(String(take!(buff))))
 end
 
-export FittingProblem, FittableMultiModel, FittableMultiDataset
+
+"""
+    details(prob::FittingProblem)
+    
+Show details about the fitting problem, including the specific model parameters that are bound together.
+"""
+function details(prob::FittingProblem)
+    buff = IOBuffer()
+    println(buff, "Models:")
+    for (i, m) in enumerate(prob.model.m)
+        buf = IOBuffer()
+        print(
+            buf,
+            "\n",
+            Crayons.Crayon(foreground = :yellow),
+            "Model $i",
+            Crayons.Crayon(reset = true),
+            ": ",
+        )
+
+        _printinfo(buf, m; bindings = translate_bindings(i, prob.model, prob.bindings))
+        print(buff, indent(String(take!(buf)), 2))
+    end
+
+    print(encapsulate(String(take!(buff))))
+end
+
+export FittingProblem, FittableMultiModel, FittableMultiDataset, details
