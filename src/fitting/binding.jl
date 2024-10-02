@@ -72,6 +72,56 @@ function _bind_pairs!(prob::FittingProblem, pairs::Vararg{<:Pair{Int,Symbol}})
     push!(prob.bindings, binding)
 end
 
+"""
+    bind!(prob::FittingProblem, pairs::Pair{Int,Symbol}...)
+    bind!(prob::FittingProblem, symbols::Symbol...)
+
+Bind parameters together within a [`FittingProblem`](@ref). Parameters bound
+together will be mandated to have exact same value during the fit.
+
+The binding may either be a single symbol that is present in all models in the
+fitting problem, or a series of pairs `Int => Symbol` which index the specific
+model and parameters to bind together. All bindings specified in a single call
+to `bind!` will be bound together. Multiple bindings are possible with repeated
+call to `bind!`.
+
+- Bind model 1's `K_1` parameter to model 2's `K_3`:
+
+```julia
+bind!(prob, 1 => :K_1, 2 => :K_3)
+```
+
+- Bind model 3's `K_2` parameter to model4's `:L_1` and model 6's `a_3`:
+
+```julia
+bind!(prob, 3 => :K_2, 4 => :L_1, 6 => :a_3)
+```
+
+- Bind the `K_1` parameter across all the models:
+
+```julia
+bind!(prob, :K_1)
+```
+
+## Examples
+
+Consider the following two models
+```julia
+model1 = PhotoelectricAbsorption() * (BlackBody() + PowerLaw())
+model2 = PhotoelectricAbsorption() * (PowerLaw() + PowerLaw())
+
+prob = FittingProblem(model1 => data1, model2 => data2)
+
+# bind the power law indices in the two models
+bind!(prob, :a_1)
+
+# bind the normalisation of powerlaws in the 2nd model:
+bind!(prob, 2 => :K_1, 2 => :K_2)
+```
+
+!!! note
+    Only free parameters can be bound together.
+"""
 bind!(prob::FittingProblem, pairs::Vararg{<:Pair}) = _bind_pairs!(prob, pairs...)
 
 function bind!(prob::FittingProblem, symbs::Vararg{Symbol})
