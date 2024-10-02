@@ -143,5 +143,35 @@ function simulate(model::AbstractSpectralModel, dataset::AbstractDataset; kwargs
     simulate!(conf; kw...)
 end
 
+"""
+    simulate(model::AbstractSpectralModel; kwargs...)
+
+Returns an [`InjectiveDataset`](@ref) with a realisation of the model.
+Can also add noise to the objective, but not to the domain.
+
+The `kwargs` are:
+- `seed`: if not `nothing` used to set the PRNG seed.
+- `var`: variance of the data (assuming mean of 0)
+"""
+function simulate(
+    domain::AbstractVector,
+    model::AbstractSpectralModel;
+    seed::Union{Nothing,Int} = nothing,
+    simulate_distribution = Distributions.Normal,
+    var = 0.1,
+)
+    _seed::Int = isnothing(seed) ? time_ns() : seed
+    rng = Random.default_rng()
+    Random.seed!(rng, _seed)
+
+    flux = invokemodel(domain, model)
+
+    realisation = map(flux) do f
+        rand(rng, simulate_distribution(f, sqrt(var)))
+    end
+    variances = fill(var, size(realisation))
+    BinnedData(domain, realisation; codomain_variance = variances)
+end
+
 
 export simulate

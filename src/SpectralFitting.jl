@@ -71,6 +71,7 @@ include("datasets/datasets.jl")
 include("datasets/binning.jl")
 include("datasets/grouping.jl")
 include("datasets/injectivedata.jl")
+include("datasets/binneddata.jl")
 
 include("model-data-io.jl")
 

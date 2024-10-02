@@ -25,12 +25,14 @@ makedocs(
             "Composite models" => "models/composite-models.md",
             "Surrogate models" => "models/surrogate-models.md",
         ],
-        # "Parameters" => "parameters.md",
+        "Fitting" => [
+            "parameters.md",
+            # "fitting.md",
+        ],
         "Datasets" => [
             "Using datasets" => "datasets/datasets.md",
             "Mission support" => "datasets/mission-support.md",
         ],
-        # "Fitting" => "fitting.md",
         "Why & How" => "why-and-how.md",
         "Reference" => "reference.md",
     ],

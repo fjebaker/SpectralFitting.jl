@@ -328,7 +328,7 @@ end
 
 # printing
 
-function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
+function _printinfo(io::IO, m::M; bindings = nothing) where {M<:AbstractSpectralModel}
     param_tuple = parameter_named_tuple(m)
     params = [String(s) => p for (s, p) in zip(keys(param_tuple), param_tuple)]
     basename = Base.typename(M).name
@@ -343,9 +343,14 @@ function _printinfo(io::IO, m::M) where {M<:AbstractSpectralModel}
         length("$s")
     end
 
-    for (s, param) in params
+    for (i, (s, param)) in enumerate(params)
         free = param isa FitParam ? !isfrozen(param) : true
-        _print_param(io, free, s, param, param_offset, q1, q2, q3, q4)
+        val, binding = if !isnothing(bindings) && !isempty(bindings)
+            get(bindings, i, param => nothing)
+        else
+            param, nothing
+        end
+        _print_param(io, free, s, val, param_offset, q1, q2, q3, q4; binding)
     end
 end
 
