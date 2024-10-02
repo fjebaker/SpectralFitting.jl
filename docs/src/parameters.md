@@ -17,7 +17,7 @@ bind!
 
 
 Let's try it out. We'll generate some arbitrary powerlaw spectra with different normalisations and fit them simultaneously.
-```julia
+```@example bind
 using SpectralFitting, Plots
 
 energy = collect(range(0.1, 10.0, 100))
@@ -34,7 +34,7 @@ plot!(data2, xscale = :log10, yscale = :log10)
 ```
 
 Now we want to fit a single powerlaw model to both of these spectra simultaneously, but with the powerlaw index fixed to be the same in both models.
-```julia
+```@example bind
 model = PowerLaw()
 prob = FittingProblem(model => data1, model => data2)
 
@@ -43,14 +43,14 @@ prob
 ```
 
 We can get a better look at our model configuration by using the [`details`](@ref) method:
-```julia
+```@example bind
 details(prob)
 ```
 
 In this printout we see that the `a` parameter of `Model 2` is bound to the `a` parameter of `Model 1`.
 
-```julia
-result = SpectralFitting.fit(prob, LevenbergMarquadt())
+```@example bind
+result = fit(prob, LevenbergMarquadt())
 
 plot(data1, xscale = :log10, yscale = :log10)
 plot!(data2, xscale = :log10, yscale = :log10)
@@ -60,7 +60,7 @@ plot!(result[2])
 
 Note that these fits are not perfect, because the underlying data have subtly different power law indices, but our fit is required to enforce the models to have the same value. If we release this requirement, the fit will be better, but the models will be entirely independent.
 
-```julia
+```@example bind
 prob = FittingProblem(model => data1, model => data2)
 
 result = SpectralFitting.fit(prob, LevenbergMarquadt())
