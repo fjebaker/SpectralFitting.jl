@@ -32,6 +32,7 @@ end
     yerr --> _yerr
     _xerr = SpectralFitting.bin_widths(dataset) ./ 2
     xerr --> _xerr
+    yscale --> :identity
     markerstrokecolor --> :auto
     xlabel --> "Energy (keV)"
     ylabel --> SpectralFitting.objective_units(dataset)
