@@ -1,4 +1,3 @@
-
 struct InjectiveData{V} <: AbstractDataset
     domain::V
     codomain::V
