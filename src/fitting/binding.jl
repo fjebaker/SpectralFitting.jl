@@ -17,7 +17,11 @@ function _construct_bound_mapping(bindings, parameter_count)
             parameter_mapping[b[1]][b[2]] = reference[2]
 
             # mark for removal: find the parameter index in the global array
-            N = sum(length(parameter_mapping[q]) for q = 1:b[1]-1)
+            N = if b[1] > 1
+                sum(length(parameter_mapping[q]) for q = 1:b[1]-1)
+            else
+                0
+            end
             index = N + b[2]
             push!(remove, index)
 
