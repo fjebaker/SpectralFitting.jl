@@ -17,18 +17,22 @@ function _construct_bound_mapping(bindings, parameter_count)
             parameter_mapping[b[1]][b[2]] = reference[2]
 
             # mark for removal: find the parameter index in the global array
-            N = sum(length(parameter_mapping[q]) for q = 1:(b[1]-1))
+            N = if b[1] > 1
+                sum(length(parameter_mapping[q]) for q = 1:b[1]-1)
+            else
+                0
+            end
             index = N + b[2]
             push!(remove, index)
 
             # need to now shuffle all the indices greater than this one down by 1
-            for k = (b[2]+1):length(parameter_mapping[b[1]])
+            for k = b[2]+1:length(parameter_mapping[b[1]])
                 if (parameter_mapping[b[1]][k] > parameter_number)
                     parameter_mapping[b[1]][k] -= 1
                 end
             end
             # and for subsequent models
-            for j = (b[1]+1):length(parameter_count)
+            for j = b[1]+1:length(parameter_count)
                 for k = 1:length(parameter_mapping[j])
                     if parameter_mapping[j][k] > parameter_number
                         parameter_mapping[j][k] -= 1
