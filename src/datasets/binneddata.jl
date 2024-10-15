@@ -22,12 +22,12 @@ supports(::Type{<:BinnedData}) = (ContiguouslyBinned(), OneToOne())
 bin_widths(dataset::BinnedData) = diff(dataset.domain)
 objective_units(::BinnedData) = u"counts / (s * keV)"
 spectrum_energy(dataset::BinnedData) =
-    @views (dataset.domain[1:end-1] .+ dataset.domain[2:end]) ./ 2
+    @views (dataset.domain[1:(end-1)] .+ dataset.domain[2:end]) ./ 2
 
 make_model_domain(::ContiguouslyBinned, dataset::BinnedData) = dataset.domain
 make_objective(::ContiguouslyBinned, dataset::BinnedData) = dataset.codomain
 
-make_model_domain(::OneToOne, dataset::BinnedData) = dataset.domain[1:end-1]
+make_model_domain(::OneToOne, dataset::BinnedData) = dataset.domain[1:(end-1)]
 make_objective(::OneToOne, dataset::BinnedData) = dataset.codomain
 
 make_output_domain(layout::AbstractLayout, dataset::BinnedData) =

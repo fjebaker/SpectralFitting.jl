@@ -76,6 +76,6 @@ function Reflection.make_constructor(
     end
 
     model_constructor =
-        Reflection.make_constructor(Model, closures[num_closures+1:end], model_params, T)
+        Reflection.make_constructor(Model, closures[(num_closures+1):end], model_params, T)
     :($(Base.typename(M).name)($(model_constructor), $(my_closures...)))
 end

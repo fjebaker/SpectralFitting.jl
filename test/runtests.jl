@@ -1,4 +1,4 @@
-using Test, SpectralFitting
+using Test, SpectralFitting, XSPECModels
 
 testdir = get(
     ENV,

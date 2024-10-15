@@ -18,7 +18,7 @@ function interpolated_rebin!(output, target, input, current)
     end
 
     # use DataInterpolations cus no allocation :D 
-    interp = @views DataInterpolations.LinearInterpolation(input, current[1:end-1])
+    interp = @views DataInterpolations.LinearInterpolation(input, current[1:(end-1)])
 
     function _interp_safe(x)
         if x < current[1] || x > current[end-1]

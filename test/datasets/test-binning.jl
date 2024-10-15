@@ -12,7 +12,7 @@ expected = fill(3.53825, length(high) - 1)
 @test output ≈ expected rtol = 1e-3
 
 
-values = (sin.(domain))[1:end-1]
+values = (sin.(domain))[1:(end-1)]
 
 Random.seed!(1)
 high = sort(abs.(rand(10))) .* 10 .+ 1.3
