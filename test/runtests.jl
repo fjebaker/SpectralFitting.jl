@@ -1,3 +1,4 @@
+push!(LOAD_PATH, "lib/XSPECModels") # for the XSPECModels package
 using Test, SpectralFitting, XSPECModels
 
 testdir = get(
