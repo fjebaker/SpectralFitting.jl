@@ -18,14 +18,14 @@ begin
     erange = 10 .^ collect(range(log10(4), log10(20.0), 100))
     model2 = GaussianLine() + GaussianLine(μ = FitParam(10.0))
     plot(
-        erange[1:end-1],
+        erange[1:(end-1)],
         @time(invokemodel(erange, model)),
         marker = :o,
         markersize = 4,
         label = "XS",
     )
     plot!(
-        erange[1:end-1],
+        erange[1:(end-1)],
         @time(invokemodel(erange, model2)),
         marker = :o,
         markersize = 4,
@@ -40,7 +40,7 @@ model = XS_PowerLaw(a = FitParam(2.0), K = FitParam(1.0))
 emids = push!(copy(resp.channel_bins_low), last(resp.channel_bins_high))
 evald = push!(copy(resp.bins_low), last(resp.bins_high))
 out = resp.matrix * invokemodel(evald, model)
-plot(emids[1:end-1], out)
+plot(emids[1:(end-1)], out)
 
 
 sims = @time simulate(model, resp, anc; exposure_time = 1e3, seed = 42)
@@ -58,7 +58,7 @@ begin
     )
     plot!(sims)
     plot!(
-        emids[1:end-1] .+ diff(emids) ./ 2,
+        emids[1:(end-1)] .+ diff(emids) ./ 2,
         out .* 1.4,
         xscale = :log10,
         label = "Hand folded",
