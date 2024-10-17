@@ -1,4 +1,4 @@
-push!(LOAD_PATH, "lib/XSPECModels") # for the XSPECModels package
+push!(LOAD_PATH, joinpath(pwd(), "lib", "XSPECModels")) # for the XSPECModels package
 using Test, SpectralFitting, XSPECModels
 
 testdir = get(
