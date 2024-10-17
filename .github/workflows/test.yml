@@ -58,8 +58,6 @@ jobs:
       - run: |
           julia --color=yes --math-mode=ieee --check-bounds=yes -tauto --project=. -e '
             import Pkg
-            push!(LOAD_PATH, joinpath(pwd(), "lib", "XSPECModels"))
-            Pkg.develop(Pkg.PackageSpec(path=joinpath(pwd(), "lib", "XSPECModels")))
             Pkg.test(; coverage=true, force_latest_compatible_version=true)
           '
         env:
