@@ -14,7 +14,7 @@ PhotoelectricAbsorption(; ηH = FitParam(1.0)) = PhotoelectricAbsorption(ηH)
 register_model_data(PhotoelectricAbsorption, "cross_sections_phabs_angr.jld")
 @inline @fastmath function invoke!(flux, energy, model::PhotoelectricAbsorption)
     let ηH = model.ηH, table = model.table
-        E = @views energy[1:end-1]
+        E = @views energy[1:(end-1)]
         @. flux = exp(-ηH * table(E))
     end
 end

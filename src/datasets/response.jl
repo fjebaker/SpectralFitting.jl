@@ -16,7 +16,7 @@ response matrix. This is equivalent to the model domain.
 """
 function response_energy(resp::ResponseMatrix{T}) where {T}
     E = zeros(T, length(resp.bins_low) + 1)
-    E[1:end-1] .= resp.bins_low
+    E[1:(end-1)] .= resp.bins_low
     E[end] = resp.bins_high[end]
     E
 end
@@ -29,7 +29,7 @@ of the response matrix. That is, the channel energies as used by the spectrum.
 """
 function folded_energy(resp::ResponseMatrix{T}) where {T}
     E = zeros(T, length(resp.channel_bins_low) + 1)
-    E[1:end-1] .= resp.channel_bins_low
+    E[1:(end-1)] .= resp.channel_bins_low
     E[end] = resp.channel_bins_high[end]
     E
 end

@@ -268,7 +268,7 @@ function drop_channels!(dataset::SpectralData, indices)
 end
 
 spectrum_energy(dataset::SpectralData) =
-    ((dataset.energy_low.+dataset.energy_high)./2)[dataset.data_mask]
+    ((dataset.energy_low.+ dataset.energy_high) ./ 2)[dataset.data_mask]
 
 function regroup!(dataset::SpectralData, grouping; safety_copy = false)
     grp::typeof(grouping) = if safety_copy

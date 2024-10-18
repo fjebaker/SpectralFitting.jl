@@ -27,7 +27,7 @@ objective_transformer(::ContiguouslyBinned, dataset::SimulatedSpectrum) =
 
 bin_widths(dataset::SimulatedSpectrum) = diff(dataset.output_domain)
 plotting_domain(dataset::SimulatedSpectrum) =
-    dataset.output_domain[1:end-1] .+ (bin_widths(dataset) ./ 2)
+    dataset.output_domain[1:(end-1)] .+ (bin_widths(dataset) ./ 2)
 objective_units(dataset::SimulatedSpectrum) = dataset.units
 
 function _printinfo(io::IO, spectrum::SimulatedSpectrum)

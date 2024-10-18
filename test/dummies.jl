@@ -7,7 +7,7 @@ function make_dummy_dataset(
     kwargs...,
 )
     # calculate flux from shape function
-    flux = shape_function.(energy[1:end-1])
+    flux = shape_function.(energy[1:(end-1)])
     make_dummy_dataset(flux, energy; kwargs...)
 end
 
@@ -18,7 +18,7 @@ function make_dummy_dataset(
     units = u"counts",
     error_fraction = 0.1,
 )
-    bins_low = energy[1:end-1]
+    bins_low = energy[1:(end-1)]
     bins_high = energy[2:end]
     N = length(flux)
 

@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        julia-version: ['1.9']
+        julia-version: ['1.11']
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
@@ -45,7 +45,16 @@ jobs:
           Pkg.add(url="https://github.com/GunnarFarneback/LocalRegistry.jl")
           using LocalRegistry
           Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/astro-group-bristol/AstroRegistry/"))
-          register(pwd(), registry="AstroRegistry", push=false)
+          try
+            register(pwd(), registry="AstroRegistry", push=false)
+          catch err
+            @warn err
+          end
+          try
+            register(joinpath(pwd(), "lib", "XSPECModels"), registry="AstroRegistry", push=false)
+          catch err
+            @warn err
+          end
           '
       - name: Create new branch
         run: |

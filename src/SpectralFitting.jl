@@ -1,7 +1,5 @@
 module SpectralFitting
 
-using LibXSPEC_jll
-
 import Base
 import Printf
 import Downloads
@@ -52,8 +50,6 @@ include("fitparam.jl")
 include("param-cache.jl")
 include("abstract-models.jl")
 
-include("ccall-wrapper.jl")
-
 include("composite-models.jl")
 
 include("reflection.jl")
@@ -87,11 +83,6 @@ include("fitting/methods.jl")
 include("simulate.jl")
 include("fitting/goodness.jl")
 
-# include xspec models
-include("xspec-models/additive.jl")
-include("xspec-models/multiplicative.jl")
-include("xspec-models/convolutional.jl")
-
 # include julia models
 include("julia-models/model-utilities.jl")
 include("julia-models/additive.jl")
@@ -103,12 +94,6 @@ include("plots-recipes.jl")
 function __init__()
     # check if we have the minimum model data already
     _check_model_directory_present()
-    # init HEASOFT
-    if get(ENV, "SPECTRAL_FITTING_XSPEC_INIT", "") == ""
-        ccall((:FNINIT, libXSFunctions), Cvoid, ())
-        # set an environment variable so we don't accidentally init again
-        ENV["SPECTRAL_FITTING_XSPEC_INIT"] = "true"
-    end
 end
 
 end # module

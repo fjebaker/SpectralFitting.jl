@@ -1,7 +1,8 @@
 import Libz
 
 const DEFAULT_DOWNLOAD_ROOT_URL::String = "https://www.star.bris.ac.uk/fergus/xspec/data/"
-MODEL_DATA_STORAGE_PATH = joinpath(LibXSPEC_jll.artifact_dir, "spectral", "modelData")
+const SPECTRAL_FITTING_STORAGE_PATH = joinpath(homedir(), ".julia", "spectral_fitting_data")
+const ALL_STORAGE_PATHS = String[SPECTRAL_FITTING_STORAGE_PATH]
 
 @enum CompressionFormat::Int _CompressedGzip _NoCompression
 
@@ -32,8 +33,8 @@ end
 ModelDataInfo(remote::AbstractString, local_path::AbstractString) =
     ModelDataInfo(remote, local_path, _check_compression(remote))
 
-_model_to_data_map = Dict{Symbol,Vector{ModelDataInfo}}()
-_model_available_memoize_cache = Dict{Symbol,Bool}()
+const _model_to_data_map = Dict{Symbol,Vector{ModelDataInfo}}()
+const _model_available_memoize_cache = Dict{Symbol,Bool}()
 
 function _check_compression(path::AbstractString)
     for f in (_CompressedGzip,)
@@ -48,7 +49,7 @@ function _trim_compression_filename(path::AbstractString)
     format = _check_compression(path)
     if (format != _NoCompression)
         ext = _extension(format)
-        return path[1:end-length(ext)]
+        return path[1:(end-length(ext))]
     end
     path
 end
@@ -88,15 +89,19 @@ register_model_data(XS_Laor, "ari.mod")
 register_model_data(:XS_KyrLine, "KBHline01.fits")
 ```
 """
-function register_model_data(s, filenames::String...)
+function register_model_data(s, filenames::String...; root = SPECTRAL_FITTING_STORAGE_PATH)
     model_data = map(filenames) do fname
-        ModelDataInfo(fname, _trim_compression_filename(fname))
+        ModelDataInfo(fname, joinpath(root, _trim_compression_filename(fname)))
     end
     register_model_data(_translate_model_name(s), model_data...)
 end
-function register_model_data(s, remote_and_local::Tuple{String,String}...)
+function register_model_data(
+    s,
+    remote_and_local::Tuple{String,String}...;
+    root = SPECTRAL_FITTING_STORAGE_PATH,
+)
     model_data = map(remote_and_local) do entry
-        ModelDataInfo(entry...)
+        ModelDataInfo(entry[1], joinpath(root, entry[2]))
     end
     register_model_data(_translate_model_name(s), model_data...)
 end
@@ -125,7 +130,7 @@ function _check_model_files_and_add_to_cache(s::Symbol)
     # get the filenames we need
     data = get(_model_to_data_map, s, nothing)
     if !isnothing(data)
-        if !all(i -> ispath(joinpath(MODEL_DATA_STORAGE_PATH, i.local_path)), data)
+        if !all(i -> ispath(i.local_path), data)
             return false
         end
     end
@@ -135,7 +140,7 @@ function _check_model_files_and_add_to_cache(s::Symbol)
 end
 
 function _check_model_directory_present()
-    if !ispath(MODEL_DATA_STORAGE_PATH)
+    if !ispath(SPECTRAL_FITTING_STORAGE_PATH)
         @warn "No model data directory found. Use `SpectralFitting.download_all_model_data()` to populate."
     end
 end
@@ -187,7 +192,12 @@ download_model_data(M::Type{<:AbstractSpectralModel}; kwargs...) =
     download_model_data(Base.typename(M).name; kwargs...)
 download_model_data(::M; kwargs...) where {M<:AbstractSpectralModel} =
     download_model_data(Base.typename(M).name; kwargs...)
-function download_model_data(s::Symbol; verbose = true, kwargs...)
+function download_model_data(
+    s::Symbol;
+    root = SPECTRAL_FITTING_STORAGE_PATH,
+    verbose = true,
+    kwargs...,
+)
     _infolog(s) =
         if verbose
             @info s
@@ -197,11 +207,12 @@ function download_model_data(s::Symbol; verbose = true, kwargs...)
         return nothing
     end
 
-    mkdir_if_not_exists(MODEL_DATA_STORAGE_PATH)
 
     _infolog("Checking model data for $s:")
     for src in _model_to_data_map[s]
-        dest = joinpath(MODEL_DATA_STORAGE_PATH, src.local_path)
+        dest = src.local_path
+        mkdir_if_not_exists(dirname(dest))
+
         if !ispath(dest)
             mkdir_if_not_exists(dirname(dest))
             _download_from_archive(src.remote_path, dest; kwargs...)
@@ -237,7 +248,7 @@ function load_and_unpack_model_data(M)
     data = _model_to_data_map[Base.typename(M).name]
     # load all of the data files
     contents = map(data) do f
-        path = joinpath(MODEL_DATA_STORAGE_PATH, f.local_path)
+        path = f.local_path
         load(path)
     end
     contents

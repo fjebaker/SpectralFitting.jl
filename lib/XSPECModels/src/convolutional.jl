@@ -52,5 +52,4 @@ function XS_Kerrconv(;
     XS_Kerrconv(Index1, Index2, r_br_g, a, Incl, Rin_ms, Rout_ms)
 end
 
-export XS_CalculateFlux,
-    XS_Kerrconv
+export XS_CalculateFlux, XS_Kerrconv

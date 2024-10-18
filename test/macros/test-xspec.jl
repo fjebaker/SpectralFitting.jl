@@ -18,5 +18,5 @@ model = Test_XS_PowerLaw()
 energy = collect(range(0.1, 100.0, 100))
 out_flux = invokemodel(energy, model)
 # ensure finite
-@test all(.!isnan.(out_flux))
-@test all(.!isinf.(out_flux))
+@test all(.! isnan.(out_flux))
+@test all(.! isinf.(out_flux))
