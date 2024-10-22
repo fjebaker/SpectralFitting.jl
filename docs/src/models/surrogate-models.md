@@ -35,7 +35,7 @@ Before we start, let us discuss a number of benefits the use of surrogate models
 The performance of this model represents its complexity.
 
 ```@example surrogate_example
-using SpectralFitting 
+using SpectralFitting, XSPECModels
 
 energy = collect(range(0.1, 20.0, 200))
 model = XS_PhotoelectricAbsorption()

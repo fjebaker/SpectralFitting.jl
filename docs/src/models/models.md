@@ -10,45 +10,45 @@ Order = [:type]
 
 ## Julia models
 
+### Additive
+
 ```@docs
 PowerLaw
 BlackBody
+GaussianLine
+DeltaLine
 ```
 
-## XSPEC models
-
-XSPEC models frequently have tabular data dependencies, without which the models fail to invoke (see [Model data availability](@ref)). If the data files are known but not present, the XSPEC models will throw an error with instructions for downloading the missing data. If the data files are unknown, Julia may crash catastrophically. If this is the case, often a single line will be printed with the LibXSPEC error, specifying the name of the missing source file. This can be registered as a data dependency of a model using [`SpectralFitting.register_model_data`](@ref).
-
-The first time any XSPEC model is invoked, SpectralFitting checks to see whether requisite data is needed, and whether the data is downloaded. Subsequent calls will hit a lookup cache instead to avoid run-time costs of performing this check.
-
+### Multiplicative
 ```@docs
-XS_PowerLaw
-XS_BlackBody
-XS_BremsStrahlung
-XS_Gaussian
-XS_Laor
-XS_DiskLine
-XS_PhotoelectricAbsorption
-XS_WarmAbsorption
-XS_CalculateFlux
-XS_KerrDisk
-XS_KyrLine
+PhotoelectricAbsorption
 ```
 
-### Wrapping new XSPEC models
+### Convolutional
+```@docs
+Log10Flux
+```
 
-SpectralFitting exports a helpful macro to facilitate wrapping additional XSPEC models.
+## Wrappers
 
 ```@docs
-@xspecmodel
+AutoCache
+AsConvolution
+```
+
+## Utility
+
+```@docs
 SpectralFitting.register_model_data
+SpectralFitting.finite_diff_kernel!
+wrap_model_as_objective
 ```
 
 ## Generating model fingerprints
 
 To generate the unicode plot to add as a fingerprint, we use a simple function:
 
-```@example
+```@example fingerprints
 using SpectralFitting, UnicodePlots
 
 function plotmodel(energy, model)
@@ -64,6 +64,6 @@ end
 
 # e.g. for XS_PowerLaw()
 energy = collect(range(0.1, 20.0, 100))
-plotmodel(energy, XS_PowerLaw())
+plotmodel(energy, PowerLaw())
 ```
 

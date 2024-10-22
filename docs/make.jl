@@ -1,15 +1,16 @@
 push!(LOAD_PATH, "src")
+push!(LOAD_PATH, "lib/XSPECModels/src")
 
 ENV["GKSwstype"] = "100"
 
 using Documenter
-using SpectralFitting
+using SpectralFitting, XSPECModels
 
 SpectralFitting.download_all_model_data()
 
 makedocs(
     warnonly = [:cross_references, :autodocs_block, :missing_docs],
-    modules = [SpectralFitting],
+    modules = [SpectralFitting, XSPECModels],
     clean = true,
     sitename = "SpectralFitting.jl",
     pages = [
@@ -24,6 +25,7 @@ makedocs(
             "Model index" => "models/models.md",
             "Composite models" => "models/composite-models.md",
             "Surrogate models" => "models/surrogate-models.md",
+            "XSPEC models" => "models/xspec-models.md",
         ],
         "Fitting" => [
             "parameters.md",

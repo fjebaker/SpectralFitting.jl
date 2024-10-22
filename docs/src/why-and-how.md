@@ -24,10 +24,10 @@ Principally, combining several models together would look like this:
 ```@example model_invocation
 energy = collect(range(0.1, 20.0, 100))
 
-flux1 = invokemodel(energy, XS_PowerLaw())
-flux2 = invokemodel(energy, XS_PowerLaw(a=FitParam(3.0)))
-flux3 = invokemodel(energy, XS_BlackBody())
-flux4 = invokemodel(energy, XS_PhotoelectricAbsorption())
+flux1 = invokemodel(energy, PowerLaw())
+flux2 = invokemodel(energy, PowerLaw(a=FitParam(3.0)))
+flux3 = invokemodel(energy, BlackBody())
+flux4 = invokemodel(energy, PhotoelectricAbsorption())
 
 total_flux = @. flux4 * (flux1 + flux2 + flux3)
 sum(total_flux)
@@ -36,14 +36,14 @@ sum(total_flux)
 But these operations could also be performed in a different order:
 
 ```@example model_invocation
-flux1 = invokemodel(energy, XS_PowerLaw())
-flux2 = invokemodel(energy, XS_PowerLaw(a=FitParam(3.0)))
+flux1 = invokemodel(energy, PowerLaw())
+flux2 = invokemodel(energy, PowerLaw(a=FitParam(3.0)))
 total_flux = @. flux1 + flux2
 
-flux3 = invokemodel(energy, XS_BlackBody())
+flux3 = invokemodel(energy, BlackBody())
 @. total_flux = total_flux + flux3
 
-flux4 = invokemodel(energy, XS_PhotoelectricAbsorption())
+flux4 = invokemodel(energy, PhotoelectricAbsorption())
 @. total_flux = total_flux * flux4
 sum(total_flux)
 ```
@@ -54,14 +54,14 @@ Doing so would allow us to only pre-allocate 2 flux arrays, instead of 4 when us
 fluxes = zeros(Float64, (length(energy) - 1, 2))
 flux1, flux2 = eachcol(fluxes)
 
-invokemodel!(flux1, energy, XS_PowerLaw())
-invokemodel!(flux2, energy, XS_PowerLaw(a=FitParam(3.0)))
+invokemodel!(flux1, energy, PowerLaw())
+invokemodel!(flux2, energy, PowerLaw(a=FitParam(3.0)))
 @. flux1 = flux1 + flux2
 
-invokemodel!(flux2, energy, XS_BlackBody())
+invokemodel!(flux2, energy, BlackBody())
 @. flux1 = flux1 + flux2
 
-invokemodel!(flux2, energy, XS_PhotoelectricAbsorption())
+invokemodel!(flux2, energy, PhotoelectricAbsorption())
 @. flux1 = flux1 * flux2
 sum(flux1)
 ```
@@ -69,8 +69,8 @@ sum(flux1)
 It is precisely this re-writing that SpectralFitting performs via [`@generated`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Generated-functions) functions. We can inspect the code used to generate the invocation body after defining a [`CompositeModel`](@ref):
 
 ```@example model_invocation
-model = XS_PhotoelectricAbsorption() * (
-    XS_PowerLaw() + XS_PowerLaw(a=FitParam(3.0)) + XS_BlackBody()
+model = PhotoelectricAbsorption() * (
+    PowerLaw() + PowerLaw(a=FitParam(3.0)) + BlackBody()
 )
 
 params = get_value.(SpectralFitting.parameter_tuple(model))

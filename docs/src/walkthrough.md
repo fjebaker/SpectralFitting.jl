@@ -15,7 +15,7 @@ The first thing we want to do is load our datasets. Unlike in XSPEC, we have no 
     Be sure to set `DATADIR` pointing to the directory where you keep the walkthrough data.
 
 ```@example walk
-using SpectralFitting, Plots
+using SpectralFitting, XSPECModels, Plots
 
 DATADIR = "..."
 DATADIR = length(get(ENV, "CI", "")) > 0 ? @__DIR__() * "/../../ex-datadir" : "/home/lilith/Developer/jl/datasets/xspec/walkthrough" # hide
