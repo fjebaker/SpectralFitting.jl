@@ -1,5 +1,6 @@
 using Test
 using SpectralFitting
+using XSPECModels: @xspecmodel
 
 # just assume that LibXSPEC_jll compiled and shipped okay, and we'll re-wrap a handful of models
 # to test that they all work okay with the wrapping macro
