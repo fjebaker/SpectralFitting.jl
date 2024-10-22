@@ -252,10 +252,10 @@ function build_response_matrix(
             end
             first = (f - first_channel) + 1
             # append all of the indices
-            for j = 0:n-1
+            for j = 0:(n-1)
                 push!(indices, j + first)
             end
-            append!(matrix, M[row_len+1:row_len+n])
+            append!(matrix, M[(row_len+1):(row_len+n)])
             row_len += n
         end
 
@@ -283,7 +283,7 @@ function build_response_matrix!(
                 break
             end
             first -= first_channel
-            @views R[first+1:first+len, i] .= M[index:index+len-1]
+            @views R[(first+1):(first+len), i] .= M[index:(index+len-1)]
             index += len
         end
     end

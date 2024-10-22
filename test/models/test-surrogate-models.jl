@@ -8,7 +8,7 @@ upper_bounds = (3.0,)
 energy = collect(range(0.1, 20.0, 100))
 model = XS_PhotoelectricAbsorption()
 
-flux = similar(energy)[1:end-1]
+flux = similar(energy)[1:(end-1)]
 
 surrogate = make_surrogate_harness(
     (x, y) -> SpectralFitting.RadialBasis(x, y, lower_bounds, upper_bounds),

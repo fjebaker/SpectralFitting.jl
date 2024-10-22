@@ -27,7 +27,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        julia-version: ['1.10']
+        julia-version: ['1.11']
         os: [ubuntu-latest]
 
     steps:
@@ -67,4 +67,4 @@ jobs:
           directories: src
       - uses: codecov/codecov-action@v2
         with:
-          files: lcov.info 
+          files: lcov.info

@@ -1,4 +1,5 @@
-using Test, SpectralFitting
+push!(LOAD_PATH, joinpath(pwd(), "lib", "XSPECModels")) # for the XSPECModels package
+using Test, SpectralFitting, XSPECModels
 
 testdir = get(
     ENV,

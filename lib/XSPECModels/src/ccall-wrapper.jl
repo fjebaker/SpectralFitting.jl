@@ -69,9 +69,9 @@ function _unsafe_ffi_invoke!(
     ModelType::Type{<:AbstractSpectralModel},
 )
     error("""
-          Not yet implemented for $(ModelType). 
-          If you set `generate_ffi_call=false` when using `@xspecmodel`, 
-          you must implement this function. Consult the documentation of 
+          Not yet implemented for $(ModelType).
+          If you set `generate_ffi_call=false` when using `@xspecmodel`,
+          you must implement this function. Consult the documentation of
           `@xspecmodel` for reference.
           """)
 end
@@ -157,12 +157,12 @@ only a single parameter (`a`) is passed to the XSPEC function. The function we b
 is `:C_powerlaw` from the XSPEC C wrappers.
 
 The macro will then generate the following functions
-- [`implementation`](@ref) 
-- [`invoke!`](@ref) 
-- [`_safe_ffi_invoke!`](@ref) 
+- [`implementation`](@ref)
+- [`invoke!`](@ref)
+- [`_safe_ffi_invoke!`](@ref)
 
 If a callsite was specified, it will also generate:
-- [`_unsafe_ffi_invoke!`](@ref) 
+- [`_unsafe_ffi_invoke!`](@ref)
 """
 macro xspecmodel(args...)
     # parse args
@@ -172,7 +172,7 @@ macro xspecmodel(args...)
     model_int_type::Type = DEFAULT_MODEL_INT_TYPE
 
     if (length(args) > 1)
-        for arg in args[1:end-1]
+        for arg in args[1:(end-1)]
             if (arg isa QuoteNode) || (arg.head !== :(=))
                 # parse only optional positional
                 if isnothing(c_function)
@@ -241,13 +241,13 @@ macro xspecmodel(args...)
         function SpectralFitting.invoke!(output, input, model::$(model_name))
             # allocate the model
             alloc_model = [model]
-            params = SpectralFitting.unsafe_parameter_vector_conditioned(alloc_model)
-            SpectralFitting._safe_ffi_invoke!(output, input, params, typeof(model))
+            params = XSPECModels.unsafe_parameter_vector_conditioned(alloc_model)
+            XSPECModels._safe_ffi_invoke!(output, input, params, typeof(model))
         end
 
         $(_ffi_type_guard)
 
-        @inline function SpectralFitting._safe_ffi_invoke!(
+        @inline function XSPECModels._safe_ffi_invoke!(
             output::AbstractVector{<:$(model_float_type)},
             input::AbstractVector{<:$(model_float_type)},
             params::AbstractVector{<:$(model_float_type)},
@@ -256,17 +256,11 @@ macro xspecmodel(args...)
             @assert length(output) + 1 == length(input)
             SpectralFitting.ensure_model_data($(model_name))
 
-            error_vec = SpectralFitting.get_untracked_error($(model_float_type))
+            error_vec = XSPECModels.get_untracked_error($(model_float_type))
             if length(error_vec) < length(output)
-                SpectralFitting.resize_untracked_error!(error_vec, length(output))
+                XSPECModels.resize_untracked_error!(error_vec, length(output))
             end
-            SpectralFitting._unsafe_ffi_invoke!(
-                output,
-                error_vec,
-                input,
-                params,
-                ModelType,
-            )
+            XSPECModels._unsafe_ffi_invoke!(output, error_vec, input, params, ModelType)
         end
 
         $(_unsafe_call_def)
@@ -277,7 +271,7 @@ end
 
 function _build_ffi_type_guard(model_name, model_float_type)
     if model_float_type != DEFAULT_MODEL_FLOAT_TYPE
-        :(@inline function SpectralFitting._safe_ffi_invoke!(
+        :(@inline function XSPECModels._safe_ffi_invoke!(
             output,
             input,
             params,
@@ -286,7 +280,7 @@ function _build_ffi_type_guard(model_name, model_float_type)
             f_typed_output = convert.($(model_float_type), (output))
             f_typed_input = convert.($(model_float_type), (input))
             f_typed_params = convert.($(model_float_type), (params))
-            SpectralFitting._safe_ffi_invoke!(
+            XSPECModels._safe_ffi_invoke!(
                 f_typed_output,
                 f_typed_input,
                 f_typed_params,
@@ -307,14 +301,14 @@ function _build_unsafe_ffi_call(
     model_int_type,
 )
     :(
-        function SpectralFitting._unsafe_ffi_invoke!(
+        function XSPECModels._unsafe_ffi_invoke!(
             output,
             error_vec,
             input,
             params,
             ::Type{<:$(model_name)},
         )
-            SpectralFitting.@wrap_xspec_model_ccall(
+            XSPECModels.@wrap_xspec_model_ccall(
                 $(model_float_type),
                 $(model_int_type),
                 $(call_symbol),

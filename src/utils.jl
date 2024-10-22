@@ -9,7 +9,7 @@ function _convolve_implementation!(
     @assert length(output) == J + K - 1 "Ouput is $(length(output)); should be $(J + K - 1)"
 
     # do the kernel's side first
-    for i = 1:K-1
+    for i = 1:(K-1)
         total = zero(T)
         for k = 1:K
             ib = (i >= k)
@@ -19,7 +19,7 @@ function _convolve_implementation!(
         output[i] = total
     end
     # now the middle
-    for i = K:J-1
+    for i = K:(J-1)
         total = zero(T)
         for k = 1:K
             oa = vec_A[i-k+1]

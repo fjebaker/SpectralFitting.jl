@@ -15,7 +15,7 @@ end
 
 function SpectralFitting.invoke!(output, domain, model::EvalCountingModel)
     model.table[1] += 1
-    @. output = domain[1:end-1] .+ model.a
+    @. output = domain[1:(end-1)] .+ model.a
 end
 
 domain = collect(range(0.0, 10.0, 100))

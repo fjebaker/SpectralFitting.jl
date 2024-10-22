@@ -28,7 +28,7 @@ function Reflection.closure_parameter_lenses(
     my_closures = map(info.closure_symbols[1:num_closures]) do s
         :(getfield($(info.lens), $(Meta.quot(s))))
     end
-    model_closures = map(info.closure_symbols[num_closures+1:end]) do s
+    model_closures = map(info.closure_symbols[(num_closures+1):end]) do s
         :(getfield($(info.lens).model, $(Meta.quot(s))))
     end
     vcat(my_closures, model_closures)
@@ -52,6 +52,6 @@ function Reflection.make_constructor(
     num_closures = fieldcount(M) - 1 # ignore the `model` field
     my_closures = closures[1:num_closures]
     model_constructor =
-        Reflection.make_constructor(Model, closures[num_closures+1:end], params, T)
+        Reflection.make_constructor(Model, closures[(num_closures+1):end], params, T)
     :($(Base.typename(M).name)($(model_constructor), $(my_closures...)))
 end

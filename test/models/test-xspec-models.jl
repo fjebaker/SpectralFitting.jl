@@ -25,8 +25,8 @@ for M in ALL_XSPEC_MODELS
     m = M()
     # can we invoke okay
     f = invokemodel(energy, m)
-    @test all(.!isnan.(f))
-    @test all(.!isinf.(f))
+    @test all(.! isnan.(f))
+    @test all(.! isinf.(f))
 end
 
 
@@ -35,8 +35,8 @@ for M in ALL_XSPEC_CONVOLUTIONAL
     m = M()
     f = ones(Float64, length(energy) - 1)
     invokemodel!(f, energy, m)
-    @test all(.!isnan.(f))
-    @test all(.!isinf.(f))
+    @test all(.! isnan.(f))
+    @test all(.! isinf.(f))
 end
 
 # related to additive models should not pass the normalisation constant
@@ -56,13 +56,13 @@ flux2 = invokemodel(energy, model2)
 model = XS_PowerLaw()
 flux = zeros(Float64, length(energy) - 1)
 invokemodel!(flux, energy, model)
-@test all(.!isnan.(flux))
-@test all(.!isinf.(flux))
+@test all(.! isnan.(flux))
+@test all(.! isinf.(flux))
 
 # composite
 model = XS_PowerLaw() + XS_PowerLaw()
 fluxes = hcat(flux, copy(flux))
 flux = view(fluxes, :, 1)
 invokemodel!(fluxes, energy, model)
-@test all(.!isnan.(flux))
-@test all(.!isinf.(flux))
+@test all(.! isnan.(flux))
+@test all(.! isinf.(flux))
