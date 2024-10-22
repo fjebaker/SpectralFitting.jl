@@ -42,14 +42,9 @@ jobs:
           julia -e 'import Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JuliaRegistries/General"))'
           julia --project=docs -e '
             using Pkg
-            Pkg.add("Plots")
-            Pkg.add("UnicodePlots")
-            Pkg.add("BenchmarkTools")
-            Pkg.add("Surrogates")
-            Pkg.add("Turing")
-            Pkg.add("StatsPlots")
-            Pkg.add(url = "https://github.com/astro-group-bristol/LibXSPEC_jll.jl#master")
+            Pkg.instantiate()
             Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.develop(PackageSpec(path=joinpath(pwd(), "lib", "XSPECModels")))
             Pkg.instantiate()'
       - run: julia --color=yes -tauto --project=docs docs/make.jl
         env:
