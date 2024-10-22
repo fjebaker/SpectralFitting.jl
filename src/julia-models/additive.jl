@@ -1,5 +1,5 @@
 """
-    XS_PowerLaw(K, a)
+    PowerLaw
 
 $(FIELDS)
 
@@ -59,7 +59,7 @@ end
 end
 
 """
-    XS_BlackBody(K, T)
+    BlackBody
 
 $(FIELDS)
 
@@ -110,6 +110,41 @@ end
     end
 end
 
+"""
+    GaussianLine
+
+$(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokemodel(energy, GuassianLine())
+```
+
+```
+                       GaussianLine                
+        ┌────────────────────────────────────────┐ 
+   0.09 │                                        │ 
+        │            ..                          │ 
+        │           .':                          │ 
+        │           : :                          │ 
+        │           : '.                         │ 
+        │          .'  :                         │ 
+        │          :   :                         │ 
+        │          :   :                         │ 
+        │          :   '.                        │ 
+        │         :     :                        │ 
+        │         :     :                        │ 
+        │         :     :                        │ 
+        │        .'      :                       │ 
+        │        :       '.                      │ 
+      0 │.......:         :......................│ 
+        └────────────────────────────────────────┘ 
+         0                                     20  
+                          E (keV)                  
+```
+"""
 struct GaussianLine{T} <: AbstractSpectralModel{T,Additive}
     "Normalisation."
     K::T
@@ -130,6 +165,47 @@ end
     end
 end
 
+"""
+    DeltaLine
+
+$(FIELDS)
+
+# Example
+
+```julia
+energy = collect(range(0.1, 20.0, 100))
+invokemodel(energy, DeltaLine())
+```
+
+```
+                        DeltaLine                 
+       ┌────────────────────────────────────────┐ 
+   0.4 │         .                              │ 
+       │         :                              │ 
+       │         :                              │ 
+       │         :                              │ 
+       │         :                              │ 
+       │         :                              │ 
+       │         ::                             │ 
+       │         ::                             │ 
+       │         ::                             │ 
+       │         ::                             │ 
+       │         ::                             │ 
+       │         ::                             │ 
+       │         ::                             │ 
+       │         ::                             │ 
+     0 │.........::.............................│ 
+       └────────────────────────────────────────┘ 
+        0                                     20  
+                         E (keV)                 
+```
+
+!!! note
+    The `DeltaLine` model is not a true delta function, as this would be
+    extremely difficult to define in a numerical model that needs to be able to
+    propagate gradients. Instead, it is a very narrow [`GaussianLine`](@ref)
+    model.
+"""
 struct DeltaLine{W<:Number,T} <: AbstractSpectralModel{T,Additive}
     _width::W
     "Normalisation."

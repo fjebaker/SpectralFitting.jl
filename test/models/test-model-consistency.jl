@@ -1,5 +1,6 @@
 using Test
 using SpectralFitting
+using XSPECModels
 
 
 # ensure PowerLaw and XS_PowerLaw behave exactly the same

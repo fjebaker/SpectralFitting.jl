@@ -1,3 +1,17 @@
+"""
+    AsConvolution
+
+Turn an additive model into a convolutional model.
+
+## Example
+
+```
+convolution_model = AsConvolution(GaussianLine())
+```
+
+The above model will now convolve the [`GaussianLine`](@ref) model onto whatever
+it is applied to.
+"""
 struct AsConvolution{M,T,V,P} <: AbstractModelWrapper{M,T,Convolutional}
     model::M
     # the domain on which we evaluate this model
@@ -79,3 +93,5 @@ function Reflection.make_constructor(
         Reflection.make_constructor(Model, closures[(num_closures+1):end], model_params, T)
     :($(Base.typename(M).name)($(model_constructor), $(my_closures...)))
 end
+
+export AsConvolution

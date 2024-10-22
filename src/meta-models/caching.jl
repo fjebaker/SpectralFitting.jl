@@ -11,6 +11,22 @@ mutable struct CacheEntry{T}
     end
 end
 
+"""
+    AutoCache
+
+Used to automatically create a cache of another model, to avoid re-evaluating
+the model if the next parameters are close to the previous parameters. The
+intended use is for fitting expensive models which.
+
+## Example
+
+```julia
+model = PhotoelectricAbsorption() * AutoCache(PowerLaw())
+```
+
+In the above model, the [`PowerLaw`](@ref) component will be augmented with the
+caching behaviour.
+"""
 struct AutoCache{M,T,K,C<:CacheEntry} <: AbstractModelWrapper{M,T,K}
     model::M
     cache::C

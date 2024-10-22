@@ -1,3 +1,8 @@
+"""
+    PhotoelectricAbsorption
+
+$(FIELDS)
+"""
 struct PhotoelectricAbsorption{D,T} <: AbstractTableModel{T,Multiplicative}
     table::D
     "Equivalent hydrogen column (units of 10²² atoms per cm⁻²)."

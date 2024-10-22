@@ -1,4 +1,21 @@
+"""
+    Log10Flux
 
+Used to measure the (log) flux of the models it is applied to. Note that the
+additive components must have their normalisations frozen for this model to work
+properly.
+
+$(FIELDS)
+
+## Example
+
+```julia
+model = PowerLaw()
+model.K.frozen = true
+
+flux_model = Log10Flux()(model)
+```
+"""
 struct Log10Flux{T} <: AbstractSpectralModel{T,Convolutional}
     E_min::T
     E_max::T
@@ -66,4 +83,4 @@ function _or_else(value::Union{Nothing,T}, v::T)::T where {T}
     end
 end
 
-export AsConvolution
+export Log10Flux
