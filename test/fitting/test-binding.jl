@@ -123,3 +123,22 @@ new_bindings = SpectralFitting.adjust_free_bindings(prob.model, prob.bindings)
 @test new_bindings == [[1 => 1, 2 => 3]]
 
 # TODO: free parameters should not be allowed to bind to frozen parameters
+
+
+# can we bind parameters within the same model
+prob = FittingProblem(model1 => dummy_data1)
+bind!(prob, 1 => :K_1, 1 => :a_1)
+_, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@test mapping == ([1, 1, 2],)
+
+# can we bind parameters within the same model
+model1.a_2.frozen = false
+prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1)
+bind!(prob, 1 => :K_1, 2 => :K_1)
+bind!(prob, 1 => :a_1, 2 => :a_1)
+bind!(prob, 1 => :K_2, 2 => :K_2)
+bind!(prob, 1 => :a_2, 2 => :a_2)
+bind!(prob, 1 => :K_1, 1 => :a_1)
+details(prob)
+params, mapping = SpectralFitting._build_parameter_mapping(prob.model, prob.bindings)
+@test mapping == ([1, 1, 2, 3], [1, 2, 2, 3])
