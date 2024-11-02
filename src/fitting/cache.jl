@@ -84,7 +84,6 @@ struct MultiModelCache{K,N,CacheTypes<:Tuple,ParameterMappingType} <: AbstractFi
     caches::CacheTypes
     all_outputs::K
     domain_mapping::NTuple{N,Int}
-    output_domain_mapping::NTuple{N,Int}
     objective_mapping::NTuple{N,Int}
     parameter_mapping::ParameterMappingType
 end

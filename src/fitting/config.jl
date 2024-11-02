@@ -104,7 +104,6 @@ function make_multi_config(prob::FittingProblem, stat::AbstractStatistic)
         caches,
         DiffCache(similar(all_objectives)),
         domain_mapping,
-        output_domain_mapping,
         objective_mapping,
         parameter_mapping,
     )
