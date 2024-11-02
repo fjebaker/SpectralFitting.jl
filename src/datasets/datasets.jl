@@ -182,6 +182,44 @@ Must support the same API, but may also have some query methods for specific int
 """
 abstract type AbstractMultiDataset <: AbstractDataset end
 
+get_datasets(data::AbstractMultiDataset) = data.datasets
+
+function _combine_all(f, data::AbstractMultiDataset, args)
+    reduce(vcat, (f(args..., d) for d in get_datasets(data)))
+end
+
+function _printinfo(io::IO, data::AbstractMultiDataset)
+    datasets = get_datasets(data)
+    println(io, "MultiDataset[n=$(length(datasets))]")
+    for d in datasets
+        println(io, d)
+    end
+end
+
+make_objective(layout::AbstractLayout, data::AbstractMultiDataset) =
+    _combine_all(make_objective, data, (layout,))
+make_objective_variance(layout::AbstractLayout, data::AbstractMultiDataset) =
+    _combine_all(make_objective_variance, data, (layout,))
+make_model_domain(layout::AbstractLayout, data::AbstractMultiDataset) =
+    _combine_all(make_model_domain, data, (layout,))
+make_domain_variance(layout::AbstractLayout, data::AbstractMultiDataset) =
+    _combine_all(make_domain_variance, data, (layout,))
+make_output_domain(layout::AbstractLayout, data::AbstractMultiDataset) =
+    _combine_all(make_output_domain, data, (layout,))
+
+function objective_transformer(layout::AbstractLayout, data::AbstractMultiDataset)
+    error("TODO")
+end
+function preferred_units(d::AbstractMultiDataset)
+    error("TODO")
+end
+function error_statistic(d::AbstractMultiDataset)
+    error("TODO")
+end
+function make_label(d::AbstractMultiDataset)
+    error("TODO")
+end
+
 export AbstractDataset,
     error_statistic,
     make_domain_variance,
