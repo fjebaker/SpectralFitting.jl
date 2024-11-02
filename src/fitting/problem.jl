@@ -7,6 +7,10 @@ function Base.getindex(multidata::FittableMultiDataset, i)
     multidata.d[i]
 end
 
+function Base.merge(m1::FittableMultiDataset, m2::FittableMultiDataset)
+    FittableMultiDataset(m1.d..., m2.d...)
+end
+
 struct FittableMultiModel{M}
     m::M
     FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
@@ -69,7 +73,12 @@ function _multi_constructor_wrapper(
         args
     else
         if args isa Tuple
-            T(args...)
+            @show eltype(args)
+            if eltype(args) <: T
+                reduce(merge, args)
+            else
+                T(args...)
+            end
         else
             T(args)
         end
