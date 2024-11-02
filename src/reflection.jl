@@ -315,7 +315,7 @@ function assemble_composite_model_call(model::Type{<:CompositeModel}, parameters
     closure_assigns = Expr[]
     for (_, info) in info.models
         for s in info.generated_symbols
-            assignment = :($(s) = parameters[$(i+=1)])
+            assignment = :($(s) = parameters[$(i += 1)])
             push!(parameter_assigns, assignment)
         end
 

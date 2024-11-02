@@ -14,6 +14,6 @@ energy = collect(range(0.1, 100.0, 100))
 for M in ALL_JULIA_MODELS
     m = M()
     outflux = invokemodel(energy, m)
-    @test all(.! isnan.(outflux))
-    @test all(.! isinf.(outflux))
+    @test all(.!isnan.(outflux))
+    @test all(.!isinf.(outflux))
 end

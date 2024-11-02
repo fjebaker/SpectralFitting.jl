@@ -10,5 +10,5 @@ flux = view(fluxes, :, 1)
 
 # check model invokes okay
 invokemodel!(fluxes, energy, model)
-@test all(.! isnan.(flux))
-@test all(.! isinf.(flux))
+@test all(.!isnan.(flux))
+@test all(.!isinf.(flux))

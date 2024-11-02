@@ -390,5 +390,5 @@ function make_diff_parameter_cache(
     N = isnothing(param_diff_cache_size) ? length(vals) : param_diff_cache_size
     diffcache = DiffCache(vals, ForwardDiff.pickchunksize(N))
 
-    ParameterCache(free_mask, diffcache, vals[.! free_mask])
+    ParameterCache(free_mask, diffcache, vals[.!free_mask])
 end

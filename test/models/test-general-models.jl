@@ -17,8 +17,8 @@ include("../utils.jl")
 
     # check model invokes okay
     invokemodel!(fluxes, energy, model)
-    @test all(.! isnan.(flux))
-    @test all(.! isinf.(flux))
+    @test all(.!isnan.(flux))
+    @test all(.!isinf.(flux))
 end
 
 model = DummyMultiplicative() * DummyMultiplicative() * (DummyAdditive() + DummyAdditive())
