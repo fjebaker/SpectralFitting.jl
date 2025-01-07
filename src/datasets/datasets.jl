@@ -44,7 +44,7 @@ abstract type AbstractDataset end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(data::AbstractDataset))
     buff = IOBuffer()
-    _printinfo(buff, data)
+    _printinfo(IOContext(buff, io), data)
     s = String(take!(buff))
     print(io, encapsulate(s))
 end

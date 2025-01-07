@@ -604,17 +604,12 @@ function _printinfo(io, data::SpectralData{T}) where {T}
     ce_min = @views prettyfloat.(minimum(data.energy_low[data.data_mask]))
     ce_max = @views prettyfloat.(maximum(data.energy_high[data.data_mask]))
     dom_min, dom_max = @views prettyfloat.(extrema(domain))
-    @views println(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        "SpectralData",
-        Crayons.Crayon(reset = true),
-        " with ",
-        Crayons.Crayon(foreground = :cyan),
-        length(data.energy_low[data.data_mask]),
-        Crayons.Crayon(reset = true),
-        " active channels:",
-    )
+
+    printstyled(io, "SpectralData", color = :cyan)
+    print(io, " with ")
+    @views printstyled(io, length(data.energy_low[data.data_mask]), color = :cyan)
+    println(io, " active channels: ")
+
     descr = """  . Chn. E (min/max)    : ($ce_min, $ce_max)
       . Masked channels     : $(count(==(false), data.data_mask)) / $(length(data.data_mask))
       . Model domain size   : $(length(domain))
@@ -622,60 +617,30 @@ function _printinfo(io, data::SpectralData{T}) where {T}
     """
     print(io, descr)
 
-    print(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        "Primary Spectrum:",
-        Crayons.Crayon(reset = true),
-        "\n ",
-    )
+    printstyled(io, "Primary Spectrum:", color = :cyan)
+    println(io, "")
     _printinfo(io, data.spectrum)
 
-    print(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        "Response:",
-        Crayons.Crayon(reset = true),
-        "\n ",
-    )
+    printstyled(io, "Response:", color = :cyan)
+    println(io, "")
     _printinfo(io, data.response)
 
     if has_background(data)
-        print(
-            io,
-            Crayons.Crayon(foreground = :cyan),
-            "Background: ",
-            Crayons.Crayon(reset = true),
-            "\n ",
-        )
+        printstyled(io, "Background:", color = :cyan)
+        println(io, "")
         _printinfo(io, data.background)
     else
-        print(
-            io,
-            Crayons.Crayon(foreground = :dark_gray),
-            "Background: nothing",
-            Crayons.Crayon(reset = true),
-            "\n",
-        )
+        printstyled(io, "Background: nothing", color = :gray)
+        println(io, "")
     end
 
     if has_ancillary(data)
-        print(
-            io,
-            Crayons.Crayon(foreground = :cyan),
-            "Ancillary:",
-            Crayons.Crayon(reset = true),
-            "\n ",
-        )
+        printstyled(io, "Ancillary:", color = :cyan)
+        println(io, "")
         _printinfo(io, data.ancillary)
     else
-        print(
-            io,
-            Crayons.Crayon(foreground = :dark_gray),
-            "Ancillary: nothing",
-            Crayons.Crayon(reset = true),
-            "\n",
-        )
+        printstyled(io, "Ancillary: nothing", color = :gray)
+        println(io, "")
     end
 end
 

@@ -55,17 +55,11 @@ end
 make_label(dataset::BinnedData) = dataset.name
 
 function _printinfo(io::IO, data::BinnedData)
-    println(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        "BinnedData",
-        Crayons.Crayon(reset = true),
-        " with ",
-        Crayons.Crayon(foreground = :cyan),
-        length(data.domain),
-        Crayons.Crayon(reset = true),
-        " data points:",
-    )
+    printstyled(io, "BinnedData", color = :cyan)
+    print(io, " with ")
+    printstyled(io, length(data.domain), color = :cyan)
+    println(io, " data points:")
+
     dmin, dmax = prettyfloat.(extrema(data.domain))
     comin, comax = prettyfloat.(extrema(data.codomain))
     descr = """  Name                  : $(data.name)
