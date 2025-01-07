@@ -21,7 +21,6 @@ using SpecialFunctions
 using PreallocationTools
 using EnumX
 
-import Crayons
 # fitting backends
 import ForwardDiff
 import LsqFit

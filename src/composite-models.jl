@@ -147,14 +147,9 @@ function Base.show(io::IO, @nospecialize(model::CompositeModel))
         name = "$(Base.typename(typeof(model)).name)"
         expr = replace(expr, s => name)
     end
-    print(
-        io,
-        "CompositeModel[",
-        Crayons.Crayon(foreground = :cyan),
-        "$(expr)",
-        Crayons.Crayon(reset = true),
-        "]",
-    )
+    print(io, "CompositeModel[")
+    printstyled(io, "$(expr)", color = :cyan)
+    print(io, "]")
 end
 
 function _print_param(io, free, name, val, q0, q1, q2, q3, q4; binding = nothing)
@@ -168,28 +163,13 @@ function _print_param(io, free, name, val, q0, q1, q2, q3, q4; binding = nothing
         end
 
         if !isnothing(binding)
-            print(
-                io,
-                "   ",
-                Crayons.Crayon(foreground = :magenta),
-                lpad(binding, 7),
-                Crayons.Crayon(reset = true),
-            )
+            print(io, "   ")
+            printstyled(io, lpad(binding, 7), color = :magenta)
         elseif free
-            print(
-                io,
-                Crayons.Crayon(foreground = :green),
-                lpad("FREE", 7),
-                Crayons.Crayon(reset = true),
-            )
+            printstyled(io, lpad("FREE", 7), color = :green)
         else
-            print(
-                io,
-                "  ",
-                Crayons.Crayon(foreground = :cyan),
-                lpad("FROZEN", 15 + q1 + q2 + q3 + q4),
-                Crayons.Crayon(reset = true),
-            )
+            print(io, "  ")
+            printstyled(io, lpad("FROZEN", 15 + q1 + q2 + q3 + q4), color = :cyan)
         end
     end
     println(io)
@@ -210,30 +190,22 @@ function _printinfo(io::IO, @nospecialize(model::CompositeModel); bindings = not
         length("$s")
     end
 
-    print(io, "CompositeModel with $(length(destructed.model_map)) model components:\n")
-    println(
-        io,
-        Crayons.Crayon(foreground = :cyan),
-        " "^expr_buffer,
-        destructed.expression,
-        Crayons.Crayon(reset = true),
-    )
+    println(io, "CompositeModel with $(length(destructed.model_map)) model components:")
+    print(io, " "^expr_buffer)
+    printstyled(io, destructed.expression, color = :cyan)
+    println(io)
     println(io, "Model key and parameters:")
 
     param_index = 1
     for (sym, m) in destructed.model_map
         param_syms = destructed.parameter_symbols[sym]
         basename = Base.typename(typeof(m)).name
-        println(
-            io,
-            Crayons.Crayon(foreground = :cyan),
-            lpad("$sym", sym_buffer),
-            Crayons.Crayon(reset = true),
-            " => ",
-            Crayons.Crayon(foreground = :cyan),
-            "$basename",
-            Crayons.Crayon(reset = true),
-        )
+
+        printstyled(io, lpad("$sym", sym_buffer), color = :cyan)
+        print(io, " => ")
+        printstyled(io, "$basename", color = :cyan)
+        println(io)
+
         for ps in param_syms
             param = destructed.parameter_map[ps]
             free = param isa FitParam ? !isfrozen(param) : true
