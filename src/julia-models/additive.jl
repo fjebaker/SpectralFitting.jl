@@ -159,10 +159,16 @@ end
 @inline function invoke!(flux, energy, model::BremsStrahlung)
     let kT = model.kT, ab = model.ab
         integration_kernel!(flux, energy) do E, δE
-            gaunt = (
-                _Internal_BremsStrahlung.gaunt(E, kT, 1) +
-                4 * ab * _Internal_BremsStrahlung.gaunt(E, kT, 2)
-            )
+            γ, born_approx = _Internal_BremsStrahlung.born_approx(E, kT, 1)
+
+            g1 =
+                _Internal_BremsStrahlung.born_approx_sufficient(γ) ? born_approx :
+                _Internal_BremsStrahlung.gaunt(E, kT, γ, born_approx)
+            g2 =
+                _Internal_BremsStrahlung.born_approx_sufficient(4γ) ? born_approx :
+                _Internal_BremsStrahlung.gaunt(E, kT, 4γ, born_approx)
+
+            gaunt = g1 + 4 * ab * g2
             gaunt * exp(-E / kT) * δE / (E * sqrt(kT))
         end
     end
@@ -182,43 +188,61 @@ const A1 = [
 
 const γ2 = [0.7783, 1.2217, 2.6234, 4.3766, 20.0, 70.0]
 const γ3 = [1.0, 1.7783, 3.0, 5.6234, 10.0, 30.0]
-const Alo1 =
-    [-0.57721566, 0.4227842, 0.23069756, 0.0348859, 0.00262698, 0.0001075, 0.0000074]
-const Alo2 = [1.0, 3.5156229, 3.089942, 1.2067492, 0.2659732, 0.0360768, 0.0045813]
-const Ahi1 =
-    [1.25331414, 0.07832358, 0.02189568, 0.01062446, 0.00587872, 0.0025154, 0.00053208]
+const Alo1 = Polynomial((
+    -0.57721566,
+    0.4227842,
+    0.23069756,
+    0.0348859,
+    0.00262698,
+    0.0001075,
+    0.0000074,
+))
+const Alo2 =
+    Polynomial((1.0, 3.5156229, 3.089942, 1.2067492, 0.2659732, 0.0360768, 0.0045813))
+const Ahi1 = Polynomial((
+    1.25331414,
+    0.07832358,
+    0.02189568,
+    0.01062446,
+    0.00587872,
+    0.0025154,
+    0.00053208,
+))
 
-function gaunt(E::T, kT::T, z::Integer) where {T<:Real}
-    γ = 0.01358 * z^2 / kT
+poly3(weights, x) = weights[1] + weights[2] * x^1 + weights[3] * x^2
+
+function born_approx(E::T, kT::T, z::Int) where {T}
     if kT == 0 || E > 50 * kT || E == 0
-        #  Temperature or Energy is out of range
-        gaunt = zero(T)
-    elseif γ > 0.1
-        #  Low kT regime, use Kurucz's algorithm
-        gaunt = kurucz(E / kT, γ)
-    else
-        #  Calculate Born approximation
-        u = E / kT / 4
-        born =
-            0.5513 *
-            exp(2u) *
-            (
-                u <= 1 ? Polynomial(Alo1)(u^2) - log(u) * Polynomial(Alo2)((4u / 7.5)^2) :
-                Polynomial(Ahi1)(-1 / u) / exp(2u) / sqrt(2u)
-            )
-        if min(1000 * γ, 100) < 1
-            #  Use Born approximation if valid
-            gaunt = born
-        else
-            u, γ1 = max(u, 0.003), min(1000 * γ, 100.0)
-            n, m = N(u), M(γ1)
-            p = (γ1 - γ3[m]) / γ2[m]
-            G1 = [A1[n, m, 1], A1[n, m, 2], A1[n, m, 3]]
-            G2 = [A1[n, m+1, 1], A1[n, m+1, 2], A1[n, m+1, 3]]
-            gaunt = ((1.0 - p) * Polynomial(G1)(u) + p * Polynomial(G2)(u)) * born
-        end
+        return zero(T)
     end
-    return gaunt
+
+    γ = 0.01358 * z^2 / kT
+    if γ > 0.1
+        return kurucz(E / kT, γ)
+    end
+
+    #  Calculate Born approximation
+    u = E / 4kT
+    born =
+        0.5513 *
+        exp(2u) *
+        (
+            u <= 1 ? Alo1(u^2) - log(u) * Alo2((4u / 7.5)^2) :
+            Ahi1(-1 / u) / exp(2u) / sqrt(2u)
+        )
+    (γ, born)
+end
+
+born_approx_sufficient(γ) = min(1000 * γ, 100) < 1
+
+function gaunt(E::T, kT::T, γ::T, born::T) where {T}
+    u = E / 4kT
+    u, γ1 = max(u, 0.003), min(1000 * γ, 100.0)
+    n, m = N(u), M(γ1)
+    p = (γ1 - γ3[m]) / γ2[m]
+    G1 = @views A1[n, m, 1:3]
+    G2 = @views A1[n, m+1, 1:3]
+    ((1.0 - p) * poly3(G1, u) + p * poly3(G2, u)) * born
 end
 
 N(x) = x <= 0.03 ? 1 : x <= 0.3 ? 2 : x <= 1.0 ? 3 : x <= 5.0 ? 4 : x <= 15.0 ? 5 : 6
