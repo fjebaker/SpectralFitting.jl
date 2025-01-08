@@ -18,6 +18,7 @@ using FileIO
 using Interpolations
 import DataInterpolations
 using SpecialFunctions
+using Polynomials
 using PreallocationTools
 using EnumX
 
