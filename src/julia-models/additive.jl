@@ -118,7 +118,32 @@ $(FIELDS)
 # Example
 
 ```julia
-````
+energy = collect(range(0.1, 20.0, 100))
+invokemodel(energy, BremsStrahlung())
+```
+
+```
+                   BremsStrahlung               
+     ┌────────────────────────────────────────┐ 
+   3 │.                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │:                                       │ 
+     │ :                                      │ 
+   0 │ ':.....................................│ 
+     └────────────────────────────────────────┘ 
+      0                                     20  
+                       E (keV)                  
+```
 """
 struct BremsStrahlung{T} <: AbstractSpectralModel{T,Additive}
     "Normalisation."
@@ -134,10 +159,20 @@ end
 @inline function invoke!(flux, energy, model::BremsStrahlung)
     let kT = model.kT, ab = model.ab
         integration_kernel!(flux, energy) do E, δE
-            (gaunt(E, kT, 1) + 4 * ab * gaunt(E, kT, 2)) * exp(-E / kT) * δE / E / sqrt(kT)
+            gaunt = (
+                _Internal_BremsStrahlung.gaunt(E, kT, 1) +
+                4 * ab * _Internal_BremsStrahlung.gaunt(E, kT, 2)
+            )
+            gaunt * exp(-E / kT) * δE / (E * sqrt(kT))
         end
     end
 end
+
+# scope these implementation specifics in a module so they don't collide in the
+# namespace
+module _Internal_BremsStrahlung
+
+using ..Polynomials
 
 const A1 = [
     1.001; 1.004; 1.017; 1.036; 1.056; 1.121;; 1.001; 1.005; 1.017; 1.046; 1.073; 1.115;; 0.9991; 1.005; 1.03; 1.055; 1.102; 1.176;; 0.997; 1.005; 1.035; 1.069; 1.134; 1.186;; 0.9962; 1.004; 1.042; 1.1; 1.193; 1.306;; 0.9874; 0.9962; 1.047; 1.156; 1.327; 1.485;; 0.9681; 0.9755; 1.020; 1.208; 1.525; 1.965;;;
@@ -157,7 +192,7 @@ function gaunt(E::T, kT::T, z::Integer) where {T<:Real}
     γ = 0.01358 * z^2 / kT
     if kT == 0 || E > 50 * kT || E == 0
         #  Temperature or Energy is out of range
-        gaunt = 0.0
+        gaunt = zero(T)
     elseif γ > 0.1
         #  Low kT regime, use Kurucz's algorithm
         gaunt = kurucz(E / kT, γ)
@@ -169,7 +204,7 @@ function gaunt(E::T, kT::T, z::Integer) where {T<:Real}
             exp(2u) *
             (
                 u <= 1 ? Polynomial(Alo1)(u^2) - log(u) * Polynomial(Alo2)((4u / 7.5)^2) :
-                Polynomial(Ahi)(-1 / u) / exp(2u) / sqrt(2u)
+                Polynomial(Ahi1)(-1 / u) / exp(2u) / sqrt(2u)
             )
         if min(1000 * γ, 100) < 1
             #  Use Born approximation if valid
@@ -212,12 +247,14 @@ function kurucz(μ::T, γ::T) where {T<:Real}
     j = round(Integer, tkur(γ, 0))
     k = max(1, round(Integer, ukur(μ, 0)))
     t, u = tkur(γ, j), ukur(μ, k)
-    return j >= 7 || j < 1 || k >= 12 ? 0.0 :
+    return j >= 7 || j < 1 || k >= 12 ? zero(T) :
            (1 - t) * (1 - u) * A2[j, k] +
            t * (1 - u) * A2[j+1, k] +
            (1 - t) * u * A2[j, k+1] +
            t * u * A2[j+1, k+1]
 end
+
+end # module _Internal_BremsStrahlung
 
 """
     GaussianLine
