@@ -211,9 +211,9 @@ const Ahi1 = Polynomial((
 
 poly3(weights, x) = weights[1] + weights[2] * x^1 + weights[3] * x^2
 
-function born_approx(E::T, kT::T, z::Int) where {T}
+function born_approx(E, kT, z::Int)
     if kT == 0 || E > 50 * kT || E == 0
-        return zero(T)
+        return zero(promote_type(typeof(kT), typeof(E)))
     end
 
     γ = 0.01358 * z^2 / kT
@@ -235,7 +235,7 @@ end
 
 born_approx_sufficient(γ) = min(1000 * γ, 100) < 1
 
-function gaunt(E::T, kT::T, γ::T, born::T) where {T}
+function gaunt(E, kT, γ, born)
     u = E / 4kT
     u, γ1 = max(u, 0.003), min(1000 * γ, 100.0)
     n, m = N(u), M(γ1)
@@ -263,10 +263,10 @@ const A2 = [
     0.38; 0.53; 0.76; 0.96; 1.08; 1.09; 1.09
 ]
 
-tkur(γ::Real, j::Integer) = 2log10(γ) + 3 - j
-ukur(μ::Real, k::Integer) = 2log10(μ) + 9 - k
+tkur(γ, j::Int) = 2log10(γ) + 3 - j
+ukur(μ, k::Int) = 2log10(μ) + 9 - k
 
-function kurucz(μ::T, γ::T) where {T<:Real}
+function kurucz(μ, γ)
     #  Algorithm for low kT
     j = round(Integer, tkur(γ, 0))
     k = max(1, round(Integer, ukur(μ, 0)))
