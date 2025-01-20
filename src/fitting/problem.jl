@@ -179,20 +179,22 @@ end
 
 Show details about the fitting problem, including the specific model parameters that are bound together.
 """
-function details(prob::FittingProblem)
+function details(prob::FittingProblem; color = true)
     buff = IOBuffer()
+    buff_ctx = IOContext(buff, :color => color)
 
     # TODO: this is a horribly implemented function
-    println(buff, "Models:")
+    print(buff_ctx, "Models:")
     for (i, m) in enumerate(prob.model.m)
         buf = IOBuffer()
+        buf_ctx = IOContext(buf, buff_ctx)
 
-        println(buf)
-        printstyled("Model $i", color = :yellow)
-        print(buf, ": ")
+        println(buf_ctx)
+        printstyled(buf_ctx, "Model $i", color = :yellow)
+        print(buf_ctx, ": ")
 
-        _printinfo(buf, m; bindings = translate_bindings(i, prob.model, prob.bindings))
-        print(buff, indent(String(take!(buf)), 2))
+        _printinfo(buf_ctx, m; bindings = translate_bindings(i, prob.model, prob.bindings))
+        print(buff_ctx, indent(String(take!(buf)), 2))
     end
 
     print(encapsulate(String(take!(buff))))
