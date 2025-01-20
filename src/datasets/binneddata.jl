@@ -103,7 +103,7 @@ make_label(dataset::BinnedData) = dataset.name
 function _printinfo(io::IO, data::BinnedData)
     printstyled(io, "BinnedData", color = :cyan)
     print(io, " with ")
-    printstyled(io, length(data.domain), color = :cyan)
+    printstyled(io, length(data.codomain), color = :cyan)
     println(io, " data points:")
 
     dmin, dmax = prettyfloat.(extrema(data.domain))
