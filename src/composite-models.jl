@@ -99,17 +99,23 @@ typeof(model) <: CompositeModel # true
 struct CompositeModel{M1,M2,O,T,K} <: AbstractSpectralModel{T,K}
     left::M1
     right::M2
-    op::O
-    CompositeModel(
+
+    CompositeModel{M1,M2,O}(
         m1::M1,
         m2::M2,
-        op::O,
     ) where {M1<:AbstractSpectralModel{T},M2<:AbstractSpectralModel{T,K},O} where {T,K} =
-        new{M1,M2,O,T,K}(copy(m1), copy(m2), op)
+        new{M1,M2,O,T,K}(copy(m1), copy(m2))
 end
 
-function Base.copy(m::CompositeModel)
-    CompositeModel(getfield(m, :left), getfield(m, :right), getfield(m, :op))
+CompositeModel(
+    m1::M1,
+    m2::M2,
+    ::O,
+) where {M1<:AbstractSpectralModel,M2<:AbstractSpectralModel,O} =
+    CompositeModel{M1,M2,O}(copy(m1), copy(m2))
+
+function Base.copy(m::CompositeModel{M1,M2,O}) where {M1,M2,O}
+    CompositeModel{M1,M2,O}(getfield(m, :left), getfield(m, :right))
 end
 
 function implementation(::Type{<:CompositeModel{M1,M2}}) where {M1,M2}
@@ -220,9 +226,6 @@ function _printinfo(io::IO, @nospecialize(model::CompositeModel); bindings = not
     end
 end
 
-function remake_with_number_type(model::CompositeModel)
-    error("Todo")
-end
 # explicitly disable interface for ConstructionBase.jl
 ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
     throw("Cannot be used with `CompositeModel`.")
