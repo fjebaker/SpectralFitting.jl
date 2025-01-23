@@ -88,7 +88,7 @@ end
 
 `items` is a tuple or vector of lengths `n1, n2, ...`
 
-Returns a tuple or array with same length as items, which gives the index boundaries of 
+Returns a tuple or array with same length as items, which gives the index boundaries of
 an array with size `n1 + n2 + ...`.
 """
 function _accumulated_indices(items)

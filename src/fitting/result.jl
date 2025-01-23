@@ -13,7 +13,7 @@ function _pretty_print_result(model, u, σ, chi2)
       Model: $(model)
       . u     : [$(ppu)]
       . σᵤ    : [$(ppσ)]
-      . χ²    : $(ppx2) 
+      . χ²    : $(ppx2)
     """
 end
 

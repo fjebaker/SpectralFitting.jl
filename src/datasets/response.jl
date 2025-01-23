@@ -1,4 +1,4 @@
-# TODO: could be Response or Redistribution : how do we track this? 
+# TODO: could be Response or Redistribution : how do we track this?
 mutable struct ResponseMatrix{T}
     matrix::SparseMatrixCSC{T,Int}
     channels::Vector{Int}
