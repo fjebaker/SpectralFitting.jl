@@ -59,8 +59,6 @@ include("meta-models/surrogate-models.jl")
 include("meta-models/caching.jl")
 include("meta-models/functions.jl")
 
-include("poisson.jl")
-
 include("datasets/ogip.jl")
 include("datasets/datasets.jl")
 include("datasets/binning.jl")
