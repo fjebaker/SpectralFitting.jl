@@ -29,9 +29,7 @@ import Optimization
 
 using DocStringExtensions
 
-# for future use: mission specific parsing
-abstract type AbstractMission end
-struct NoMission <: AbstractMission end
+abstract type AbstractInstrument end
 
 abstract type AbstractStatistic end
 struct ChiSquared <: AbstractStatistic end
