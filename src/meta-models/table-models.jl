@@ -2,7 +2,7 @@
     abstract type AbstractTableModel{T,K} <: AbstractSpectralModel{T,K} end
 
 Abstract type representing table models, i.e. those models that interpolate or
-load data from a table. 
+load data from a table.
 
 First field in the struct **must be** `table`. See
 [`PhotoelectricAbsorption`](@ref) for an example implementation.
@@ -130,7 +130,7 @@ table models. The first argument must be compile time known, and be the number
 of parameter the model has. SpectralFitting.jl needs to know this ahead-of-time
 as part of it's fitting optimisations. The `path` is the path to the
 corresponding fits file, and the `T` keyword argument is what value type to cast
-the data into. 
+the data into.
 
 Many models will use `Float32`, which the caller may want to consider, if the
 tables are very large.
@@ -138,21 +138,26 @@ tables are very large.
 function TableModelData(::Val{N}, path::String; T::Type = Float64) where {N}
     f = FITS(path)
 
-    # TODO: this assumes energy is always contiguously binned
-    # probably valid enough for XSPEC table models to be honest...
-    # never the less should probably add some assertions here
+    # this assumes energy is always contiguously binned, probably valid enough
+    # for XSPEC table models
     energy_bins::Vector{T} = convert.(T, read(f[3], "ENERG_LO"))
-    push!(energy_bins, convert(T, last(read(f[3], "ENERG_HI"))))
+    @assert issorted(energy_bins) "Energy bins are not in a linear order"
+    _energy_high = convert.(T, read(f[3], "ENERG_HI"))
+    @views @assert all(isapprox.(_energy_high[1:end-1], energy_bins[2:end])) "Energy bins are not contiguously binned (i.e. `e_low[i + 1] != e_high[i]`)."
+    push!(energy_bins, last(_energy_high))
 
-    # TODO: currently assuming the actual underlying parameter grid is
-    # rectilinear. if it isn't this parsing will fail. again, should probably
-    # add some assertions
+    # currently assuming the actual underlying parameter grid is
+    # rectilinear. if it isn't this parsing will fail.
     parameter_meshgrid::Matrix{T} = convert.(T, read(f[4], "PARAMVAL"))
     parameter_axes = map(1:size(parameter_meshgrid, 1)) do i
         unique!(parameter_meshgrid[i, :])
     end
 
     _data::Matrix{T} = convert.(T, read(f[4], "INTPSPEC"))
+    _expected_size = reduce(*, length(i) for i in parameter_axes)
+    # this assert should hopefully be good enough to diagnose errors related to
+    # things not being rectilinear
+    @assert size(_data, 2) == _expected_size "Parameter axes are unlikely recti-linear, else bad number of spectra in `INTPSPEC`: size(_data, 2) = $(size(_data, 2)) != $(_expected_size)"
     _grid = map(1:size(_data, 2)) do i
         TableGridData(_data[:, i])
     end
