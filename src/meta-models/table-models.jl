@@ -39,4 +39,128 @@ end
 Reflection.get_parameter_symbols(model::Type{<:AbstractCachedModel}) =
     fieldnames(model)[2:end]
 
-export AbstractTableModel
+# some utilities for interacting with XSPEC-compatible table models
+
+"""
+    TableGridData
+
+Used to contain table grid data in the interpolation scheme.
+"""
+struct TableGridData{V}
+    "Interpolated values or values to be interpolated, depending on calling semantics."
+    values::V
+end
+
+MultiLinearInterpolations.restructure(::TableGridData, vs::AbstractVector) =
+    TableGridData(vs)
+
+"""
+    TableModelData
+
+A container for data read in from an XSPEC-style `Xtable` table model. This
+structure currently assumes a number of things:
+- The energy bins are strictly contiguous (`E_lo[i+1] = E_hi[i]`)
+- The parameter grid is rectilinear
+
+$(FIELDS)
+"""
+struct TableModelData{T,N}
+    "Energy bins used for all of the grid entries."
+    energy_bins::Vector{T}
+    "The parameter axes, with the range of tabulated values."
+    params::NTuple{N,Vector{T}}
+    "All grids, laid out in the same way as the parameter axes."
+    grids::Array{TableGridData{Vector{T}},N}
+end
+
+function Base.show(
+    io::IO,
+    ::MIME"text/plain",
+    @nospecialize(data::TableModelData{T,N})
+) where {T,N}
+    print(
+        io,
+        "TableModelData{$T}[N=$(N),E_bins=$(length(data.energy_bins)),grid_size=$(length(data.grids))]",
+    )
+end
+
+"""
+    TableModelInterpolation
+    TableModelInterpolation(tmd::TableModelData)
+
+Wraps a [`TableModelData`](@ref) and augments it with a multi-linear
+interpolation cache.
+
+This can then be used with `interpolate_table!` to interpolate the table data.
+"""
+struct TableModelInterpolation{T,N}
+    data::TableModelData{T,N}
+    interpolator::MultilinearInterpolator{N,T}
+end
+
+function Base.show(
+    io::IO,
+    ::MIME"text/plain",
+    interp::TableModelInterpolation{T,N},
+) where {T,N}
+    print(io, "TableModelInterpolation($T,$N)")
+end
+
+TableModelInterpolation(tmd::TableModelData{T,N}) where {T,N} =
+    TableModelInterpolation(tmd, MultilinearInterpolator{N}(tmd.grids; T = T))
+
+function interpolate_table!(
+    tmi::TableModelInterpolation{T,N},
+    parameters::Vararg{K,N},
+) where {T,K,N}
+    v = MultiLinearInterpolations.interpolate!(
+        tmi.interpolator,
+        tmi.data.params,
+        tmi.data.grids,
+        convert.(T, parameters),
+    )
+    v.values
+end
+
+"""
+    TableModelData(::Val{N}, path::String; T::Type = Float64)
+
+Unpack an XSPEC table model into a [`TableModelData`](@ref) for use in wrapping
+table models. The first argument must be compile time known, and be the number
+of parameter the model has. SpectralFitting.jl needs to know this ahead-of-time
+as part of it's fitting optimisations. The `path` is the path to the
+corresponding fits file, and the `T` keyword argument is what value type to cast
+the data into. 
+
+Many models will use `Float32`, which the caller may want to consider, if the
+tables are very large.
+"""
+function TableModelData(::Val{N}, path::String; T::Type = Float64) where {N}
+    f = FITS(path)
+
+    # TODO: this assumes energy is always contiguously binned
+    # probably valid enough for XSPEC table models to be honest...
+    # never the less should probably add some assertions here
+    energy_bins::Vector{T} = convert.(T, read(f[3], "ENERG_LO"))
+    push!(energy_bins, convert(T, last(read(f[3], "ENERG_HI"))))
+
+    # TODO: currently assuming the actual underlying parameter grid is
+    # rectilinear. if it isn't this parsing will fail. again, should probably
+    # add some assertions
+    parameter_meshgrid::Matrix{T} = convert.(T, read(f[4], "PARAMVAL"))
+    parameter_axes = map(1:size(parameter_meshgrid, 1)) do i
+        unique!(parameter_meshgrid[i, :])
+    end
+
+    _data::Matrix{T} = convert.(T, read(f[4], "INTPSPEC"))
+    _grid = map(1:size(_data, 2)) do i
+        TableGridData(_data[:, i])
+    end
+
+    param_tuple = ((parameter_axes[i] for i = 1:N)...,)
+    grid = reshape(_grid, length.(param_tuple))
+
+    TableModelData{T,N}(energy_bins, param_tuple, grid)
+end
+
+export AbstractTableModel, TableModelData, TableGridData, TableModelInterpolation
