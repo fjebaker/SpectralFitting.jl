@@ -162,6 +162,9 @@ function TableModelData(::Val{N}, path::String; T::Type = Float64) where {N}
         TableGridData(_data[:, i])
     end
 
+    # order of the table is the reverse of how we interpolate
+    reverse!(_grid)
+
     param_tuple = ((parameter_axes[i] for i = 1:N)...,)
     grid = reshape(_grid, length.(param_tuple))
 
