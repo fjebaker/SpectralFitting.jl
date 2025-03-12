@@ -2,7 +2,6 @@ using Test
 using SpectralFitting
 
 
-SpectralFitting.download_all_model_data(verbose = false)
 
 ALL_XSPEC_MODELS = [
     XS_PowerLaw,
@@ -16,6 +15,10 @@ ALL_XSPEC_MODELS = [
     XS_PhotoelectricAbsorption,
     XS_WarmAbsorption,
 ]
+
+for M in ALL_XSPEC_MODELS
+    SpectralFitting.download_model_data(M)
+end
 
 ALL_XSPEC_CONVOLUTIONAL = [XS_CalculateFlux]
 

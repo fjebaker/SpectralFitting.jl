@@ -72,13 +72,16 @@ end
     SpectralFitting.register_model_data(M::Type{<:AbstractSpectralModel}, filenames::String...)
     SpectralFitting.register_model_data(s::Symbol, filenames::String...)
 
-Register `filenames` as model data associated with the model given by type `M` or symbol `s`.
-This function does not download any files, but rather adds the relevant filenames to a lookup which
-[`SpectralFitting.download_model_data`](@ref) consults when invoked, and consequently model data is only downloaded when needed.
+Register `filenames` as model data associated with the model given by type `M`
+or symbol `s`.  This function does not download any files, but rather adds the
+relevant filenames to a lookup which
+[`SpectralFitting.download_model_data`](@ref) consults when invoked, and
+consequently model data is only downloaded when needed.
 
 !!! note
-    It is good practice to use this method immediately after defining a new model with [`@xspecmodel`](@ref)
-    to register any required datafiles from the HEASoft source code, and therefore keep relevant information together.
+    It is good practice to use this method immediately after defining a new
+    model with [`@xspecmodel`](@ref) to register any required datafiles from
+    the HEASoft source code, and therefore keep relevant information together.
 
 # Example
 
@@ -152,7 +155,11 @@ function _download_from_archive(
     io::IO = Core.stdout,
     model_source_url = DEFAULT_DOWNLOAD_ROOT_URL,
 )
-    url = "$model_source_url/$src"
+    url = if contains(src, "://")
+        src
+    else
+        "$model_source_url/$src"
+    end
     pg = if progress
         bar = MiniProgressBar(header = "Downloading: $src", color = Base.info_color())
         start_progress(io, bar)
@@ -254,6 +261,27 @@ function load_and_unpack_model_data(M)
     contents
 end
 
+"""
+    get_model_data_paths(M::Type)
+
+Get the absolute file paths to the local data files.
+
+See also: [`get_model_data`](@ref)
+"""
+function get_model_data_paths(M::Type)
+    ensure_model_data(M)
+    data = _model_to_data_map[Base.typename(M).name]
+    [f.local_path for f in data]
+end
+
+"""
+    get_model_data_paths(M::Type)
+
+Load the model data using the `Base.load` function and return the corresponding
+structures.
+
+See also: [`get_model_data_paths`](@ref)
+"""
 function get_model_data(M::Type)
     ensure_model_data(M)
     load_and_unpack_model_data(M)

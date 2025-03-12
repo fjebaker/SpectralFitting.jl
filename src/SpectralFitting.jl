@@ -29,6 +29,9 @@ import Optimization
 
 using DocStringExtensions
 
+# non-General packages
+using MultiLinearInterpolations
+
 abstract type AbstractInstrument end
 
 abstract type AbstractStatistic end

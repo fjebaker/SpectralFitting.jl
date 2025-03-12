@@ -399,4 +399,74 @@ Reflection.get_parameter_symbols(model::Type{<:DeltaLine}) = fieldnames(model)[2
     invoke!(flux, energy, GaussianLine(promote(model.K, model.E, model._width)...))
 end
 
-export PowerLaw, BlackBody, BremsStrahlung, GaussianLine, DeltaLine
+module _Xillver_Data
+
+using ..SpectralFitting
+
+const _XILLVER_TABLE_TYPE = TableModelInterpolation{Float32,5}
+# backing data singleton
+_xillver_data::Union{Nothing,_XILLVER_TABLE_TYPE} = nothing
+
+function _read_table_interpolation(
+    fits_path::Union{Nothing,<:AbstractString},
+)::_XILLVER_TABLE_TYPE
+    if !isnothing(fits_path)
+        return TableModelInterpolation(TableModelData(Val(5), default_path; T = Float32))
+    end
+
+    default_path = first(SpectralFitting.get_model_data_paths(XillverD5))
+    global _xillver_data
+    if !isnothing(_xillver_data)
+        return _xillver_data
+    end
+    _xillver_data =
+        TableModelInterpolation(TableModelData(Val(5), default_path; T = Float32))
+    _xillver_data
+end
+
+end # module
+
+struct XillverD5{T} <: AbstractTableModel{T,Additive}
+    table::_Xillver_Data._XILLVER_TABLE_TYPE
+    K::T
+    Γ::T
+    A_Fe::T
+    logXi::T
+    density::T
+    inclination::T
+end
+register_model_data(
+    XillverD5,
+    (
+        "https://sites.srl.caltech.edu/~javier/xillver/tables/xillverD-5.fits",
+        "xillverD-5.fits",
+    ),
+)
+
+function XillverD5(;
+    K = FitParam(1.0),
+    Γ = FitParam(2.0),
+    A_Fe = FitParam(1.0),
+    logXi = FitParam(2.0),
+    density = FitParam(17.0),
+    inclination = FitParam(45.0),
+    table_path = nothing,
+)
+    table = _Xillver_Data._read_table_interpolation(table_path)
+    XillverD5(table, K, Γ, A_Fe, logXi, density, inclination)
+end
+
+function invoke!(output, domain, model::XillverD5)
+    spectra = SpectralFitting.interpolate_table!(
+        model.table,
+        model.Γ,
+        model.A_Fe,
+        model.logXi,
+        model.density,
+        model.inclination,
+    )
+    rebin_if_different_domains!(output, domain, model.table.data.energy_bins, spectra)
+    output
+end
+
+export PowerLaw, BlackBody, BremsStrahlung, GaussianLine, DeltaLine, XillverD5

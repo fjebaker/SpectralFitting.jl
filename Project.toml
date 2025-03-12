@@ -18,6 +18,7 @@ JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 Libz = "2ec943e9-cfe8-584d-b93d-64dcb6d567b7"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LsqFit = "2fda8390-95c7-5789-9bda-21331edee243"
+MultiLinearInterpolations = "71cc9eaa-fb72-4ea8-a7f0-cc62a524c454"
 Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
@@ -33,4 +34,5 @@ Surrogates = "6fc51010-71bc-11e9-0e15-a3fcc6593c49"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
+MultiLinearInterpolations = "0.1.2"
 Polynomials = "4.0.12"
