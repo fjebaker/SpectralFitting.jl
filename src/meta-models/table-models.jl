@@ -109,10 +109,7 @@ end
 TableModelInterpolation(tmd::TableModelData{T,N}) where {T,N} =
     TableModelInterpolation(tmd, MultilinearInterpolator{N}(tmd.grids; T = T))
 
-function interpolate_table!(
-    tmi::TableModelInterpolation{T,N},
-    parameters::Vararg{K,N},
-) where {T,K,N}
+function interpolate_table!(tmi::TableModelInterpolation{T}, parameters::Vararg) where {T}
     v = MultiLinearInterpolations.interpolate!(
         tmi.interpolator,
         tmi.data.params,
