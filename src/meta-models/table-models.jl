@@ -117,7 +117,7 @@ function interpolate_table!(
         tmi.interpolator,
         tmi.data.params,
         tmi.data.grids,
-        convert.(T, parameters),
+        reverse(convert.(T, parameters)),
     )
     v.values
 end
@@ -152,6 +152,7 @@ function TableModelData(::Val{N}, path::String; T::Type = Float64) where {N}
     parameter_axes = map(1:size(parameter_meshgrid, 1)) do i
         unique!(parameter_meshgrid[i, :])
     end
+    reverse!(parameter_axes)
 
     _data::Matrix{T} = convert.(T, read(f[4], "INTPSPEC"))
     _expected_size = reduce(*, length(i) for i in parameter_axes)
@@ -161,9 +162,6 @@ function TableModelData(::Val{N}, path::String; T::Type = Float64) where {N}
     _grid = map(1:size(_data, 2)) do i
         TableGridData(_data[:, i])
     end
-
-    # order of the table is the reverse of how we interpolate
-    reverse!(_grid)
 
     param_tuple = ((parameter_axes[i] for i = 1:N)...,)
     grid = reshape(_grid, length.(param_tuple))
