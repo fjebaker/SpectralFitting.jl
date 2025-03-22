@@ -71,7 +71,6 @@ function _multi_constructor_wrapper(
         args
     else
         if args isa Tuple
-            @show eltype(args)
             if eltype(args) <: T
                 reduce(merge, args)
             else
