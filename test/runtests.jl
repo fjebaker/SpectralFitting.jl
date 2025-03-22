@@ -98,7 +98,8 @@ end
         @time include("fitting/test-fit-multi.jl")
         @time include("fitting/test-fit-optim.jl")
     end
-    if has_test_dir
+
+    @ciskip if has_test_dir
         @testset "sample-data" begin
             @time include("fitting/test-sample-data.jl")
         end
