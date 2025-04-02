@@ -17,6 +17,7 @@ include("convolutional.jl")
 function register_xspec_data()
     push!(SpectralFitting.ALL_STORAGE_PATHS, LIBXSPEC_STORAGE_PATH)
     register_model_data(XS_KerrDisk, "kerrtable.fits"; root = LIBXSPEC_STORAGE_PATH)
+    register_model_data(XS_Kerrconv, "kerrtable.fits"; root = LIBXSPEC_STORAGE_PATH)
     register_model_data(XS_KyrLine, "KBHline01.fits"; root = LIBXSPEC_STORAGE_PATH)
     register_model_data(XS_Laor, "ari.mod"; root = LIBXSPEC_STORAGE_PATH)
 end
