@@ -52,14 +52,18 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - run: julia -e 'import Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/astro-group-bristol/AstroRegistry/"))'
+      - name: Add AstroRegistry
+        shell: julia --color=yes {0}
+        run: |
+          import Pkg
+          Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/astro-group-bristol/AstroRegistry/"))
       - uses: julia-actions/julia-buildpkg@v1
       - run: cat Manifest.toml
-      - run: |
-          julia --color=yes --math-mode=ieee --check-bounds=yes -tauto --project=. -e '
-            import Pkg
-            Pkg.test(; coverage=true, force_latest_compatible_version=true)
-          '
+      - name: Run tests
+        shell: julia --color=yes --math-mode=ieee --check-bounds=yes -tauto --project=. {0}
+        run: |
+          import Pkg
+          Pkg.test(; coverage=true, force_latest_compatible_version=true)
         env:
           SF_TEST_SUITE_DATA: "../data/sample-data"
       - uses: julia-actions/julia-processcoverage@v1
