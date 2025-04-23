@@ -118,7 +118,7 @@ function optimize_accuracy!(
         if verbose
             println("$(rpad(epoch, 5)): ", ℳσ)
         end
-        update!(surr, X[i], y[i])
+        Surrogates.update!(surr, X[i], y[i])
     end
     surr
 end
