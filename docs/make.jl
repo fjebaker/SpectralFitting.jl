@@ -1,6 +1,3 @@
-push!(LOAD_PATH, "src")
-push!(LOAD_PATH, "lib/XSPECModels/src")
-
 ENV["GKSwstype"] = "100"
 
 using Documenter

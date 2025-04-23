@@ -1,6 +1,8 @@
 
 module Reflection
 
+using DocStringExtensions
+
 import ..SpectralFitting:
     AbstractSpectralModel,
     CompositeModel,
@@ -35,19 +37,6 @@ const MODEL_SYMBOL_LOOKUP = Dict{AbstractSpectralModelKind,Symbol}(
 
 """
     struct ModelInfo
-        "All parameter symbols for the model."
-        symbols::Vector{Symbol}
-        "Unique symbols generated for the parameter assignment when buildin the function call."
-        generated_symbols::Vector{Symbol}
-        "Additional closure parameters that need to be handled when invoking the model."
-        closure_symbols::Vector{Symbol}
-        "Unique closure generated symbols."
-        generated_closure_symbols::Vector{Symbol}
-        "The lens that takes you to this model from some parent."
-        lens::Lens
-        "The model type itself."
-        model::Type
-    end
 
 All models are parsed into a `ModelInfo` struct relative to their parent (in the
 case of composite models).
@@ -56,6 +45,9 @@ The symbols field contains all of the model parameter symbols _as they are in
 the structure_, not as they have been generated. Recall when the invocation
 expressions are generated, we create anonymous paramter names to avoid conflicts.
 These are the `generated_symbols` instead.
+
+# Fields
+$(TYPEDFIELDS)
 """
 struct ModelInfo
     "All parameter symbols for the model."
@@ -96,22 +88,12 @@ end
 
 """
     struct CompositeModelInfo
-        "The parameter symbols of the model with the respective lens to the actual parameter."
-        parameter_symbols::Vector{Pair{Symbol,Lens}}
-        "Each model assigned to a unique symbol."
-        models::Vector{Pair{Symbol,ModelInfo}}
-        "The expression representing the folding operations of this composite model."
-        model_expression::Expr
-        "Constructor and objective folding expressions, used in generating the invocation call."
-        expressions::Vector{Expr}
-        "The maximum number of objective caches this model will need."
-        maximum_objective_cache_count::Int
-        "How many objective caches are currently active."
-        objective_cache_count::Int
-    end
 
 The composite equivalent of [`ModelInfo`](@ref), augmented to track the model
 symbol (`a1`, `m3`, etc.), and the model parameters (`K_1`, `a_3`, etc.)
+
+# Fields
+$(TYPEDFIELDS)
 """
 struct CompositeModelInfo
     "The parameter symbols of the model with the respective lens to the actual parameter."

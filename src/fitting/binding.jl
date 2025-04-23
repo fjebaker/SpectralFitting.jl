@@ -85,21 +85,21 @@ call to `bind!`.
 
 - Bind model 1's `K_1` parameter to model 2's `K_3`:
 
-```julia
-bind!(prob, 1 => :K_1, 2 => :K_3)
-```
+  ```julia
+  bind!(prob, 1 => :K_1, 2 => :K_3)
+  ```
 
 - Bind model 3's `K_2` parameter to model4's `:L_1` and model 6's `a_3`:
 
-```julia
-bind!(prob, 3 => :K_2, 4 => :L_1, 6 => :a_3)
-```
+  ```julia
+  bind!(prob, 3 => :K_2, 4 => :L_1, 6 => :a_3)
+  ```
 
 - Bind the `K_1` parameter across all the models:
 
-```julia
-bind!(prob, :K_1)
-```
+  ```julia
+  bind!(prob, :K_1)
+  ```
 
 ## Examples
 
