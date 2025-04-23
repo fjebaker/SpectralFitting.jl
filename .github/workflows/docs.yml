@@ -43,7 +43,7 @@ jobs:
           Pkg.Registry.add(url="https://github.com/astro-group-bristol/AstroRegistry/")
           Pkg.Registry.add(url="https://github.com/JuliaRegistries/General")
       - name: Set up environment
-        shell: julia --color=yes --project=docs
+        shell: julia --color=yes --project=docs {0}
         run: |
           using Pkg
           Pkg.instantiate()
