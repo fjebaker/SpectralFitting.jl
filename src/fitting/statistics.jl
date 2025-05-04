@@ -1,41 +1,22 @@
-function measure(stat::AbstractStatistic, result::FittingResult, args...; kwargs...)
-    measure(stat, result[1], args...; kwargs...)
-end
 
 function measure(::ChiSquared, y, ŷ, σ²)
     sum(@.((y - ŷ)^2 / σ²))
 end
-function measure(s::ChiSquared, ::FittingConfig, y, ŷ, σ²)
-    measure(s, y, ŷ, σ²)
-end
-function measure(s::ChiSquared, slice::FittingResultSlice, u = slice.u)
-    ŷ = _invoke_and_transform!(get_cache(slice), slice.domain, u)
-    measure(s, slice.objective, ŷ, slice.variance)
-end
 
-function _f_wrap_objective(stat::ChiSquared, config::FittingConfig)
-    f = _f_objective(config)
-    function _objective(parameters, domain)
-        ŷ = f(domain, parameters)
-        measure(stat, config.objective, ŷ, config.variance)
-    end
-end
-
-function measure(::Cash, S, ŷ)
+function measure(::Cash, S, ŷ, _) # ignores variance
+    # avoid errors in log
+    any(<(0), ŷ) && return Inf
+    any(<(0), S) && return Inf
     2 * sum(@.(ŷ - S + S * (log(S) - log(ŷ))))
 end
-function measure(s::Cash, slice::FittingResultSlice, u = slice.u)
-    ŷ = _invoke_and_transform!(get_cache(slice), slice.domain, u)
-    measure(s, slice.objective, ŷ)
+
+function measure(s::AbstractStatistic, slice::FitResultSlice, u = slice.u)
+    ŷ = calculate_objective!(slice, u)
+    measure(s, get_objective(slice), ŷ, get_objective_variance(slice))
 end
 
-function _f_wrap_objective(stat::Cash, config::FittingConfig)
-    f = _f_objective(config)
-    function _objective(parameters, domain)
-        ŷ = f(domain, parameters)
-        measure(stat, config.objective, ŷ)
-    end
+function measure(stat::AbstractStatistic, result::FitResult, args...; kwargs...)
+    measure(stat, result[1], args...; kwargs...)
 end
-
 
 export ChiSquared, Cash, measure

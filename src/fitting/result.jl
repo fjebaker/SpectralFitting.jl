@@ -1,3 +1,53 @@
+export FitResult
+
+struct FitResult{Config<:FittingConfig,U,Err,T,Sol}
+    config::Config
+    u::U
+    err::Err
+    stats::Vector{T}
+    sol::Sol
+end
+
+calculate_objective!(result::FitResult, u0) = calculate_objective!(result.config, u0)
+
+struct FitResultSlice{P<:FitResult,U,Err,T}
+    index::Int
+    parent::P
+    u::U
+    err::Err
+    stats::T
+end
+
+function Base.getindex(result::FitResult, i)
+    all_parameters = update_free_parameters!(result.config.parameter_cache, result.u)
+    mask = result.config.parameter_cache.free_mask[result.config.parameter_bindings[i]]
+    FitResultSlice(
+        i,
+        result,
+        all_parameters[result.config.parameter_bindings[i]][mask],
+        isnothing(result.err) ? nothing : result.err[result.config.bindings[i]],
+        result.stats[i],
+    )
+end
+
+function calculate_objective!(slice::FitResultSlice, u0)
+    I = slice.parent.config.parameter_bindings[slice.index]
+    mask = slice.parent.config.parameter_cache.free_mask[I]
+    @assert count(mask) == length(u0)
+
+    all_parameters = _get_parameters(slice.parent.config.parameter_cache, u0)
+    # update the free parameters
+    @views all_parameters[mask] .= u0
+
+    calculate_objective!(slice.parent.config, all_parameters, slice.index)
+end
+
+_get_data_cache(slice::FitResultSlice) = slice.parent.config.data_cache[slice.index]
+get_objective(slice::FitResultSlice) = _get_data_cache(slice).objective
+get_objective_variance(slice::FitResultSlice) = _get_data_cache(slice).variance
+
+# TODO: delete the below
+
 export FittingResult,
     MultiFittingResult,
     AbstractFittingResult,
@@ -169,53 +219,59 @@ function update_model!(multimodel::FittableMultiModel, result::MultiFittingResul
     error("TODO")
 end
 
-function finalize(config::FittingConfig, params, final_stat, ; σparams = nothing)
-    FittingResult(final_stat, params, σparams, config)
+function finalize(config::FittingConfig, params, sol; σparams = nothing)
+    I = ((1:model_count(config.prob))...,)
+
+    measures = map(I) do i
+        obj = measure_objective!(config, params, i)
+    end |> collect
+
+    FitResult(config, params, σparams, measures, sol)
 end
 
-function finalize(
-    config::FittingConfig{Impl,<:MultiModelCache},
-    params,
-    final_stat,
-    ;
-    σparams = nothing,
-) where {Impl}
-    domain = config.model_domain
-    cache = config.cache
-    statistic = fit_statistic(config)
-    results = map(enumerate(cache.caches)) do (i, ch)
-        p = @views params[cache.parameter_mapping[i]]
-        σp = @views isnothing(σparams) ? nothing : σparams[cache.parameter_mapping[i]]
+# function finalize(
+#     config::FittingConfig{Impl,<:MultiModelCache},
+#     params,
+#     final_stat,
+#     ;
+#     σparams = nothing,
+# ) where {Impl}
+#     domain = config.model_domain
+#     cache = config.cache
+#     statistic = fit_statistic(config)
+#     results = map(enumerate(cache.caches)) do (i, ch)
+#         p = @views params[cache.parameter_mapping[i]]
+#         σp = @views isnothing(σparams) ? nothing : σparams[cache.parameter_mapping[i]]
 
-        domain_start, domain_end = _get_range(cache.domain_mapping, i)
-        objective_start, objective_end = _get_range(cache.objective_mapping, i)
+#         domain_start, domain_end = _get_range(cache.domain_mapping, i)
+#         objective_start, objective_end = _get_range(cache.objective_mapping, i)
 
-        d = @views domain[domain_start:domain_end]
+#         d = @views domain[domain_start:domain_end]
 
-        output = _invoke_and_transform!(ch, d, p)
+#         output = _invoke_and_transform!(ch, d, p)
 
-        chi2 = measure(
-            statistic,
-            config.objective[objective_start:objective_end],
-            output,
-            config.variance[objective_start:objective_end],
-        )
-        (; chi2, p, σp)
-    end
+#         chi2 = measure(
+#             statistic,
+#             config.objective[objective_start:objective_end],
+#             output,
+#             config.variance[objective_start:objective_end],
+#         )
+#         (; chi2, p, σp)
+#     end
 
-    unc = getindex.(results, :σp)
-    unc_or_nothing = if any(isnothing, unc)
-        nothing
-    else
-        unc
-    end
-    MultiFittingResult(
-        getindex.(results, :chi2),
-        getindex.(results, :p),
-        unc_or_nothing,
-        config,
-    )
-end
+#     unc = getindex.(results, :σp)
+#     unc_or_nothing = if any(isnothing, unc)
+#         nothing
+#     else
+#         unc
+#     end
+#     MultiFittingResult(
+#         getindex.(results, :chi2),
+#         getindex.(results, :p),
+#         unc_or_nothing,
+#         config,
+#     )
+# end
 
 function determine_layout(result::FittingResultSlice)
     dataset = get_dataset(result)

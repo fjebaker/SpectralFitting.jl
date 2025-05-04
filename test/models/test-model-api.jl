@@ -39,3 +39,27 @@ output = invokemodel(domain, model)
 
 @test modelkind(model) == Additive()
 @test numbertype(model) == Float64
+
+# parameter things
+
+@test SpectralFitting.parameter_count(PhotoelectricAbsorption()) == 1
+@test SpectralFitting.parameter_count(PowerLaw()) == 2
+@test SpectralFitting.parameter_count(PowerLaw() + PowerLaw()) == 4
+
+model = DummyMultiplicative() * PowerLaw(a = FitParam(4.0, frozen = true))
+cache = @inferred make_parameter_cache(model)
+SpectralFitting.update_free_parameters!(cache, [2.0, 0.5])
+@test cache.parameters == [2.0, 5.0, 0.5, 4.0]
+
+outputs = allocate_model_output(model, domain)
+output = invokemodel!(outputs, domain, model, cache)
+@test sum(output) ≈ 1666.665 atol=1e-4
+
+# TODO: test to check that auto diff gradients with various sizes can be propagated correctly
+cache = @inferred SpectralFitting.make_diff_parameter_cache(model)
+
+model = DummyAdditive()
+
+params_tuple = @inferred SpectralFitting.unpack_as_tuple(model)
+expected = (FitParam(1.0), FitParam(1.0), FitParam(5.0))
+@test isapprox.(params_tuple, expected) |> all

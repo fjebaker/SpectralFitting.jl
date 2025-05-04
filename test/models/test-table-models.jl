@@ -9,7 +9,7 @@ include("../dummies.jl")
 model = DummyMultiplicativeTableModel()
 
 # ensure the symbols are being parsed correctly
-all_symbols = SpectralFitting.parameter_named_tuple(model)
+all_symbols = SpectralFitting.unpack_parameters_as_named_tuple(model)
 @test all_symbols == (; a = model.a, b = model.b)
 
 # can we invoke the table models alright
@@ -26,7 +26,7 @@ out_flux = invokemodel(energy, cm)
 
 model = DummyAdditiveTableModel()
 
-all_symbols = SpectralFitting.parameter_named_tuple(model)
+all_symbols = SpectralFitting.unpack_parameters_as_named_tuple(model)
 @test all_symbols == (; K = model.K, a = model.a, b = model.b)
 
 out_flux = invokemodel(energy, model)

@@ -1,3 +1,8 @@
+"""
+    FittableMultiDataset(d1, d2...)
+
+A thin wrapper representing multiple datasets.
+"""
 struct FittableMultiDataset{D}
     d::D
     FittableMultiDataset(data::Vararg{<:AbstractDataset}) = new{typeof(data)}(data)
@@ -11,52 +16,14 @@ function Base.merge(m1::FittableMultiDataset, m2::FittableMultiDataset)
     FittableMultiDataset(m1.d..., m2.d...)
 end
 
+"""
+    FittableMultiModel(m1, m2...)
+
+A thin wrapper representing multiple models.
+"""
 struct FittableMultiModel{M}
     m::M
     FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
-end
-
-function translate_bindings(
-    model_index::Int,
-    m::FittableMultiModel,
-    bindings::Vector{Vector{Pair{Int,Int}}},
-)
-    # map the parameter index to a string to display
-    translation = Dict{Int,Pair{paramtype(m.m[1]),String}}()
-    for b in bindings
-        # we skip the first item in the list since that is the root of the binding
-        root = b[1]
-
-        params = parameter_named_tuple(m.m[first(root)])
-        symbol = propertynames(params)[last(root)]
-        value = params[last(root)]
-
-        for pair in @views b[2:end]
-            # check if this binding applies to the current model
-            if first(pair) == model_index
-                translation[last(pair)] = value => "~Model $(first(root)) $(symbol)"
-            end
-        end
-    end
-
-    translation
-end
-
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize(model::FittableMultiModel))
-    buff = IOBuffer()
-    buff_c = IOContext(buff, io)
-    println(buff_c, "Models:")
-    for (i, m) in enumerate(model.m)
-        buf = IOBuffer()
-
-        println(buf)
-        printstyled(buf, "Model $i", color = :yellow)
-        print(buf, ": ")
-
-        _printinfo(buf, m)
-        print(buff_c, indent(String(take!(buf)), 2))
-    end
-    print(io, encapsulate(String(take!(buff))))
 end
 
 function Base.getindex(multimodel::FittableMultiModel, i)
@@ -98,17 +65,205 @@ function _accumulated_indices(items)
     end
 end
 
-struct FittingProblem{M<:FittableMultiModel,D<:FittableMultiDataset,B}
+"""
+    ParameterTriple(model_index, component, paramter)
+    ParameterTriple(info_tuple)
+
+Used to unambiguously denote a given parameter in a fitting problem.
+"""
+struct ParameterTriple
+    "Model index number."
+    model_index::Int
+    "If the model is a composite model, the symbol of the composite component."
+    component::Union{Nothing,Symbol}
+    "The symbol of the parameter."
+    parameter::Symbol
+end
+
+function ParameterTriple(t::Tuple)
+    N = length(t)
+    @assert 2 <= N <= 3 "Tuple has bad length ($(length(t)))"
+    if N == 2
+        ParameterTriple(t[1], nothing, t[2])
+    else
+        ParameterTriple(t[1], t[2], t[3])
+    end
+end
+
+_parameter_symbols(model) = keys(unpack_parameters_as_named_tuple(model))
+
+function _build_triples(model::AbstractSpectralModel, model_index::Int)
+    if model isa CompositeModel
+        out = ParameterTriple[]
+        for m in propertynames(model)
+            for s in _parameter_symbols(getproperty(model, m))
+                push!(out, ParameterTriple(model_index, m, s))
+            end
+        end
+        out
+    else
+        [ParameterTriple(model_index, nothing, s) for s in _parameter_symbols(model)]
+    end
+end
+
+function _build_parameter_lookup(m::FittableMultiModel)
+    lookup = Dict{ParameterTriple,Int}()
+    i = 1
+    for (model_index, model) in enumerate(m.m)
+        if model isa CompositeModel
+            for component in propertynames(model)
+                for sym in _parameter_symbols(getproperty(model, component))
+                    lookup[ParameterTriple(model_index, component, sym)] = i
+                    i += 1
+                end
+            end
+        else
+            for sym in _parameter_symbols(model)
+                lookup[ParameterTriple(model_index, nothing, sym)] = i
+                i += 1
+            end
+        end
+    end
+    lookup
+end
+
+"""
+    FittingProblem
+
+A struct representing a combination of models and dataset to be fit.
+"""
+struct FittingProblem{M<:FittableMultiModel,D<:FittableMultiDataset}
     model::M
     data::D
-    bindings::B
+    "Given a parameter triple, returns the index of the corresponding parameter."
+    lookup::Dict{ParameterTriple,Int}
+    bindings::Dict{Int,Vector{Int}}
+
     function FittingProblem(m::FittableMultiModel, d::FittableMultiDataset)
-        bindings = Vector{Pair{Int,Int}}[]
-        new{typeof(m),typeof(d),typeof(bindings)}(m, d, bindings)
+        lookup = _build_parameter_lookup(m)
+        new{typeof(m),typeof(d)}(m, d, lookup, Dict{Int,Vector{Int}}())
     end
 end
 
 FittingProblem(pairs::Vararg{<:Pair}) = FittingProblem(first.(pairs), last.(pairs))
+
+simplify!(prob::FittingProblem) = _simplify_bindings!(prob.bindings)
+
+function translate_bindings(prob::FittingProblem)
+    revlookup(param_index) = only([k for (k, v) in prob.lookup if v == param_index])
+
+    IndexType = Dict{Symbol,Dict{Symbol,String}}
+    model_translation = Dict{Int,IndexType}()
+
+    for (root, targets) in prob.bindings
+        main = revlookup(root)
+        main_str = "Bound to Model $(main.model_index) => $(main.component) -> $(main.parameter)"
+
+        for t in targets
+            target = revlookup(t)
+
+            existing = get(model_translation, target.model_index, IndexType())
+
+            _component = if isnothing(target.component)
+                :only
+            else
+                target.component
+            end
+
+            index = get(existing, _component, Dict{Symbol,String}())
+
+            index[target.parameter] = main_str
+
+            existing[_component] = index
+            model_translation[target.model_index] = existing
+        end
+    end
+
+    model_translation
+end
+
+function _simplify_bindings!(bindings::Dict{Int,Vector{Int}})
+    isempty(bindings) && return
+
+    roots = sort!(collect(keys(bindings)))
+    skip = Set()
+
+    for root in roots
+        root in skip && continue
+        targets = bindings[root]
+
+        for t in targets
+            if haskey(bindings, t)
+                push!(skip, t)
+                targets = vcat(targets, bindings[t])
+                delete!(bindings, t)
+            end
+        end
+
+        bindings[root] = unique!(targets)
+    end
+
+    bindings
+end
+
+function _build_parameter_mapping(prob::FittingProblem{M}) where {M<:FittableMultiModel}
+    # this function is idempotent, so doesn't matter if it's called many times
+    simplify!(prob)
+    revlookup(param_index) = only([k for (k, v) in prob.lookup if v == param_index])
+
+    reverse_bindings = Dict{ParameterTriple,Int}()
+    for (root, targets) in prob.bindings
+        for target in targets
+            t = revlookup(target)
+            reverse_bindings[t] = root
+        end
+    end
+
+    Models = M.parameters[1]
+    T = paramtype(Models.parameters[1])
+
+    # use the tuple hack to enforce type stability and unroll the loop
+    correction::Int = 0
+    I = (1:length(Models.parameters)...,)
+    intra_correction = Int[]
+    map(I) do i
+        m = prob.model.m[i]
+        map(_build_triples(m, i)) do t
+            if haskey(reverse_bindings, t)
+                correction += 1
+                b = reverse_bindings[t]
+                if revlookup(b).model_index == i
+                    # this parameter is bound to another in the same model
+                    push!(intra_correction, b)
+                end
+                # intra-model bound parameter corrections
+                corr = sum(1 for ic in intra_correction if b > ic; init = 0)
+                b - corr
+            else
+                prob.lookup[t] - correction
+            end
+        end
+    end
+end
+
+function parameter_vector_and_bindings(prob::FittingProblem)
+    pvec = parameter_vector(prob)
+    bindings = _build_parameter_mapping(prob)
+
+    non_bound_parameters = Set(1:length(pvec))
+    if !isempty(prob.bindings)
+        bound_parameters = Set(reduce(vcat, (v for (k, v) in prob.bindings)))
+        setdiff!(non_bound_parameters, bound_parameters)
+    end
+
+    I = sort!(collect(non_bound_parameters))
+
+    pvec[I], bindings
+end
+
+function parameter_vector(prob::FittingProblem)
+    reduce(vcat, parameter_vector(m) for m in prob.model.m)
+end
 
 function FittingProblem(m, d)
     _m = _multi_constructor_wrapper(FittableMultiModel, m)
@@ -139,7 +294,7 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProble
     free = 0
     frozen = 0
     for m in prob.model.m
-        for p in parameter_tuple(m)
+        for p in parameter_vector(m)
             total += factor
             if isfrozen(p)
                 frozen += factor
@@ -149,10 +304,8 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(prob::FittingProble
         end
     end
 
-    bound = 0
-    for binding in prob.bindings
-        bound += length(Set(first.(binding))) - 1
-    end
+    bound = length(unique!(reduce(vcat, values(prob.bindings), init = Int[])))
+
     free = free - bound
 
     println(buff_c, "  . Total      : $(total)")
@@ -176,13 +329,15 @@ end
 """
     details(prob::FittingProblem)
 
-Show details about the fitting problem, including the specific model parameters that are bound together.
+Show details about the fitting problem, including the specific model parameters
+that are bound together.
 """
 function details(prob::FittingProblem; color = true)
     buff = IOBuffer()
     buff_ctx = IOContext(buff, :color => color)
 
-    # TODO: this is a horribly implemented function
+    t_binds = translate_bindings(prob)
+
     print(buff_ctx, "Models:")
     for (i, m) in enumerate(prob.model.m)
         buf = IOBuffer()
@@ -192,11 +347,200 @@ function details(prob::FittingProblem; color = true)
         printstyled(buf_ctx, "Model $i", color = :yellow)
         print(buf_ctx, ": ")
 
-        _printinfo(buf_ctx, m; bindings = translate_bindings(i, prob.model, prob.bindings))
+
+        _bindings = if m isa CompositeModel
+            get(t_binds, i, nothing)
+        else
+            t_model = get(t_binds, i, nothing)
+            if isnothing(t_model)
+                nothing
+            else
+                t_model[:only]
+            end
+        end
+
+        _printinfo(buf_ctx, m; bindings = _bindings)
         print(buff_ctx, indent(String(take!(buf)), 2))
     end
 
     print(encapsulate(String(take!(buff))))
 end
 
-export FittingProblem, FittableMultiModel, FittableMultiDataset, details
+_sort_binding!(binding) = sort!(binding, by = i -> i[1])
+
+function _construct_bound_mapping(bindings, parameter_count)
+    remove = Int[]
+
+    parameter_mapping = map((1:length(parameter_count)...,)) do i
+        # indices of the full parameter array for the ith model
+        collect(range(_get_range(parameter_count, i)...))
+    end
+
+    for binding in bindings
+        # the model we use as a reference to bind *to*
+        reference = binding[1]
+        for b in @views binding[2:end]
+            # get the number of the parameter that we are binding
+            parameter_number = parameter_mapping[b[1]][b[2]]
+            parameter_mapping[b[1]][b[2]] = reference[2]
+
+            # mark for removal: find the parameter index in the global array
+            N = if b[1] > 1
+                sum(length(parameter_mapping[q]) for q = 1:(b[1]-1))
+            else
+                0
+            end
+            index = N + b[2]
+            push!(remove, index)
+
+            # need to now shuffle all the indices greater than this one down by 1
+            for k = (b[2]+1):length(parameter_mapping[b[1]])
+                if (parameter_mapping[b[1]][k] > parameter_number)
+                    parameter_mapping[b[1]][k] -= 1
+                end
+            end
+            # and for subsequent models
+            for j = (b[1]+1):length(parameter_count)
+                for k = 1:length(parameter_mapping[j])
+                    if parameter_mapping[j][k] > parameter_number
+                        parameter_mapping[j][k] -= 1
+                    end
+                end
+            end
+        end
+    end
+
+    sort!(unique!(remove))
+
+    parameter_mapping, remove
+end
+
+function _get_index_of_symbol(model::AbstractSpectralModel, symbol)::Int
+    pnt = unpack_parameters_as_named_tuple(model)
+    symbols = keys(pnt)
+    i = findfirst(==(symbol), symbols)
+    if isnothing(i)
+        error("Could not match symbol $symbol !")
+    end
+    i
+end
+
+"""
+
+Bind the symbols of `last(pair)` in all models indexes by `first(pair)`.
+"""
+function _bind_pairs!(prob::FittingProblem, pairs::Vararg{<:Pair{Int,Symbol}})
+    binding = map(pairs) do pair
+        model = prob.model.m[pair[1]]
+        pair[1] => _get_index_of_symbol(model, pair[2])
+    end |> collect
+    _sort_binding!(binding)
+    push!(prob.bindings, binding)
+end
+
+
+"""
+    bind!(prob::FittingProblem, pairs::Pair{Int,Symbol}...)
+    bind!(prob::FittingProblem, symbols::Symbol...)
+
+TODO: UPDATE ME
+
+Bind parameters together within a [`FittingProblem`](@ref). Parameters bound
+together will be mandated to have exact same value during the fit.
+
+The binding may either be a single symbol that is present in all models in the
+fitting problem, or a series of pairs `Int => Symbol` which index the specific
+model and parameters to bind together. All bindings specified in a single call
+to `bind!` will be bound together. Multiple bindings are possible with repeated
+call to `bind!`.
+
+- Bind model 1's `K_1` parameter to model 2's `K_3`:
+
+  ```julia
+  bind!(prob, 1 => :K_1, 2 => :K_3)
+  ```
+
+- Bind model 3's `K_2` parameter to model4's `:L_1` and model 6's `a_3`:
+
+  ```julia
+  bind!(prob, 3 => :K_2, 4 => :L_1, 6 => :a_3)
+  ```
+
+- Bind the `K_1` parameter across all the models:
+
+  ```julia
+  bind!(prob, :K_1)
+  ```
+
+## Examples
+
+Consider the following two models
+```julia
+model1 = PhotoelectricAbsorption() * (BlackBody() + PowerLaw())
+model2 = PhotoelectricAbsorption() * (PowerLaw() + PowerLaw())
+
+prob = FittingProblem(model1 => data1, model2 => data2)
+
+# bind the power law indices in the two models
+bind!(prob, :a_1)
+
+# bind the normalisation of powerlaws in the 2nd model:
+bind!(prob, 2 => :K_1, 2 => :K_2)
+```
+
+!!! note
+    Only free parameters can be bound together.
+"""
+function bind!(prob::FittingProblem, pairs::Vararg{<:Pair})
+    for pair in pairs
+        triples = _to_triple_vector(pair)
+        bind!(prob, triples[1], triples[2:end])
+    end
+    prob
+end
+
+function bind!(
+    prob::FittingProblem,
+    root::ParameterTriple,
+    other::AbstractVector{<:ParameterTriple},
+)
+    primary = parameter_index(prob, root)
+    secondaries = map(i -> parameter_index(prob, i), other)
+    existing = get(prob.bindings, primary, Int[])
+    prob.bindings[primary] = unique!(vcat(existing, secondaries))
+end
+
+function bindall!(
+    prob::FittingProblem,
+    items::Vararg{<:Union{<:Symbol,<:Tuple{Symbol,Symbol}}},
+)
+    for item in items
+        _item = if item isa Tuple
+            item
+        else
+            (item,)
+        end
+        bind!(
+            prob,
+            ParameterTriple((1, _item...)),
+            [ParameterTriple((i, _item...)) for i = 2:model_count(prob)],
+        )
+    end
+    prob
+end
+
+function _to_triple_vector(pair::Pair)
+    out = [ParameterTriple(first(pair))]
+    rem = last(pair)
+    while (rem isa Pair)
+        push!(out, ParameterTriple(first(rem)))
+        rem = last(rem)
+    end
+    push!(out, ParameterTriple(rem))
+    out
+end
+
+parameter_index(prob::FittingProblem, t::ParameterTriple) = prob.lookup[t]
+
+
+export bind!, bindall!, FittingProblem, FittableMultiModel, FittableMultiDataset, details

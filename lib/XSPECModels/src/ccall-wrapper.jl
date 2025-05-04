@@ -248,12 +248,12 @@ macro xspecmodel(args...)
         $(_ffi_type_guard)
 
         @inline function XSPECModels._safe_ffi_invoke!(
-            output::AbstractVector{<:$(model_float_type)},
+            output,
             input::AbstractVector{<:$(model_float_type)},
             params::AbstractVector{<:$(model_float_type)},
             ModelType::Type{<:$(model_name)},
         )
-            @assert length(output) + 1 == length(input)
+            @assert size(output, 1) + 1 == length(input)
             SpectralFitting.ensure_model_data($(model_name))
 
             error_vec = XSPECModels.get_untracked_error($(model_float_type))

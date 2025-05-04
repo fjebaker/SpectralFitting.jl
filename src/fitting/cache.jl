@@ -163,7 +163,7 @@ function _build_parameter_mapping(model::FittableMultiModel{M}, bindings) where 
     # use the tuple hack to enforce type stability and unroll the loop
     parameters = map((1:length(M.parameters)...,)) do i
         m = model.m[i]
-        v::Vector{T} = collect(filter(isfree, parameter_tuple(m)))
+        v::Vector{T} = collect(filter!(isfree, parameter_vector(m)))
         append!(all_free_parameters, v)
         v
     end

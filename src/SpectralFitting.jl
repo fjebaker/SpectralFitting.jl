@@ -52,8 +52,6 @@ include("abstract-models.jl")
 
 include("composite-models.jl")
 
-include("reflection.jl")
-
 include("meta-models/wrappers.jl")
 include("meta-models/table-models.jl")
 include("meta-models/surrogate-models.jl")
@@ -71,11 +69,9 @@ include("model-data-io.jl")
 
 # include fitting api
 include("fitting/problem.jl")
-include("fitting/cache.jl")
 include("fitting/config.jl")
 include("fitting/result.jl")
 include("fitting/statistics.jl")
-include("fitting/binding.jl")
 include("fitting/methods.jl")
 
 include("simulate.jl")

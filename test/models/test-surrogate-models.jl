@@ -1,5 +1,6 @@
 using Test
 using SpectralFitting
+using XSPECModels
 import Random
 
 lower_bounds = (1e-3,)
