@@ -31,9 +31,9 @@ data = OGIPDataset(spec1_path)</code></pre><pre class="documenter-example-output
   . Response       : /home/runner/work/SpectralFitting.jl/SpectralFitting.jl/docs/build/../../ex-datadir/s54405.rsp
   . Background     : nothing
   . Ancillary      : nothing
-</code></pre><p>We can load and alter any part of a dataset as we do our fitting. For example, if you have multiple different ancillary files at hand, switching them between fits is a one-liner.</p><p>To visualize our data, we can use some of the <a href="https://docs.juliaplots.org/latest/">Plots.jl</a> recipes included in SpectralFitting.jl:</p><pre><code class="language-julia hljs">plot(data, xlims = (0.5, 70), xscale = :log10)</code></pre><img src="80c2c215.svg" alt="Example block output"/><p>Note that the units are currently not divided by the energy bin widths. We can either do that manually, or use the <a href="@ref"><code>normalize!</code></a> to convert whatever units the data is currently in to the defacto standard <code>counts s⁻¹ keV⁻¹</code> for fitting. Whilst we&#39;re at it, we see in the model card that there are 40 <a href="https://heasarc.gsfc.nasa.gov/docs/heasarc/ofwg/docs/spectra/ogip_92_007.pdf">bad quality bins</a> still present in our data. We can drop those as well, and plot the data on log-log axes:</p><pre><code class="language-julia hljs">normalize!(data)
+</code></pre><p>We can load and alter any part of a dataset as we do our fitting. For example, if you have multiple different ancillary files at hand, switching them between fits is a one-liner.</p><p>To visualize our data, we can use some of the <a href="https://docs.juliaplots.org/latest/">Plots.jl</a> recipes included in SpectralFitting.jl:</p><pre><code class="language-julia hljs">plot(data, xlims = (0.5, 70), xscale = :log10)</code></pre><img src="68919067.svg" alt="Example block output"/><p>Note that the units are currently not divided by the energy bin widths. We can either do that manually, or use the <a href="@ref"><code>normalize!</code></a> to convert whatever units the data is currently in to the defacto standard <code>counts s⁻¹ keV⁻¹</code> for fitting. Whilst we&#39;re at it, we see in the model card that there are 40 <a href="https://heasarc.gsfc.nasa.gov/docs/heasarc/ofwg/docs/spectra/ogip_92_007.pdf">bad quality bins</a> still present in our data. We can drop those as well, and plot the data on log-log axes:</p><pre><code class="language-julia hljs">normalize!(data)
 drop_bad_channels!(data)
-plot(data, ylims = (0.001, 2.0), yscale = :log10, xscale = :log10)</code></pre><img src="ed07c8b7.svg" alt="Example block output"/><p>Note that when there are no negative axes, the scale defaults to log on the plot unless otherwise specified.</p><p>Next we want to specify a model to fit to this data. Models that are prefixed with <code>XS_</code> are models that are linked from the XSPEC model library, provided via <a href="https://github.com/astro-group-bristol/LibXSPEC_jll.jl">LibXSPEC_jll</a>. For a full list of the models, see <a href="@ref">Models library</a>.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>It is advised to <strong>use the Julia implemented models</strong>. This allows various calculations to benefit from automatic differentiation, efficient multi-threading, GPU offloading, and various other useful things, see <a href="../why-and-how/#Why-and-how">Why &amp; how</a>.</p></div></div><p>We will start by fitting a photoelectric absorption model that acts on a power law model:</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>To see information about a model, use the <code>?</code> in the Julia REPL:</p><pre><code class="language-julia hljs">julia&gt; ?PowerLaw
+plot(data, ylims = (0.001, 2.0), yscale = :log10, xscale = :log10)</code></pre><img src="b51753cf.svg" alt="Example block output"/><p>Note that when there are no negative axes, the scale defaults to log on the plot unless otherwise specified.</p><p>Next we want to specify a model to fit to this data. Models that are prefixed with <code>XS_</code> are models that are linked from the XSPEC model library, provided via <a href="https://github.com/astro-group-bristol/LibXSPEC_jll.jl">LibXSPEC_jll</a>. For a full list of the models, see <a href="@ref">Models library</a>.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>It is advised to <strong>use the Julia implemented models</strong>. This allows various calculations to benefit from automatic differentiation, efficient multi-threading, GPU offloading, and various other useful things, see <a href="../why-and-how/#Why-and-how">Why &amp; how</a>.</p></div></div><p>We will start by fitting a photoelectric absorption model that acts on a power law model:</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>To see information about a model, use the <code>?</code> in the Julia REPL:</p><pre><code class="language-julia hljs">julia&gt; ?PowerLaw
 XS_PowerLaw(K, a)
 
     •  K: Normalisation.
@@ -43,22 +43,22 @@ XS_PowerLaw(K, a)
 Example
 ≡≡≡≡≡≡≡
 ...</code></pre></div></div><pre><code class="language-julia hljs">model = PhotoelectricAbsorption() * PowerLaw()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 2 model components:
-│      <span class="sgr36">m1 * a1</span>
+│    <span class="sgr36">m1 * a1</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">PowerLaw</span>
-│       K_1 -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       a_1 -&gt;  2 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  2 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
 └ </code></pre><p>If we want to specify paramters of our model at instantiation, we can do that with</p><pre><code class="language-julia hljs">model = PhotoelectricAbsorption() * PowerLaw(a = FitParam(3.0))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 2 model components:
-│      <span class="sgr36">m1 * a1</span>
+│    <span class="sgr36">m1 * a1</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">PowerLaw</span>
-│       K_1 -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       a_1 -&gt;  3 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-└ </code></pre><p>SpectralFitting.jl adopts the SciML problem-solver abstraction, so to fit a model to data we specify a <a href="@ref"><code>FittingProblem</code></a>:</p><pre><code class="language-julia hljs">prob = FittingProblem(model =&gt; data)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingProblem:
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  3 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+└ </code></pre><p>Alternatively, we can modify the parameters by reaching into the corresponding model component:</p><pre><code class="language-julia hljs">set_value!(model.a1.a, 4.0)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4.0</code></pre><p>SpectralFitting.jl adopts the SciML problem-solver abstraction, so to fit a model to data we specify a <a href="@ref"><code>FittingProblem</code></a>:</p><pre><code class="language-julia hljs">prob = FittingProblem(model =&gt; data)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingProblem:
 │   . Models     : 1
 │   . Datasets   : 1
 │   Parameter Summary:
@@ -66,68 +66,71 @@ Example
 │   . <span class="sgr36">Frozen</span>     : 0
 │   . <span class="sgr36">Bound</span>      : 0
 │   . <span class="sgr36">Free</span>       : 3
-└ </code></pre><p>SpectralFitting.jl makes a huge wealth of optimizers availble from <a href="https://github.com/SciML/Optimization.jl">Optimizations.jl</a>, and others from further afield. For consistency with XSPEC, we&#39;ll use here a delayed-gratification least-squares algorithm from <a href="https://github.com/JuliaNLSolvers/LsqFit.jl">LsqFit.jl</a>:</p><pre><code class="language-julia hljs">result = fit(prob, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingResult:
-│   Model: CompositeModel[PhotoelectricAbsorption * PowerLaw]
-│   . u     : [22.181, 2.2488, 0.56637]
-│   . σᵤ    : [4.3720, 0.12638, 0.27433]
-│   . χ²    : 108.94
-└ </code></pre><p>Here we can see the parameter vector, the estimated error on each parameter, and the measure of the fit statistic (here chi squared). We can overplot our result on our data easily:</p><pre><code class="language-julia hljs">plot(data,
+└ </code></pre><p>SpectralFitting.jl makes a huge wealth of optimizers available from <a href="https://github.com/SciML/Optimization.jl">Optimizations.jl</a>, and others from further afield. For consistency with XSPEC, we&#39;ll use here a delayed-gratification least-squares algorithm from <a href="https://github.com/JuliaNLSolvers/LsqFit.jl">LsqFit.jl</a>:</p><pre><code class="language-julia hljs">result = fit(prob, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FitResult:
+│  Model: <span class="sgr36">CompositeModel</span>
+│   . Name : m1.ηH     a1.K      a1.a      
+│   . u    : 0.56637   22.181    2.2488    
+│   . Δu   : 0.27433   4.3720    0.12638   
+│   . χ²   : 108.94
+└ Σχ² = 108.94</code></pre><p>Here we can see the parameter vector, the estimated error on each parameter, and the measure of the fit statistic (here chi squared). We can overplot our result on our data easily:</p><pre><code class="language-julia hljs">plot(data,
     ylims = (0.001, 2.0),
     xscale = :log10,
     yscale = :log10
 )
-plot!(result)</code></pre><img src="44766451.svg" alt="Example block output"/><p>Our model does not account for the high energy range well. We can ignore that range for now, and select everything from 0 to 15 keV and refit:</p><pre><code class="language-julia hljs">mask_energies!(data, 0, 15)
-result = fit(prob, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingResult:
-│   Model: CompositeModel[PhotoelectricAbsorption * PowerLaw]
-│   . u     : [21.584, 2.2307, 0.53199]
-│   . σᵤ    : [4.2347, 0.12576, 0.27277]
-│   . χ²    : 43.970
-└ </code></pre><pre><code class="language-julia hljs">plot(data,
+plot!(result)</code></pre><img src="c7b026ce.svg" alt="Example block output"/><p>Our model does not account for the high energy range well. We can ignore that range for now, and select everything from 0 to 15 keV and refit:</p><pre><code class="language-julia hljs">mask_energies!(data, 0, 15)
+result = fit(prob, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FitResult:
+│  Model: <span class="sgr36">CompositeModel</span>
+│   . Name : m1.ηH     a1.K      a1.a      
+│   . u    : 0.53199   21.584    2.2307    
+│   . Δu   : 0.27277   4.2347    0.12576   
+│   . χ²   : 43.970
+└ Σχ² = 43.970</code></pre><pre><code class="language-julia hljs">plot(data,
     ylims = (0.001, 2.0),
     xscale = :log10,
     yscale = :log10
 )
-plot!(result, label = &quot;PowerLaw&quot;)</code></pre><img src="3cd64df9.svg" alt="Example block output"/><p>The result is not yet baked into our model, and represents just the outcome of the fit. To update the parameters and errors in the model, we can use <a href="@ref"><code>update_model!</code></a></p><pre><code class="language-julia hljs">update_model!(model, result)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 2 model components:
-│      <span class="sgr36">m1 * a1</span>
+plot!(result, label = &quot;PowerLaw&quot;)</code></pre><img src="7307a118.svg" alt="Example block output"/><p>The result is not yet baked into our model, and represents just the outcome of the fit. To update the parameters and errors in the model, we can use <a href="@ref"><code>update_model!</code></a></p><pre><code class="language-julia hljs">update_model!(model, result)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 2 model components:
+│    <span class="sgr36">m1 * a1</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">PowerLaw</span>
-│       K_1 -&gt;   21.6 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       a_1 -&gt;   2.23 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;  0.532 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-└ </code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>Since fitting and updating a model is often done in tandem, SpectralFitting.jl has both a <a href="@ref"><code>fit</code></a> and <a href="@ref"><code>fit!</code></a> method, the latter automatically updates the model parameters after fit.</p></div></div><p>To estimate the goodness of our fit, we can mimic the <code>goodness</code> command from XSPEC. This will use the <a href="@ref"><code>simulate</code></a> function to simulate spectra for a dataset (here determined by the result), and fit the model to the simulated dataset. The fit statistic for each fit is then appended to an array, which we can use to plot a histogram:</p><pre><code class="language-julia hljs">spread = goodness(result; N = 1000, seed = 42, exposure_time = data.spectrum.exposure_time)
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  0.532 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  21.6 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  2.23 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+└ </code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>Since fitting and updating a model is often done in tandem, SpectralFitting.jl has both a <a href="@ref"><code>fit</code></a> and <a href="@ref"><code>fit!</code></a> method, the latter automatically updates the model parameters after fit.</p></div></div><p>To estimate the goodness of our fit, we can mimic the <code>goodness</code> command from XSPEC. This will use the <a href="@ref"><code>simulate</code></a> function to simulate spectra for a dataset (here determined by the result), and fit the model to the simulated dataset. The fit statistic for each fit is then appended to an array, which we can use to plot a histogram:</p><pre><code class="language-julia hljs">pcent, spread = goodness(result; N = 1000, seed = 42, exposure_time = data.spectrum.exposure_time)
+@info &quot;%goodness = $pcent&quot;
 histogram(spread, ylims = (0, 300), label = &quot;Simulated&quot;)
-vline!([result.χ2], label = &quot;Best fit&quot;)</code></pre><img src="964d2a3d.svg" alt="Example block output"/><p>Note we have set the random number generator seed with <code>seed = 42</code> to allow our results to be strictly reproduced.</p><p>The <code>goodness</code> command will log the percent of simulations with a fit statistic better than the result, but we can equivalently calculate that ourselves:</p><pre><code class="language-julia hljs">count(&lt;(result.χ2), spread) * 100 / length(spread)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">56.9</code></pre><p>Next we want to calculate the flux in an energy range observed by the detector. We can do this with <a href="@ref"><code>LogFlux</code></a> or <a href="../models/xspec-models/#XSPECModels.XS_CalculateFlux"><code>XS_CalculateFlux</code></a>, as they are both equivalent implementations.</p><p>We can modify our model by accessing properties from the model card and writing a new expression:</p><pre><code class="language-julia hljs">calc_flux = XS_CalculateFlux(
+vline!([result[1].stats], label = &quot;Best fit&quot;)</code></pre><img src="84e3bcf0.svg" alt="Example block output"/><p>Note we have set the random number generator seed with <code>seed = 42</code> to allow our results to be strictly reproduced.</p><p>The <code>goodness</code> command will return the percent of simulations with a fit statistic better than the result, in addition to the statistics of each individual trial.</p><p>Next we want to calculate the flux in an energy range observed by the detector. We can do this with <a href="@ref"><code>LogFlux</code></a> or <a href="../models/xspec-models/#XSPECModels.XS_CalculateFlux"><code>XS_CalculateFlux</code></a>, as they are both equivalent implementations.</p><p>We can modify our model by accessing properties from the model card and writing a new expression:</p><pre><code class="language-julia hljs">calc_flux = XS_CalculateFlux(
     E_min = FitParam(0.2, frozen = true),
     E_max = FitParam(2.0, frozen = true),
     log10Flux = FitParam(-10.3, lower_limit = -100, upper_limit = 100),
 )
 
 flux_model = model.m1 * calc_flux(model.a1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 3 model components:
-│      <span class="sgr36">m1 * c1(a1)</span>
+│    <span class="sgr36">m1 * c1(a1)</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">PowerLaw</span>
-│              K_1 -&gt;   21.6 ± 0.1   ∈ [    0, Inf ]<span class="sgr32">   FREE</span>
-│              a_1 -&gt;   2.23 ± 0.3   ∈ [    0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   c1</span> =&gt; <span class="sgr36">XS_CalculateFlux</span>
-│          E_min_1 -&gt;    0.2  <span class="sgr36">                             FROZEN</span>
-│          E_max_1 -&gt;      2  <span class="sgr36">                             FROZEN</span>
-│      log10Flux_1 -&gt;  -10.3 ± 1     ∈ [ -100, 100 ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│             ηH_1 -&gt;  0.532 ± 0.1   ∈ [    0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  0.532 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    c1</span> =&gt; XS_CalculateFlux
+│              E_min -&gt;    0.2  <span class="sgr36">                             FROZEN</span>
+│              E_max -&gt;      2  <span class="sgr36">                             FROZEN</span>
+│          log10Flux -&gt;  -10.3 ± 1     ∈ [ -100, 100 ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  21.6 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  2.23 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
 └ </code></pre><p>Since we used the old model to define the new one, our best fit values are automatically copied into the new model. We can now freeze the normalization, as we are using the flux integrating model to scale the powerlaw component:</p><pre><code class="language-julia hljs">flux_model.a1.K.frozen = true
 flux_model</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 3 model components:
-│      <span class="sgr36">m1 * c1(a1)</span>
+│    <span class="sgr36">m1 * c1(a1)</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">PowerLaw</span>
-│              K_1 -&gt;   21.6  <span class="sgr36">                             FROZEN</span>
-│              a_1 -&gt;   2.23 ± 0.3   ∈ [    0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   c1</span> =&gt; <span class="sgr36">XS_CalculateFlux</span>
-│          E_min_1 -&gt;    0.2  <span class="sgr36">                             FROZEN</span>
-│          E_max_1 -&gt;      2  <span class="sgr36">                             FROZEN</span>
-│      log10Flux_1 -&gt;  -10.3 ± 1     ∈ [ -100, 100 ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│             ηH_1 -&gt;  0.532 ± 0.1   ∈ [    0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  0.532 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    c1</span> =&gt; XS_CalculateFlux
+│              E_min -&gt;    0.2  <span class="sgr36">                             FROZEN</span>
+│              E_max -&gt;      2  <span class="sgr36">                             FROZEN</span>
+│          log10Flux -&gt;  -10.3 ± 1     ∈ [ -100, 100 ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  21.6  <span class="sgr36">                        FROZEN</span>
+│          a -&gt;  2.23 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
 └ </code></pre><p>Looking at the data card, we see the fit domain does not include the full region that we want to integrate the flux over. We therefore need to extend the fitting domain:</p><pre><code class="language-julia hljs">flux_problem = FittingProblem(flux_model =&gt; data)
 # TODO: domain extensions not fully implemented yet</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingProblem:
 │   . Models     : 1
@@ -145,39 +148,42 @@ plot(data,
     yscale = :log10
 )
 plot!(flux_result)
-vspan!([flux_model.c1.E_min.value, flux_model.c1.E_max.value], alpha = 0.5)</code></pre><img src="273b1d4f.svg" alt="Example block output"/><p>Let&#39;s try alternative models to see how they fit the data. First, an absorbed black body:</p><pre><code class="language-julia hljs">model2 = PhotoelectricAbsorption() * XS_BlackBody()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 2 model components:
-│      <span class="sgr36">m1 * a1</span>
+vspan!([flux_model.c1.E_min.value, flux_model.c1.E_max.value], alpha = 0.5)</code></pre><img src="1cca54cb.svg" alt="Example block output"/><p>Let&#39;s try alternative models to see how they fit the data. First, an absorbed black body:</p><pre><code class="language-julia hljs">model2 = PhotoelectricAbsorption() * XS_BlackBody()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 2 model components:
+│    <span class="sgr36">m1 * a1</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">XS_BlackBody</span>
-│       K_1 -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       T_1 -&gt;  3 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; XS_BlackBody
+│          K -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          T -&gt;  3 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
 └ </code></pre><p>We fit in the same way as before:</p><pre><code class="language-julia hljs">prob2 = FittingProblem(model2 =&gt; data)
-result2 = fit!(prob2, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingResult:
-│   Model: CompositeModel[PhotoelectricAbsorption * XS_BlackBody]
-│   . u     : [0.46462, 0.89091, 0.0]
-│   . σᵤ    : [0.022068, 0.032552, 0.27922]
-│   . χ²    : 123.78
-└ </code></pre><p>Let&#39;s overplot this result against our power law result:</p><pre><code class="language-julia hljs">dp = plot(data,
+result2 = fit!(prob2, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FitResult:
+│  Model: <span class="sgr36">CompositeModel</span>
+│   . Name : m1.ηH     a1.K      a1.T      
+│   . u    : 0.0       0.46462   0.89091   
+│   . Δu   : 0.27922   0.022068  0.032552  
+│   . χ²   : 123.78
+└ Σχ² = 123.78</code></pre><p>Let&#39;s overplot this result against our power law result:</p><pre><code class="language-julia hljs">dp = plot(data,
     ylims = (0.001, 2.0),
     xscale = :log10,
     yscale = :log10,
     legend = :bottomleft,
 )
-plot!(dp, result, label = &quot;PowerLaw $(round(result.χ2))&quot;)
-plot!(dp, result2, label = &quot;BlackBody $(round(result2.χ2))&quot;)</code></pre><img src="6602d6ce.svg" alt="Example block output"/><p>Or a bremsstrahlung model:</p><pre><code class="language-julia hljs">model3 = PhotoelectricAbsorption() * XS_BremsStrahlung()
+plot!(dp, result, label = &quot;PowerLaw $(round(sum(result.stats)))&quot;)
+plot!(dp, result2, label = &quot;BlackBody $(round(sum(result2.stats)))&quot;)</code></pre><img src="edd61b9f.svg" alt="Example block output"/><p>Or a bremsstrahlung model:</p><pre><code class="language-julia hljs">model3 = PhotoelectricAbsorption() * XS_BremsStrahlung()
 prob3 = FittingProblem(model3 =&gt; data)
-result3 = fit(prob3, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingResult:
-│   Model: CompositeModel[PhotoelectricAbsorption * XS_BremsStrahlung]
-│   . u     : [13.868, 5.3034, 0.0]
-│   . σᵤ    : [1.3178, 0.70705, 0.19664]
-│   . χ²    : 40.027
-└ </code></pre><pre><code class="language-julia hljs">plot!(dp, result3, label = &quot;Brems $(round(result3.χ2))&quot;)</code></pre><img src="d1d57c05.svg" alt="Example block output"/><p>Let&#39;s take a look at the residuals of these three models. There are utility methods for this in SpectralFitting.jl, but we can easily just interact with the result directly:</p><pre><code class="language-julia hljs">function calc_residuals(result)
+result3 = fit(prob3, LevenbergMarquadt())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FitResult:
+│  Model: <span class="sgr36">CompositeModel</span>
+│   . Name : m1.ηH     a1.K      a1.T      
+│   . u    : 0.0       13.870    5.3022    
+│   . Δu   : 0.19659   1.3217    0.69966   
+│   . χ²   : 40.027
+└ Σχ² = 40.027</code></pre><pre><code class="language-julia hljs">plot!(dp, result3, label = &quot;Brems $(round(sum(result3.stats)))&quot;)</code></pre><img src="8b430c37.svg" alt="Example block output"/><p>Let&#39;s take a look at the residuals of these three models. There are utility methods for this in SpectralFitting.jl, but we can easily just interact with the result directly:</p><pre><code class="language-julia hljs">function calc_residuals(result)
     # select which result we want (only have one, but for generalisation to multi-model fits)
     r = result[1]
-    y = invoke_result(r)
-    @. (r.objective - y) / sqrt(r.variance)
+    y = calculate_objective!(r, r.u)
+    obj, var = get_objective(r), get_objective_variance(r)
+    @. (obj - y) / sqrt(var)
 end
 
 domain = SpectralFitting.plotting_domain(data)
@@ -186,104 +192,106 @@ rp = hline([0], linestyle = :dash, legend = false)
 plot!(rp,domain, calc_residuals(result), seriestype = :stepmid)
 plot!(rp, domain, calc_residuals(result2), seriestype = :stepmid)
 plot!(rp, domain, calc_residuals(result3), seriestype = :stepmid)
-rp</code></pre><img src="103e3268.svg" alt="Example block output"/><p>We can compose this figure with our previous one, and change to a linear x scale:</p><pre><code class="language-julia hljs">plot(dp, rp, layout = grid(2, 1, heights = [0.7, 0.3]), link = :x, xscale = :linear)</code></pre><img src="3723fd38.svg" alt="Example block output"/><p>We can do all that plotting work in one go with the <a href="@ref"><code>plotresult</code></a> recipe:</p><pre><code class="language-julia hljs">plotresult(
-    data,
-    [result, result2, result3],
-    ylims = (0.001, 2.0),
-    xscale = :log10,
-    yscale = :log10,
-    legend = :bottomleft,
-)</code></pre><img src="4a6eab78.svg" alt="Example block output"/><p>Let&#39;s modify the black body model with a continuum component</p><pre><code class="language-julia hljs">bbpl_model = model2.m1 * (PowerLaw() + model2.a1) |&gt; deepcopy</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 3 model components:
-│      <span class="sgr36">m1 * (a2 + a1)</span>
+rp</code></pre><img src="bc273a2a.svg" alt="Example block output"/><p>We can compose this figure with our previous one, and change to a linear x scale:</p><pre><code class="language-julia hljs">plot(dp, rp, layout = grid(2, 1, heights = [0.7, 0.3]), link = :x, xscale = :linear)</code></pre><img src="896ce102.svg" alt="Example block output"/><p>We can do all that plotting work with some of the builtin recipes:</p><pre><code class="language-julia hljs">function plot_result(data, results...)
+    p1 = plot(data,
+        ylims = (0.001, 2.0),
+        xscale = :log10,
+        yscale = :log10,
+        legend = :bottomleft,
+    )
+    p2 = plot(xscale = :log10)
+    for r in results
+        plot!(p1, r)
+        residualplot!(p2, r)
+    end
+    plot(p1, p2, link = :x, layout = @layout [top{0.75h} ; bottom{0.25h}])
+end
+
+plot_result(data, result, result2, result3)</code></pre><img src="6a0fd06c.svg" alt="Example block output"/><p>Let&#39;s modify the black body model with a continuum component</p><pre><code class="language-julia hljs">bbpl_model = model2.m1 * (PowerLaw() + model2.a1) |&gt; deepcopy</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 3 model components:
+│    <span class="sgr36">m1 * (a1 + a2)</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">XS_BlackBody</span>
-│       K_1 -&gt;  0.465 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       T_1 -&gt;  0.891 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   a2</span> =&gt; <span class="sgr36">PowerLaw</span>
-│       K_2 -&gt;      1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       a_1 -&gt;      2 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;      0 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-└ </code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>We pipe the model to <code>deepcopy</code> to create a copy of all the model parameters. Not doing this means the parameters in <code>bbpl_model</code> will be aliased to the parameters in <code>model2</code>, and changing one with change the other.</p></div></div><p>We&#39;ll freeze the hydrogen column density parameter to the galactic value and refit:</p><pre><code class="language-julia hljs">bbpl_model.ηH_1.value = 4
-bbpl_model.ηH_1.frozen = true
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  0 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  2 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a2</span> =&gt; XS_BlackBody
+│          K -&gt;  0.465 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          T -&gt;  0.891 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+└ </code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>We pipe the model to <code>deepcopy</code> to create a copy of all the model parameters. Not doing this means the parameters in <code>bbpl_model</code> will be aliased to the parameters in <code>model2</code>, and changing one with change the other.</p></div></div><p>We&#39;ll freeze the hydrogen column density parameter to the galactic value and refit:</p><pre><code class="language-julia hljs">bbpl_model.m1.ηH.value = 4
+bbpl_model.m1.ηH.frozen = true
 bbpl_model</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 3 model components:
-│      <span class="sgr36">m1 * (a2 + a1)</span>
+│    <span class="sgr36">m1 * (a1 + a2)</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">XS_BlackBody</span>
-│       K_1 -&gt;  0.465 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       T_1 -&gt;  0.891 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   a2</span> =&gt; <span class="sgr36">PowerLaw</span>
-│       K_2 -&gt;      1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       a_1 -&gt;      2 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;      4  <span class="sgr36">                         FROZEN</span>
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  4  <span class="sgr36">                     FROZEN</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  2 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a2</span> =&gt; XS_BlackBody
+│          K -&gt;  0.465 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          T -&gt;  0.891 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
 └ </code></pre><p>And fitting:</p><pre><code class="language-julia hljs">bbpl_result = fit(
     FittingProblem(bbpl_model =&gt; data),
     LevenbergMarquadt()
-)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingResult:
-│   Model: CompositeModel[PhotoelectricAbsorption * (PowerLaw + XS_BlackBody)]
-│   . u     : [83.697, 0.15572, 77.052, 2.9226]
-│   . σᵤ    : [66.153, 0.015973, 12.743, 0.11682]
-│   . χ²    : 40.864
-└ </code></pre><p>Let&#39;s plot the result:</p><pre><code class="language-julia hljs">plot(data,
-    ylims = (0.001, 2.0),
-    xscale = :log10,
-    yscale = :log10,
-    legend = :bottomleft,
-)
-plot!(bbpl_result)</code></pre><img src="37d10b25.svg" alt="Example block output"/><p>Update the model and fix the black body temperature to 2 keV:</p><pre><code class="language-julia hljs">update_model!(bbpl_model, bbpl_result)
+)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FitResult:
+│  Model: <span class="sgr36">CompositeModel</span>
+│   . Name : a1.K      a1.a      a2.K      a2.T      
+│   . u    : 77.052    2.9226    83.697    0.15572   
+│   . Δu   : 12.743    0.11682   66.153    0.015973  
+│   . χ²   : 40.864
+└ Σχ² = 40.864</code></pre><p>Let&#39;s plot the result:</p><pre><code class="language-julia hljs">plot_result(data, bbpl_result)</code></pre><img src="acd84324.svg" alt="Example block output"/><p>Update the model and fix the black body temperature to 2 keV:</p><pre><code class="language-julia hljs">update_model!(bbpl_model, bbpl_result)
 
-bbpl_model.T_1.value = 2.0
-bbpl_model.T_1.frozen = true
+bbpl_model.a2.T.value = 2.0
+bbpl_model.a2.T.frozen = true
 bbpl_model</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 3 model components:
-│      <span class="sgr36">m1 * (a2 + a1)</span>
+│    <span class="sgr36">m1 * (a1 + a2)</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">XS_BlackBody</span>
-│       K_1 -&gt;  83.7 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       T_1 -&gt;     2  <span class="sgr36">                        FROZEN</span>
-│ <span class="sgr36">   a2</span> =&gt; <span class="sgr36">PowerLaw</span>
-│       K_2 -&gt;  77.1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       a_1 -&gt;  2.92 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;     4  <span class="sgr36">                        FROZEN</span>
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  4  <span class="sgr36">                     FROZEN</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  77.1 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  2.92 ± 0.2  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a2</span> =&gt; XS_BlackBody
+│          K -&gt;  83.7 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          T -&gt;     2  <span class="sgr36">                        FROZEN</span>
 └ </code></pre><p>Fitting:</p><pre><code class="language-julia hljs">bbpl_result2 = fit(
     FittingProblem(bbpl_model =&gt; data),
     LevenbergMarquadt()
-)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FittingResult:
-│   Model: CompositeModel[PhotoelectricAbsorption * (PowerLaw + XS_BlackBody)]
-│   . u     : [0.38234, 573.17, 4.8351]
-│   . σᵤ    : [0.034796, 83.183, 0.16012]
-│   . χ²    : 71.708
-└ </code></pre><p>Overplotting this new result:</p><pre><code class="language-julia hljs">plot!(bbpl_result2)</code></pre><img src="ee306c91.svg" alt="Example block output"/><h2 id="MCMC"><a class="docs-heading-anchor" href="#MCMC">MCMC</a><a id="MCMC-1"></a><a class="docs-heading-anchor-permalink" href="#MCMC" title="Permalink"></a></h2><p>We can use libraries like <a href="https://pigeons.run/dev/">Pidgeons.jl</a> or <a href="https://turinglang.org/">Turing.jl</a> to perform Bayesian inference on our paramters. SpectralFitting.jl is designed with <em>BYOO</em> (Bring Your Own Optimizer) in mind, and so makes it relatively easy to get at the core fitting functions to be used with other packages.</p><p>Let&#39;s use Turing.jl here, which means we&#39;ll also want to use <a href="https://docs.juliaplots.org/dev/generated/statsplots/">StatsPlots.jl</a> to plot our walker chains.</p><pre><code class="language-julia hljs">using StatsPlots
+)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ FitResult:
+│  Model: <span class="sgr36">CompositeModel</span>
+│   . Name : a1.K      a1.a      a2.K      
+│   . u    : 573.17    4.8351    0.38234   
+│   . Δu   : 83.183    0.16012   0.034796  
+│   . χ²   : 71.708
+└ Σχ² = 71.708</code></pre><p>Overplotting this new result:</p><pre><code class="language-julia hljs">plot!(bbpl_result2)</code></pre><img src="ed3a6550.svg" alt="Example block output"/><h2 id="MCMC"><a class="docs-heading-anchor" href="#MCMC">MCMC</a><a id="MCMC-1"></a><a class="docs-heading-anchor-permalink" href="#MCMC" title="Permalink"></a></h2><p>We can use libraries like <a href="https://pigeons.run/dev/">Pidgeons.jl</a> or <a href="https://turinglang.org/">Turing.jl</a> to perform Bayesian inference on our paramters. SpectralFitting.jl is designed with <em>BYOO</em> (Bring Your Own Optimizer) in mind, and so makes it relatively easy to get at the core fitting functions to be used with other packages.</p><p>Let&#39;s use Turing.jl here, which means we&#39;ll also want to use <a href="https://docs.juliaplots.org/dev/generated/statsplots/">StatsPlots.jl</a> to plot our walker chains.</p><pre><code class="language-julia hljs">using StatsPlots
 using Turing</code></pre><p>Turing.jl provides enormous control over the definition of the model, and this is not control SpectralFitting.jl wants to take away from you. Although we will provide utility scripts to do the basics, here we&#39;ll show you everything step by step to give you an overview of what you can do.</p><p>Let&#39;s go back to our first model:</p><pre><code class="language-julia hljs">model</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ CompositeModel with 2 model components:
-│      <span class="sgr36">m1 * a1</span>
+│    <span class="sgr36">m1 * a1</span>
 │ Model key and parameters:
-│ <span class="sgr36">   a1</span> =&gt; <span class="sgr36">PowerLaw</span>
-│       K_1 -&gt;   21.6 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│       a_1 -&gt;   2.23 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-│ <span class="sgr36">   m1</span> =&gt; <span class="sgr36">PhotoelectricAbsorption</span>
-│      ηH_1 -&gt;  0.532 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
-└ </code></pre><p>This gave a pretty good fit but the errors on our paramters are not well defined, being estimated only from a convariance matrix in the least-squares solver. MCMC can give us better confidence regions, and even help us uncover dependencies between paramters. Here we&#39;ll take all of our parameters and convert them into a Turing.jl model with use of their macro:</p><pre><code class="language-julia hljs">@model function mcmc_model(domain, objective, variance, f)
+│ <span class="sgr36">    m1</span> =&gt; PhotoelectricAbsorption
+│          ηH -&gt;  0.532 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│ <span class="sgr36">    a1</span> =&gt; PowerLaw
+│          K -&gt;  21.6 ± 0.1  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+│          a -&gt;  2.23 ± 0.3  ∈ [ 0, Inf ]<span class="sgr32">   FREE</span>
+└ </code></pre><p>This gave a pretty good fit but the errors on our paramters are not well defined, being estimated only from a convariance matrix in the least-squares solver. MCMC can give us better confidence regions, and even help us uncover dependencies between paramters. Here we&#39;ll take all of our parameters and convert them into a Turing.jl model with use of their macro:</p><pre><code class="language-julia hljs">@model function mcmc_model(objective, stddev, f)
     K ~ Normal(20.0, 1.0)
     a ~ Normal(2.2, 0.3)
     ηH ~ truncated(Normal(0.5, 0.1); lower = 0)
-
-    pred = f(domain, [K, a, ηH])
-    return objective ~ MvNormal(pred, sqrt.(variance))
+    pred = f(K, a, ηH)
+    return objective ~ MvNormal(pred, stddev)
 end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">mcmc_model (generic function with 2 methods)</code></pre><p>A few things to note here: we use the Turing.jl sampling syntax <code>~</code> to say that a variable is sampled from a certain type of prior distribution. There are no fixed criteria for what a distribution can be, and we encourage you to consult the Turing.jl documentation to learn how to define your own custom probability distributions. In this case, we will use Gaussians for all our parameters, and for the means and standard deviations use the best fit and estimated errors.</p><p>At the moment we haven&#39;t explicitly used our model, but <code>f</code> in this case takes the roll of invoking our model, and folding through instrument responses. We call it in much the same way as <a href="../models/using-models/#SpectralFitting.invokemodel"><code>invokemodel</code></a>, despite it going the extra step to fold our model. To instantiate this, we can use the SpectralFitting.jl helper functions:</p><pre><code class="language-julia hljs">config = FittingConfig(FittingProblem(model =&gt; data))
+
 mm = mcmc_model(
-    make_model_domain(ContiguouslyBinned(), data),
-    make_objective(ContiguouslyBinned(), data),
-    make_objective_variance(ContiguouslyBinned(), data),
-    # _f_objective returns a function used to evaluate and fold the model through the data
-    SpectralFitting._f_objective(config),
+    get_objective_single(config),
+    sqrt.(get_objective_variance_single(config)),
+    get_invoke_wrapper_single(config),
 )</code></pre><p>That&#39;s it! We&#39;re now ready to sample our model. Since all our models are implemented in Julia, we can use gradient-boosted samplers with automatic differentiation, such as NUTS. We&#39;ll walk 5000 itterations, just as a small example:</p><pre><code class="language-julia hljs">chain = sample(mm, NUTS(), 5_000)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Chains MCMC chain (5000×15×1 Array{Float64, 3}):
 
 Iterations        = 1001:1:6000
 Number of chains  = 1
 Samples per chain = 5000
-Wall duration     = 14.58 seconds
-Compute duration  = 14.58 seconds
+Wall duration     = 13.87 seconds
+Compute duration  = 13.87 seconds
 parameters        = K, a, ηH
 internals         = lp, n_steps, is_accept, acceptance_rate, log_density, hamiltonian_energy, hamiltonian_energy_error, max_hamiltonian_energy_error, tree_depth, numerical_error, step_size, nom_step_size
 
@@ -291,16 +299,24 @@ Summary Statistics
  <span class="sgr1"> parameters </span> <span class="sgr1">    mean </span> <span class="sgr1">     std </span> <span class="sgr1">    mcse </span> <span class="sgr1">  ess_bulk </span> <span class="sgr1">  ess_tail </span> <span class="sgr1">    rhat </span>  ⋯
  <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90">   Float64 </span> <span class="sgr90">   Float64 </span> <span class="sgr90"> Float64 </span>  ⋯
 
-           K   20.2978    0.8634    0.0206   1761.6728   1870.4907    1.0005   ⋯
-           a    2.1890    0.0337    0.0008   1889.8511   2115.2173    1.0004   ⋯
-          ηH    0.4733    0.0727    0.0015   2338.3053   2137.0544    1.0030   ⋯
+           K   -1.4743    0.0860    0.0020   1838.1078   2331.1757    1.0001   ⋯
+           a    3.7689    0.2107    0.0059   1283.0951   1696.3780    1.0002   ⋯
+          ηH    1.1266    0.0361    0.0010   1339.5614   1787.8445    1.0002   ⋯
 <span class="sgr36">                                                                1 column omitted</span>
 
 Quantiles
  <span class="sgr1"> parameters </span> <span class="sgr1">    2.5% </span> <span class="sgr1">   25.0% </span> <span class="sgr1">   50.0% </span> <span class="sgr1">   75.0% </span> <span class="sgr1">   97.5% </span>
  <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span>
 
-           K   18.6111   19.7375   20.2746   20.8518   22.0673
-           a    2.1234    2.1666    2.1884    2.2110    2.2557
-          ηH    0.3319    0.4251    0.4731    0.5200    0.6202
-</code></pre><p>In the printout we see summary statistics about or model, in this case that it has converged well (<code>rhat</code> close to 1 for all parameters), better estimates of the standard deviation, and various quantiles. We can plot our chains to make sure the caterpillers are healthy and fuzzy, making use of StatsPlots.jl recipes:</p><pre><code class="language-julia hljs">plot(chain)</code></pre><img src="84ec533d.svg" alt="Example block output"/><p>Corner plots are currently broken at time of writing.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../examples/examples/">Diverse examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Wednesday 23 April 2025 11:03">Wednesday 23 April 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+           K   -1.6396   -1.5321   -1.4766   -1.4143   -1.3095
+           a    3.3597    3.6284    3.7709    3.9125    4.1828
+          ηH    1.0538    1.1021    1.1277    1.1508    1.1967
+</code></pre><p>In the printout we see summary statistics about or model, in this case that it has converged well (<code>rhat</code> close to 1 for all parameters), better estimates of the standard deviation, and various quantiles. We can plot our chains to make sure the caterpillers are healthy and fuzzy, making use of StatsPlots.jl recipes:</p><pre><code class="language-julia hljs">plot(chain)</code></pre><img src="bd9eb3d0.svg" alt="Example block output"/><p>Using PairPlots.jl to create corner plots:</p><pre><code class="language-julia hljs">import PairPlots, Makie, CairoMakie
+
+table = (; # named tuple syntax
+    K = vec(chain[&quot;K&quot;]),
+    a = vec(chain[&quot;a&quot;]),
+    ηH = vec(chain[&quot;ηH&quot;])
+)
+
+PairPlots.pairplot(table)</code></pre><img src="084e714d.png" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../examples/examples/">Diverse examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.2 on <span class="colophon-date" title="Monday 5 May 2025 23:06">Monday 5 May 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
