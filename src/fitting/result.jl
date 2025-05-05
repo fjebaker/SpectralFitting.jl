@@ -1,4 +1,4 @@
-export FitResult
+export FitResult, update_model!, get_objective, get_objective_variance
 
 struct FitResult{Config<:FittingConfig,U,Err,T,Sol}
     config::Config
@@ -7,6 +7,8 @@ struct FitResult{Config<:FittingConfig,U,Err,T,Sol}
     stats::Vector{T}
     sol::Sol
 end
+
+result_count(r::FitResult) = length(r.config.prob.model.m)
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(result::FitResult))
     buff = IOBuffer()
@@ -58,7 +60,6 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(slice::FitResultSli
 end
 
 function _pretty_print_result(io::IO, slice::FitResultSlice)
-    param_padding = 10
     model = get_model(slice)
     print(io, "Model: ")
     printstyled(io, _model_name(model), color = :cyan)
@@ -67,6 +68,8 @@ function _pretty_print_result(io::IO, slice::FitResultSlice)
 
     params, syms = _all_parameters_with_symbols(model)
     free_syms = syms[isfree.(params)]
+
+    param_padding = max(10, maximum(length, free_syms) + 1)
 
     for s in free_syms
         print(io, rpad(s, param_padding))
@@ -95,13 +98,24 @@ function _pretty_print_result(io::IO, slice::FitResultSlice)
 end
 
 function Base.getindex(result::FitResult, i)
+    bindings = result.config.parameter_bindings[i]
+    mask = result.config.parameter_cache.free_mask[bindings]
+
+    err_slice = if isnothing(result.err)
+        nothing
+    else
+        err_parameters = update_free_parameters!(result.config.parameter_cache, result.err)
+        err_parameters[bindings][mask]
+    end
+
     all_parameters = update_free_parameters!(result.config.parameter_cache, result.u)
-    mask = result.config.parameter_cache.free_mask[result.config.parameter_bindings[i]]
+    u_slice = all_parameters[bindings][mask]
+
     FitResultSlice(
         i,
         result,
-        all_parameters[result.config.parameter_bindings[i]][mask],
-        isnothing(result.err) ? nothing : result.err[result.config.bindings[i]],
+        u_slice,
+        err_slice,
         result.stats[i],
     )
 end
@@ -120,8 +134,10 @@ end
 
 _get_data_cache(slice::FitResultSlice) = slice.parent.config.data_cache[slice.index]
 get_model(slice::FitResultSlice) = slice.parent.config.prob.model.m[slice.index]
+get_dataset(slice::FitResultSlice) = slice.parent.config.prob.data.d[slice.index]
 get_objective(slice::FitResultSlice) = _get_data_cache(slice).objective
 get_objective_variance(slice::FitResultSlice) = _get_data_cache(slice).variance
+plotting_domain(slice::FitResultSlice) = plotting_domain(get_dataset(slice))
 
 function finalize_result(config::FittingConfig, params, sol; σparams = nothing)
     I = ((1:model_count(config.prob))...,)
@@ -141,3 +157,21 @@ end
 function measure(stat::AbstractStatistic, result::FitResult, args...; kwargs...)
     measure(stat, result[1], args...; kwargs...)
 end
+
+update_model!(model::AbstractSpectralModel, result::FitResult) = update_model!(model, result[1])
+
+function residuals(slice::FitResultSlice)
+    y = calculate_objective!(slice, slice.u)
+    obj, var = get_objective(slice), get_objective_variance(slice)
+    @. (obj - y) / sqrt(var)
+end
+
+function update_model!(model::AbstractSpectralModel, result::FitResultSlice)
+    ps = filter!(isfree, parameter_vector(model))
+    @assert size(ps) == size(result.u) "Bad number of parameters"
+    for (p, r) in zip(ps, result.u)
+        set_value!(p, r)
+    end
+    model
+end
+

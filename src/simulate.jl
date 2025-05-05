@@ -180,4 +180,4 @@ function simulate(
 end
 
 
-export simulate
+export simulate, simulate!

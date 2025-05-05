@@ -86,7 +86,7 @@ function fit(
         nothing
     end
 
-    finalize_result(config, params, lsq_result)
+    finalize_result(config, params, lsq_result; σparams = σ)
 end
 
 function fit(
@@ -129,7 +129,8 @@ end
 
 function fit!(prob::FittingProblem, args...; kwargs...)
     result = fit(prob, args...; kwargs...)
-    update_model!(prob.model, result)
+    @assert length(result.config.parameter_bindings) == 1 "Can only update model when there is a single result slice"
+    update_model!(only(prob.model.m), result[1])
     result
 end
 
