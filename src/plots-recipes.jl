@@ -60,16 +60,16 @@ end
 end
 
 
-@recipe _plotting_func(::Type{<:FittingResult}, result::FittingResult) = result[1]
+# @recipe _plotting_func(::Type{<:FittingResult}, result::FittingResult) = result[1]
 
-@recipe function _plotting_func(result::FittingResultSlice)
-    label --> Printf.@sprintf("χ2=%.2f", result.χ2)
-    seriestype --> :stepmid
-    dataset = SpectralFitting.get_dataset(result)
-    y = invoke_result(result, result.u)
-    x = plotting_domain(dataset)
-    x, y
-end
+# @recipe function _plotting_func(result::FittingResultSlice)
+#     label --> Printf.@sprintf("χ2=%.2f", result.χ2)
+#     seriestype --> :stepmid
+#     dataset = SpectralFitting.get_dataset(result)
+#     y = invoke_result(result, result.u)
+#     x = plotting_domain(dataset)
+#     x, y
+# end
 
 # ratio plots
 @userplot RatioPlot

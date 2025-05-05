@@ -1,5 +1,5 @@
 function goodness(
-    result::AbstractFittingResult,
+    result::FitResult,
     u::AbstractVector{T},
     σ::AbstractVector{T};
     N = 1000,
@@ -47,7 +47,7 @@ function goodness(
     measures
 end
 
-function goodness(result::AbstractFittingResult, σu = estimated_error(result); kwargs...)
+function goodness(result::FitResult, σu = estimated_error(result); kwargs...)
     @assert !isnothing(σu) "σ cannot be nothing, else algorithm has no parameter intervals to sample from."
     goodness(result, estimated_params(result), σu; kwargs...)
 end

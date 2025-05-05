@@ -86,7 +86,7 @@ function fit(
         nothing
     end
 
-    finalize(config, params, lsq_result)
+    finalize_result(config, params, lsq_result)
 end
 
 function fit(
@@ -124,7 +124,7 @@ function fit(
     sol = Optimization.solve(opt_prob, optim_alg; method_kwargs...)
 
     # # TODO: temporary fix for type instabilities in Optimizations.jl
-    finalize(config, sol.u, sol)
+    finalize_result(config, sol.u, sol)
 end
 
 function fit!(prob::FittingProblem, args...; kwargs...)
