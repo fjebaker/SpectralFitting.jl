@@ -440,39 +440,51 @@ end
 
 
 """
-    bind!(prob::FittingProblem, pairs::Pair{Int,Symbol}...)
-    bind!(prob::FittingProblem, symbols::Symbol...)
-
-TODO: UPDATE ME
+    bind!(prob::FittingProblem, pairs[, pairs...])
 
 Bind parameters together within a [`FittingProblem`](@ref). Parameters bound
-together will be mandated to have exact same value during the fit.
+together will be mandated to have same value during the fit.
 
-The binding may either be a single symbol that is present in all models in the
-fitting problem, or a series of pairs `Int => Symbol` which index the specific
-model and parameters to bind together. All bindings specified in a single call
-to `bind!` will be bound together. Multiple bindings are possible with repeated
-call to `bind!`.
+The binding must be specified in double or triple selector, which follow the
+format:
 
-- Bind model 1's `K_1` parameter to model 2's `K_3`:
+```
+pair := (model_index, :component_name, :parameter_symbol)
+     := (model_index, :parameter_symbol)
+```
 
-  ```julia
-  bind!(prob, 1 => :K_1, 2 => :K_3)
-  ```
+The `model_index` is the index of the model in a multi-fit problem, i.e. `1`,
+`2`, and so on.
 
-- Bind model 3's `K_2` parameter to model4's `:L_1` and model 6's `a_3`:
+The component name is a [`CompositeModel`](@ref) model name, e.g. `:a1`, or
+`:c3`. This can be omitted if the model is not a [`CompositeModel`](@ref).
 
-  ```julia
-  bind!(prob, 3 => :K_2, 4 => :L_1, 6 => :a_3)
-  ```
+The paramter symbol is a symbol representing the field of the parameter in the
+model. That is, `:K` or `:log10Flux`.
 
-- Bind the `K_1` parameter across all the models:
+Bindings are specified using a chain of pairs `(root) => (target) [=>
+(target)]`. The root parameter is kept as is, and all subsequent paramters are
+bound to the root. Multiple chains of pairs may be specified in a single call
+to `bind!`, or, alternatively, multiple bindings may be specified with
+successive calls to `bind!`.
 
-  ```julia
-  bind!(prob, :K_1)
-  ```
+Bindings can be inspected with [`details`](@ref).
+
+See also [`bindall!`](@ref).
 
 ## Examples
+
+- Bind model 1's `K` parameter to model 2's second additive model's `K`:
+
+  ```julia
+  bind!(prob, (1, :K) => (2, :a2, :K))
+  ```
+
+- Bind model 3's `:a2.K` parameter to model4's `:m3.L` and model 6's `:a1.a`:
+
+  ```julia
+  bind!(prob, (3, :a2, :K) => (4, :m3, :K) => (6, :a1, :a))
+  ```
 
 Consider the following two models
 ```julia
@@ -481,11 +493,14 @@ model2 = PhotoelectricAbsorption() * (PowerLaw() + PowerLaw())
 
 prob = FittingProblem(model1 => data1, model2 => data2)
 
-# bind the power law indices in the two models
-bind!(prob, :a_1)
+# Bind the power law indices in the two models
+bindall!(prob, :a)
 
-# bind the normalisation of powerlaws in the 2nd model:
-bind!(prob, 2 => :K_1, 2 => :K_2)
+# Bind the normalisation of powerlaws in the 2nd model:
+bind!(prob, (2, :a1, :K) => (2, :a2, :K))
+
+# To inspect the overall bindings.
+details(prob)
 ```
 
 !!! note
@@ -510,6 +525,25 @@ function bind!(
     prob.bindings[primary] = unique!(vcat(existing, secondaries))
 end
 
+"""
+    bindall!(prob::FittingProblem, item[, item...])
+
+Bind a common parameter across all models. The item is used to select the
+parameter to bind, and may either be a single symbol, or a model-symbol double.
+
+# Examples
+
+```julia
+# bind parameter `a` in all models
+bindall!(prob, :a)
+
+# bind parameter `K` in component `a3` in all models
+bindall!(prob, (:a3, :K))
+
+# multiple simultaneously
+bindall!(prob, :E, (:a2, :K))
+```
+"""
 function bindall!(
     prob::FittingProblem,
     items::Vararg{<:Union{<:Symbol,<:Tuple{Symbol,Symbol}}},

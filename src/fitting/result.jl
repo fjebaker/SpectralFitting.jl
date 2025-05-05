@@ -169,4 +169,3 @@ function update_model!(model::AbstractSpectralModel, result::FitResultSlice)
     end
     model
 end
-
