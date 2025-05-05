@@ -88,13 +88,10 @@ levels = [2.3, 4.61, 9.21]
 contour(
     amps, 
     devs, 
-    stats .- result.χ2, 
+    stats .- sum(result.stats), 
     levels = levels, 
     xlabel = "K", 
     ylabel = "σ"
 )
 scatter!([result.u[1]], [result.u[3]])
 ```
-
-## Simultaneous fits
-
