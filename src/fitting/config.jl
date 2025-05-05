@@ -26,8 +26,8 @@ function calculate_objective!(
     model::AbstractSpectralModel{T},
     transformer!!,
 ) where {T<:Number}
-    model_output = get_tmp(cache.model_output, T)
-    objective_output = get_tmp(cache.objective_output, T)
+    model_output = get_tmp(cache.model_output, zero(T))
+    objective_output = get_tmp(cache.objective_output, zero(T))
 
     output = invokemodel!(model_output, domain, model)
     transformer!!(objective_output, domain, output)
@@ -169,4 +169,54 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(config::FittingConf
     print(io, descr)
 end
 
-export FittingConfig, calculate_objective!
+_get_data_cache(config::FittingConfig) = config.data_cache
+get_objective(config::FittingConfig) = ((i.objective for i in _get_data_cache(config))...,)
+get_objective_variance(config::FittingConfig) =
+    ((i.variance for i in _get_data_cache(config))...,)
+get_objective_covariance(config::FittingConfig) =
+    ((i.covariance for i in _get_data_cache(config))...,)
+
+get_objective_single(config::FittingConfig) = only(get_objective(config))
+get_objective_variance_single(config::FittingConfig) = only(get_objective_variance(config))
+get_objective_covariance_single(config::FittingConfig) =
+    only(get_objective_covariance(config))
+
+"""
+    get_invoke_wrapper(config::FittingConfig)
+
+Creates a wrapper around the config that can be used to invoke the model by
+only passing the free parameters as arguments:
+
+```julia
+f = get_invoke_wrapper(config)
+f(arg1, arg2, arg3, ...)
+```
+
+See also: [`get_invoke_wrapper_single`](@ref).
+"""
+function get_invoke_wrapper(config::FittingConfig)
+    @assert length(config.prob.model.m) == 1 "Only defined for single models."
+    function _f_wrapper(parameters...)
+        calculate_objective!(config, parameters)
+    end
+end
+
+"""
+    get_invoke_wrapper_single(config::FittingConfig)
+
+Similar to [`get_invoke_wrapper`](@ref) but calls `only` on the output of the
+model to unpack the result tuple.
+"""
+function get_invoke_wrapper_single(config::FittingConfig)
+    @assert length(config.prob.model.m) == 1 "Only defined for single models."
+    function _f_wrapper(parameters...)
+        only(calculate_objective!(config, parameters))
+    end
+end
+
+export FittingConfig,
+    calculate_objective!,
+    get_invoke_wrapper,
+    get_invoke_wrapper_single,
+    get_objective_single,
+    get_objective_variance_single

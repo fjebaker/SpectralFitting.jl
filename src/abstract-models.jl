@@ -460,7 +460,7 @@ make_parameter_cache(model::AbstractSpectralModel) = ParameterCache(parameter_ve
 
 function _all_parameters_with_symbols(model::AbstractSpectralModel)
     ps = unpack_parameters_as_named_tuple(model)
-    [values(ps)...], [keys(ps)...]
+    [values(ps)...], [String.(keys(ps))...]
 end
 
 paramtype(::Type{<:AbstractSpectralModel{T}}) where {T} = paramtype(T)

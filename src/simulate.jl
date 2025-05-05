@@ -65,6 +65,7 @@ function simulate!(
             data_cache.covariance[i] = inv(data_cache.variance[i])
         end
     end
+    config
 end
 
 function simulate!(conf::FittingConfig; seed = abs(rand(Int)), kwargs...)

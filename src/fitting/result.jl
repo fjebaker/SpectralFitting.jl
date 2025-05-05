@@ -111,13 +111,7 @@ function Base.getindex(result::FitResult, i)
     all_parameters = update_free_parameters!(result.config.parameter_cache, result.u)
     u_slice = all_parameters[bindings][mask]
 
-    FitResultSlice(
-        i,
-        result,
-        u_slice,
-        err_slice,
-        result.stats[i],
-    )
+    FitResultSlice(i, result, u_slice, err_slice, result.stats[i])
 end
 
 function calculate_objective!(slice::FitResultSlice, u0)
@@ -127,7 +121,7 @@ function calculate_objective!(slice::FitResultSlice, u0)
 
     all_parameters = _get_parameters(slice.parent.config.parameter_cache, u0)
     # update the free parameters
-    @views all_parameters[mask] .= u0
+    @views all_parameters[I][mask] .= u0
 
     calculate_objective!(slice.parent.config, all_parameters, slice.index)
 end
@@ -158,7 +152,8 @@ function measure(stat::AbstractStatistic, result::FitResult, args...; kwargs...)
     measure(stat, result[1], args...; kwargs...)
 end
 
-update_model!(model::AbstractSpectralModel, result::FitResult) = update_model!(model, result[1])
+update_model!(model::AbstractSpectralModel, result::FitResult) =
+    update_model!(model, result[1])
 
 function residuals(slice::FitResultSlice)
     y = calculate_objective!(slice, slice.u)

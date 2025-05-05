@@ -35,7 +35,7 @@ _get_parameters(cache::ParameterCache{M,V}, params) where {M<:AbstractArray,V<:D
 function update_free_parameters!(cache::ParameterCache, params)
     @assert count(cache.free_mask) == length(params)
 
-    _params = _get_parameters(cache, params)
+    _params = _get_parameters(cache, zero(eltype(params)))
     # copy over the frozen parameters as well
     j::Int = 1
     k::Int = 1
@@ -48,6 +48,7 @@ function update_free_parameters!(cache::ParameterCache, params)
             k += 1
         end
     end
+
     _params
 end
 
