@@ -107,8 +107,6 @@ All spectral models are a sub-type of [`AbstractSpectralModel`](@ref).
 ```@docs
 AbstractSpectralModel
 SpectralFitting.invoke!
-modelkind
-numbertype
 implementation
 ```
 
