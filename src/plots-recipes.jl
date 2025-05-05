@@ -61,7 +61,9 @@ end
 @recipe _plotting_func(::Type{<:FitResult}, result::FitResult) = result[1]
 
 @recipe function _plotting_func(slice::FitResultSlice)
-    label --> statistic_symbol(fit_statistic(slice.parent.config)) * Printf.@sprintf("=%.2f", slice.stats)
+    label -->
+    statistic_symbol(fit_statistic(slice.parent.config)) *
+    Printf.@sprintf("=%.2f", slice.stats)
     seriestype --> :stepmid
     x = plotting_domain(slice)
     y = calculate_objective!(slice, slice.u)
@@ -123,13 +125,13 @@ end
 @userplot ResidualPlot
 @recipe function _plotting_fun(r::ResidualPlot)
     slices = if r.args[1] isa FitResult
-        [r.args[1][i] for i in 1:result_count(r.args[1])]
+        [r.args[1][i] for i = 1:result_count(r.args[1])]
     else
         @assert r.args[1] isa FitResultSlice
         [r.args[1]]
     end
 
-    for (i,result) in enumerate(slices)
+    for (i, result) in enumerate(slices)
         x = plotting_domain(get_dataset(result))
         y_residuals = residuals(result)
         @series begin
@@ -142,7 +144,7 @@ end
             fill --> (0, 0.3, :auto)
             (x, y_residuals)
         end
-   end
+    end
 end
 
 # unfolded plots
