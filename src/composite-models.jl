@@ -75,26 +75,36 @@ conv_models(m1::M1, m2::M2) where {M1,M2} =
 (m1::AbstractSpectralModel)(m2::M2) where {M2<:AbstractSpectralModel} = conv_models(m1, m2)
 
 """
-    CompositeModel{T,K,Op} <: AbstractSpectralModel{T,K}
+    CompositeModel{T,K,Op,M1,M2} <: AbstractSpectralModel{T,K}
     CompositeModel(left_model, right_model, op::AbstractCompositeOperator)
 
-Type resulting from operations combining any number of [`AbstractSpectralModel`](@ref) via the
-model algebra defined from [`AbstractSpectralModelKind`](@ref).
-
-Each operation binary operation in the model algebra is encoded in the parametric types of the
-`CompositeModel`, where the operation is given by an [`AbstractCompositeOperator`](@ref).
-Composite models adopt the model kind of the `right` model, i.e. `M2`, and obey the model algebra
-accordingly.
-
-Composite models very rarely need to be constructed directly, and are instead obtained by regular
-model operations.
-
-# Example
+Type resulting from operations combining any number of
+[`AbstractSpectralModel`](@ref) via the model algebra defined from
+[`AbstractSpectralModelKind`](@ref).
 
 ```julia
 model = PhotoelectricAbsorption() * (PowerLaw() + BlackBody())
 typeof(model) <: CompositeModel # true
 ```
+
+Each operation binary operation in the model algebra is encoded in the
+parametric types of the `CompositeModel`, where the operation is given by an
+[`AbstractCompositeOperator`](@ref).  Composite models adopt the model kind of
+the `right` model, i.e. `M2`, and obey the model algebra accordingly.
+
+Composite models very rarely need to be constructed directly, and are instead
+obtained by regular model operations.
+
+The `propertynames` and `getproperty` methods for `CompositeModel` are
+overwritten to access all models in the model tree. For example:
+
+```julia
+julia> propertynames(PowerLaw() + DeltaLine())
+(:a1, :a2)
+```
+
+`CompositeModel` has [`destructure`](@ref) for working abstractly with model
+trees.
 """
 struct CompositeModel{T,K,Operator,M1<:AbstractSpectralModel,M2<:AbstractSpectralModel} <:
        AbstractSpectralModel{T,K}
@@ -132,6 +142,7 @@ parameter_vector(model::CompositeModel) = vcat(
     parameter_vector(getfield(model, :left)),
     parameter_vector(getfield(model, :right)),
 )
+
 parameter_count(model::CompositeModel) =
     parameter_count(getfield(model, :left)) + parameter_count(getfield(model, :right))
 
@@ -194,43 +205,6 @@ function invokemodel!(
         end
     end
 end
-
-# TODO
-# function invokemodel!(
-#     outputs,
-#     domain,
-#     model::CompositeModel{T,K,Op},
-#     parameters::AbstractVector,
-# ) where {T,K,Op}
-#     @assert size(outputs, 2) >= objective_cache_count(model) "Too few flux arrays allocated for this model."
-#     P_left = parameter_count(getfield(model, :left))
-
-#     @views begin
-#         invokemodel!(
-#             outputs[:, 1:end],
-#             domain,
-#             getfield(model, :right),
-#             parameters[(P_left+1):end],
-#         )
-
-#         if Op <: ConvolutionOperator
-#             invokemodel!(
-#                 outputs[:, 1:end],
-#                 domain,
-#                 getfield(model, :left),
-#                 parameters[1:P_left],
-#             )
-#         else
-#             invokemodel!(
-#                 outputs[:, 2:end],
-#                 domain,
-#                 getfield(model, :left),
-#                 parameters[1:P_left],
-#             )
-#             combine_components!(Op, outputs[:, 2], outputs[:, 1])
-#         end
-#     end
-# end
 
 # printing
 struct ModelKindCounts{N}
@@ -354,7 +328,6 @@ ConstructionBase.setproperties(::CompositeModel, ::NamedTuple) =
 ConstructionBase.constructorof(::Type{<:CompositeModel}) =
     throw("Cannot be used with `CompositeModel`.")
 
-
 function Base.propertynames(model::CompositeModel)
     _, info = destructure(typeof(model))
     info.syms
@@ -368,4 +341,17 @@ function Base.getproperty(model::CompositeModel, symb::Symbol)
     else
         last(model_map.models[ind])
     end
+end
+
+function _all_parameters_with_symbols(model::CompositeModel{T}) where {T}
+    dis = destructure(model)
+
+    all_params = T[]
+    all_syms = String[]
+    for (model_sym, model) in dis.models
+        params, syms = _all_parameters_with_symbols(model)
+        all_params = vcat(all_params, params)
+        all_syms = vcat(all_syms, map(i -> "$(model_sym).$(i)", syms))
+    end
+    all_params, all_syms
 end

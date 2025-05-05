@@ -38,6 +38,10 @@ abstract type AbstractStatistic end
 struct ChiSquared <: AbstractStatistic end
 struct Cash <: AbstractStatistic end
 
+statistic_symbol(s::AbstractStatistic) = Base.typename(typeof(s)).name
+statistic_symbol(::ChiSquared) = "χ²"
+statistic_symbol(::Cash) = "C-stat"
+
 # unitful units
 include("units.jl")
 SpectralUnits.@reexport using .SpectralUnits

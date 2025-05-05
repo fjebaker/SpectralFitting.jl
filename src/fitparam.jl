@@ -65,9 +65,6 @@ function get_info_tuple(f::FitParam)
     s4 = Printf.@sprintf "%.3g" get_upperlimit(f)
     (s1, s2, s3, s4)
 end
-# todo: edge case that should be avoided
-# but currently needed when printing composite models
-get_info_tuple(n::Number) = (Printf.@sprintf("%.3g", n), "0", "0", "0")
 
 function print_info(io::IO, f::FitParam)
     v, e, lb, ub = get_info_tuple(f)
