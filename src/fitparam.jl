@@ -3,7 +3,30 @@ function fit_param_default_error(val)
     round(abs(0.1 * val), sigdigits = 1)
 end
 
-# concrete types
+"""
+    FitParam(
+        value;
+        error = 0.1 * value,
+        frozen = false,
+        lower_limit = 0,
+        upper_limit = Inf
+    )
+
+A `FitParam` is a fittable (or frozen) parameter of an
+[`AbstractSpectralModel`](@ref). Every model will instantiate with `FitParam`
+as their parameter types so that they may be modified, bounded, frozen, or
+otherwise, as desired before a fit is attempted.
+
+The following methods should be preferred over direct field access for a
+`FitParam`:
+- [`set_value!`](@ref)
+- [`get_value`](@ref)
+- [`get_error`](@ref)
+- [`get_lowerlimit`](@ref)
+- [`get_upperlimit`](@ref)
+- [`isfrozen`](@ref)
+- [`isfree`](@ref)
+"""
 mutable struct FitParam{T<:Number}
     value::T
     error::T
@@ -81,11 +104,4 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(f::FitParam))
 end
 
 export FitParam,
-    FitParam,
-    set_value!,
-    set_error!,
-    get_value,
-    get_error,
-    get_upperlimit,
-    get_lowerlimit,
-    print_info
+    FitParam, set_value!, set_error!, get_value, get_error, get_upperlimit, get_lowerlimit
