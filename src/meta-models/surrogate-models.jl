@@ -42,31 +42,15 @@ function SurrogateSpectralModel(
     SurrogateSpectralModel{T,K,N,S,symbols}(surrogate, params)
 end
 
-
-# reflection tie-ins
-function Reflection.get_closure_symbols(::Type{<:SurrogateSpectralModel})
-    (:surrogate,)
-end
-function Reflection.get_parameter_symbols(M::Type{<:SurrogateSpectralModel})
-    last(M.parameters)
-end
-function Reflection.parameter_lenses(
-    ::Type{<:SurrogateSpectralModel},
-    info::Reflection.ModelInfo,
+unpack_parameters_as_named_tuple(
+    model::SurrogateSpectralModel{T,K,N,S,Symbols},
+) where {T,K,N,S,Symbols} = NamedTuple{Symbols}(model.params)
+remake_with_number_type(
+    model::SurrogateSpectralModel{<:FitParam{T},K,N,S,Symbols},
+) where {T,K,N,S,Symbols} = SurrogateSpectralModel{T,K,N,S,Symbols}(
+    model.surrogate,
+    ((get_value(f) for f in model.params)...,),
 )
-    map(eachindex(info.symbols)) do i
-        :(getfield($(info.lens), :params)[$i])
-    end
-end
-function Reflection.make_constructor(
-    M::Type{<:SurrogateSpectralModel},
-    closures::Vector,
-    params::Vector,
-    T::Type,
-)
-    _, K, N, S, Syms = M.parameters
-    :(SurrogateSpectralModel{$T,$K,$N,$S,$Syms}($(closures...), ($(params...),)))
-end
 
 @fastmath function invoke!(output, domain, model::SurrogateSpectralModel{T}) where {T}
     # TODO: rebin if different domains
@@ -216,7 +200,7 @@ function make_surrogate_harness(
 end
 
 function make_model(harness::SurrogateHarness)
-    params = parameter_named_tuple(harness.model)
+    params = unpack_parameters_as_named_tuple(harness.model)
     SurrogateSpectralModel(
         modelkind(harness.model),
         harness.surrogate,

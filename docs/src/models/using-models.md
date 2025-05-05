@@ -48,7 +48,7 @@ model2 = PhotoelectricAbsorption() * model
 The parameters of this [`CompositeModel`](@ref) are are copied from the expression. This means we can modify the `K_1` parameter in `model2` without having to worry that we are changing `model.K`:
 
 ```@example using_models
-model2.K_1.frozen = false
+model2.a1.K.frozen = false
 model2
 ```
 

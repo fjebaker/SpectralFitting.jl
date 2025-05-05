@@ -6,6 +6,7 @@ When performing a fit, it is desireable to **bind** certain parameters together.
 
 ```@docs
 bind!
+bindall!
 ```
 
 !!! note
@@ -38,7 +39,7 @@ Now we want to fit a single powerlaw model to both of these spectra simultaneous
 model = PowerLaw()
 prob = FittingProblem(model => data1, model => data2)
 
-bind!(prob, :a)
+bindall!(prob, :a)
 prob
 ```
 

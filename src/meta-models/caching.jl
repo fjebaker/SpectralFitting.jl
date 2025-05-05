@@ -46,12 +46,22 @@ function Base.copy(m::AutoCache)
     AutoCache(copy(m.model), deepcopy(m.cache), m.abstol, m.enabled)
 end
 
+_model_name(model::AutoCache) = "AutoCache[$(_model_name(model.model))]"
+unpack_parameters_as_named_tuple(model::AutoCache) =
+    unpack_parameters_as_named_tuple(model.model)
+remake_with_number_type(model::AutoCache) = AutoCache(
+    remake_with_number_type(model.model),
+    model.cache,
+    model.abstol,
+    model.enabled,
+)
+
 function AutoCache(
     model::AbstractSpectralModel{T,K};
     abstol = 1e-3,
     enabled = true,
 ) where {T,K}
-    params = [get_value.(parameter_tuple(model))...]
+    params = [get_value(p) for p in unpack_parameters_as_named_tuple(model)]
     cache = CacheEntry(params)
     AutoCache(model, cache, abstol, enabled)
 end
@@ -90,7 +100,7 @@ function invoke!(output, domain, model::AutoCache{M,T,K}) where {M,T,K}
     end
     D = promote_type(eltype(domain), T)
 
-    _new_params = parameter_tuple(model.model)
+    _new_params = unpack_parameters_as_named_tuple(model.model)
     _new_limits = (first(domain), last(domain))
 
     output_cache, out_resized =

@@ -3,8 +3,6 @@ export AbstractSpectralModel,
     AbstractSpectralModelKind,
     Multiplicative,
     Additive,
-    numbertype,
-    paramtype,
     Convolutional,
     modelkind,
     AbstractSpectralModelImplementation,
@@ -13,8 +11,7 @@ export AbstractSpectralModel,
     implementation,
     invokemodel,
     invokemodel!,
-    objective_cache_count,
-    make_parameter_cache
+    objective_cache_count
 
 """
     abstract type AbstractSpectralModelKind
@@ -72,6 +69,31 @@ Sub-types must implement the following interface (see the function's
 documentation for examples):
 - [`SpectralFitting.invoke!`](@ref)
 
+The parameters of the model must be of types `FitParam` when default
+initialised, as this is used to perform introspection. The boiler plate for a
+new model is as follows:
+
+```julia
+struct MyNewModel{T} <: AbstractSpectralModel{T,Additive}
+    "Normalisation (required by Additive kinds)
+    K::T
+    "First parameter"
+    p1::T
+    "Second parameter"
+    p2::T
+end
+
+# add a default keyword constructor
+function MyNewModel(;K = FitParam(1.0), p1 = FitParam(2.0), p2 = FitParam(0.1))
+    MyNewModel(K, p1, p2)
+end
+
+function SpectralFitting.invoke!(output, domain, model::MyNewModel)
+    # implementation must overwrite `output`
+    output .= 0
+end
+```
+
 ## Usage
 
 The available API for a spectral model is detailed below:
@@ -82,53 +104,32 @@ The available API for a spectral model is detailed below:
 The following query functions exist:
 
 - [`modelkind`](@ref) for obtaining `K`
-- [`numbertype`](@ref) for obtaining `T`
-- [`implementation`](@ref) used to assertain whether we can do things like
-  automatic differentation through this model.
+- [`implementation`](@ref) used to ascertain whether we can do things like
+  automatic differentiation through this model.
+- [`parameter_count`](@ref) to return a compile-time integer representing the
+  total number of parameters in the model.
+- [`parameter_vector`](@ref) to obtain a vector where every element is a
+  [`FitParam`](@ref) in the same order as the struct fields.
+- [`objective_cache_count`](@ref) how many output arrays this model needs to be
+  invoked (only used for [`CompositeModel`](@ref)).
+- [`supports`](@ref) what [`AbstractLayout`](@ref) are supported by this model.
 
-Model reflection is supported by the following functions. These are intended for internal use and are not exported.
+Model introspection exists via the following functions::
 
-- [`parameter_named_tuple`](@ref)
-- [`parameter_tuple`](@ref)
-- [`remake_model_with_parameters`](@ref)
-- [`destructure_model`](@ref)
+- [`unpack_as_named_tuple`](@ref) return the model fields as a named tuple.
+- [`unpack_parameters_as_named_tuple`](@ref) similar, but ignores any closure fields.
 
-The parametric type parameter `T` is the number type of the model and `K` defines the [`AbstractSpectralModelKind`](@ref).
+Conversion functions include:
+- [`remake_with_number_type`](@ref) for converting a model with
+  [`FitParam`](@ref) type parameters to a primitive type (e.g. `Float64`).
+- [`remake_with_parameters`](@ref) for rebuilding a model with all parameters
+  replaced with the passed new values.
+
+The parametric type parameter `T` is the number type of the model and `K`
+defines the [`AbstractSpectralModelKind`](@ref).
 """
 abstract type AbstractSpectralModel{T,K<:AbstractSpectralModelKind} end
 supports(::Type{<:AbstractSpectralModel}) = (ContiguouslyBinned(),)
-
-"""
-    numbertype(::AbstractSpectralModel)
-
-Get the numerical type of the model. This goes through [`FitParam`](@ref), so
-that the number type returned is as close to a primative as possible.
-
-See also [`paramtype`](@ref).
-
-## Example
-
-```julia
-numbertype(PowerLaw()) == Float64
-```
-"""
-numbertype(::AbstractSpectralModel{T}) where {T<:Number} = T
-numbertype(::AbstractSpectralModel{FitParam{T}}) where {T<:Number} = T
-
-"""
-    paramtype(::AbstractSpectralModel)
-
-Get the parameter type of the model. This, unlike [`numbertype`](@ref) does not
-go through [`FitParam`](@ref).
-
-## Example
-
-```julia
-paramtype(PowerLaw()) == FitParam{Float64}
-```
-"""
-paramtype(::T) where {T<:AbstractSpectralModel} = paramtype(T)
-paramtype(::Type{<:AbstractSpectralModel{T}}) where {T} = T
 
 """
     modelkind(M::Type{<:AbstractSpectralModel})
@@ -272,34 +273,29 @@ end
     invokemodel!(f, e, m, cache.parameters)
 end
 @inline function invokemodel!(f, e, m::AbstractSpectralModel, parameters::AbstractArray)
-    invokemodel!(view(f, :, 1), e, remake_model_with_parameters(m, parameters))
+    invokemodel!(f, e, remake_with_parameters(m, parameters))
 end
 @inline function invokemodel!(
-    f::AbstractVector,
-    e::AbstractVector,
+    output,
+    domain,
     m::AbstractSpectralModel{<:Number,K},
 ) where {K}
-    invokemodel!(f, e, K(), m)
+    invokemodel!(output, domain, K(), m)
 end
-@inline function invokemodel!(
-    output::AbstractVector,
-    domain::AbstractVector,
-    ::Additive,
-    model::AbstractSpectralModel,
-)
-    invoke!(output, domain, model)
+@inline function invokemodel!(output, domain, ::Additive, model::AbstractSpectralModel)
+    invoke!(vec(output), domain, model)
     # perform additive normalisation
     K = normalisation(model)
     @. output *= K
     output
 end
 @inline function invokemodel!(
-    output::AbstractVector,
-    domain::AbstractVector,
+    output,
+    domain,
     ::AbstractSpectralModelKind,
     model::AbstractSpectralModel,
 )
-    invoke!(output, domain, model)
+    invoke!(vec(output), domain, model)
     output
 end
 
@@ -327,11 +323,21 @@ function Base.copy(m::AbstractSpectralModel)
 end
 
 # printing
+_model_name(model::AbstractSpectralModel) = Base.typename(typeof(model)).name
 
-function _printinfo(io::IO, m::M; bindings = nothing) where {M<:AbstractSpectralModel}
-    param_tuple = parameter_named_tuple(m)
-    params = [String(s) => p for (s, p) in zip(keys(param_tuple), param_tuple)]
-    basename = Base.typename(M).name
+function _printinfo(io::IO, m::AbstractSpectralModel{T}; bindings = nothing) where {T}
+    println(io, _model_name(m))
+    println(io, "T = $T")
+end
+
+function _printinfo(
+    io::IO,
+    m::M;
+    bindings = nothing,
+) where {M<:AbstractSpectralModel{<:FitParam}}
+    param_tuple = unpack_parameters_as_named_tuple(m)
+    params = [s => p for (s, p) in zip(keys(param_tuple), param_tuple)]
+    basename = _model_name(m)
     print(io, "$(basename)\n")
 
     info_tuples = [get_info_tuple(val) for (_, val) in params]
@@ -345,12 +351,14 @@ function _printinfo(io::IO, m::M; bindings = nothing) where {M<:AbstractSpectral
 
     for (i, (s, param)) in enumerate(params)
         free = param isa FitParam ? !isfrozen(param) : true
-        val, binding = if !isnothing(bindings) && !isempty(bindings)
-            get(bindings, i, param => nothing)
+        if !isnothing(bindings) && !isnothing(get(bindings, s, nothing))
+            print(io, lpad(s, param_offset), " -> ")
+            printstyled(io, bindings[s], color = :magenta)
+            println(io)
         else
             param, nothing
+            _print_param(io, free, String(s), param, param_offset, q1, q2, q3, q4)
         end
-        _print_param(io, free, s, val, param_offset, q1, q2, q3, q4; binding)
     end
 end
 
@@ -361,34 +369,98 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(model::AbstractSpec
     print(io, encapsulate(s))
 end
 
-# todo: this function could be cleaned up with some generated hackery
-function remake_with_number_type(model::AbstractSpectralModel{P}, T::Type) where {P}
-    params = parameter_tuple(model)
-    new_params = if P <: FitParam
-        convert.(T, get_value.(params))
-    else
-        convert.(T, param)
-    end
-    remake_model_with_parameters(model, new_params)
-end
-remake_with_number_type(model::AbstractSpectralModel{FitParam{T}}) where {T} =
-    remake_with_number_type(model, T)
+# TODO: all of the below need unit tests that make sure they are type-stable
 
-function make_parameter_cache(model::AbstractSpectralModel)
-    parameters = collect(parameter_tuple(model))
-    ParameterCache(parameters)
+function closure_and_parameter_types(
+    M::Type{<:AbstractSpectralModel{T}},
+) where {T<:FitParam}
+    FTypes = fieldtypes(M)
+    P = count(T -> T<:FitParam, FTypes)
+    C = length(FTypes) - P
+    FTypes[1:C], FTypes[(C+1):(P+C)]
 end
 
-function make_diff_parameter_cache(
-    model::AbstractSpectralModel;
-    param_diff_cache_size = nothing,
-)
-    parameters = collect(parameter_tuple(model))
-    free_mask = _make_free_mask(parameters)
-
-    vals = map(get_value, parameters)
-    N = isnothing(param_diff_cache_size) ? length(vals) : param_diff_cache_size
-    diffcache = DiffCache(vals, ForwardDiff.pickchunksize(N))
-
-    ParameterCache(free_mask, diffcache, vals[.!free_mask])
+function closure_and_parameter(
+    model::M,
+) where {M<:AbstractSpectralModel{T}} where {T<:FitParam}
+    C, P = closure_and_parameter_types(M)
+    tuple = _unpack_as_tuple(model)
+    closures = tuple[1:length(C)]
+    parameters = tuple[(length(C)+1):(length(C)+length(P))]
+    @assert all(i -> i isa FitParam, parameters) "All non-fit parameters must be the first fields in a model structure."
+    closures, parameters
 end
+
+"""
+    parameter_count(m::AbstractSpectralModel)
+
+Return the total number of parameters of the model (i.e. how many fields are
+[`FitParam`](@ref).
+"""
+function parameter_count(model::M) where {M<:AbstractSpectralModel{<:FitParam}}
+    _, P = closure_and_parameter_types(M)
+    length(P)
+end
+
+function _unpack_as_tuple(model::M) where {M<:AbstractSpectralModel}
+    ((getfield(model, f) for f in fieldnames(M))...,)
+end
+
+"""
+    unpack_as_named_tuple(m::AbstractSpectralModel)
+
+Return every field of the model (whether parameter or not) in a named tuple.
+"""
+function unpack_as_named_tuple(model::M) where {M<:AbstractSpectralModel}
+    NamedTuple{fieldnames(M)}(_unpack_as_tuple(model))
+end
+
+"""
+    unpack_parameters_as_named_tuple(m::AbstractSpectralModel)
+
+Similar to [`unpack_as_named_tuple`](@ref) but only for the [`FitParam`](@ref) field types.
+"""
+function unpack_parameters_as_named_tuple(model::M) where {M<:AbstractSpectralModel}
+    _, ps = closure_and_parameter(model)
+    names = fieldnames(M)[(end-length(ps)+1):end]
+    NamedTuple{names}(ps)
+end
+
+"""
+    remake_with_number_type(model::AbstractSpectralModel{<:FitParam{T}})
+
+Remake the model with all [`FitParam`](@ref) unpacked into their backing type
+`T`.
+"""
+function remake_with_number_type(model::AbstractSpectralModel{<:FitParam})
+    closures, parameters = closure_and_parameter(model)
+    remake_with_parameters(model, ((get_value(f) for f in parameters)...,))
+end
+
+"""
+    remake_with_parameters(model::AbstractSpectralModel, parameters)
+
+Rebuild the model with all [`FitParam`](@ref) type parameters replaced with
+`parameters`, in the same order as they appear in the fields of the struct.
+"""
+function remake_with_parameters(model::AbstractSpectralModel, parameters::AbstractVector)
+    indices = (1:parameter_count(model)...,)
+    remake_with_parameters(model, map(i -> parameters[i], indices))
+end
+
+function remake_with_parameters(model::AbstractSpectralModel, parameters::Tuple)
+    closures, _ = closure_and_parameter(model)
+    Base.typename(typeof(model)).wrapper(closures..., parameters...)
+end
+
+parameter_vector(model::AbstractSpectralModel) =
+    collect(unpack_parameters_as_named_tuple(model))
+
+make_parameter_cache(model::AbstractSpectralModel) = ParameterCache(parameter_vector(model))
+
+function _all_parameters_with_symbols(model::AbstractSpectralModel)
+    ps = unpack_parameters_as_named_tuple(model)
+    [values(ps)...], [String.(keys(ps))...]
+end
+
+paramtype(::Type{<:AbstractSpectralModel{T}}) where {T} = paramtype(T)

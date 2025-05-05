@@ -17,7 +17,7 @@ function interpolated_rebin!(output, target, input, current)
         input[i] /= current[i+1] - current[i]
     end
 
-    # use DataInterpolations cus no allocation :D 
+    # use DataInterpolations cus no allocation :D
     interp = @views DataInterpolations.LinearInterpolation(input, current[1:(end-1)])
 
     function _interp_safe(x)

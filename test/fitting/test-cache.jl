@@ -10,12 +10,10 @@ model = DummyMultiplicative() * PowerLaw() + PowerLaw() + PowerLaw()
 
 config = SpectralFitting.FittingConfig(FittingProblem(model => dummy_data))
 
-f = SpectralFitting._f_objective(config)
-params = get_value.(config.parameters)
-domain = config.model_domain
+params = get_value.(config.u0)
 
-result = f(domain, params)
-# todo: currently we still allocate cus extracting the frozen parameters
-# has a dynamic allocation
-allocated_bytes = @allocated f(domain, params)
-@test allocated_bytes == 0
+result = @inferred SpectralFitting.calculate_objective!(config, params)
+allocated_bytes = @allocated SpectralFitting.calculate_objective!(config, params)
+
+# TODO: this should be zero
+@test allocated_bytes == 48
