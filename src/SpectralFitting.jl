@@ -34,21 +34,15 @@ using MultiLinearInterpolations
 
 abstract type AbstractInstrument end
 
-abstract type AbstractStatistic end
-struct ChiSquared <: AbstractStatistic end
-struct Cash <: AbstractStatistic end
-
-statistic_symbol(s::AbstractStatistic) = Base.typename(typeof(s)).name
-statistic_symbol(::ChiSquared) = "χ²"
-statistic_symbol(::Cash) = "C-stat"
-
 # unitful units
 include("units.jl")
 SpectralUnits.@reexport using .SpectralUnits
 
+
 include("utils.jl")
 include("print-utilities.jl")
 include("support.jl")
+include("statistics.jl")
 
 include("fitparam.jl")
 include("param-cache.jl")
@@ -75,7 +69,6 @@ include("model-data-io.jl")
 include("fitting/problem.jl")
 include("fitting/config.jl")
 include("fitting/result.jl")
-include("fitting/statistics.jl")
 include("fitting/methods.jl")
 
 include("simulate.jl")

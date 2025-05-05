@@ -132,3 +132,12 @@ function finalize_result(config::FittingConfig, params, sol; σparams = nothing)
 
     FitResult(config, params, σparams, measures, sol)
 end
+
+function measure(s::AbstractStatistic, slice::FitResultSlice, u = slice.u)
+    ŷ = calculate_objective!(slice, u)
+    measure(s, get_objective(slice), ŷ, get_objective_variance(slice))
+end
+
+function measure(stat::AbstractStatistic, result::FitResult, args...; kwargs...)
+    measure(stat, result[1], args...; kwargs...)
+end
