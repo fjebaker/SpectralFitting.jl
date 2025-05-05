@@ -15,6 +15,8 @@ if !has_test_dir && get(ENV, "CI", false)
     error("Missing test dir on CI")
 end
 
+SpectralFitting.download_model_data(PhotoelectricAbsorption)
+
 include("utils.jl")
 
 @testset "api" verbose = true begin
