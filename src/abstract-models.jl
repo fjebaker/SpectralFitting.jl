@@ -299,7 +299,8 @@ end
     output
 end
 
-normalisation(model::AbstractSpectralModel{T,Additive}) where {T} = model.K
+normalisationfield(::Type{<:AbstractSpectralModel{T,Additive}}) where {T} = :K
+normalisation(model::AbstractSpectralModel{T,Additive}) where {T} = getfield(model, normalisationfield(typeof(model)))
 
 """
     allocate_model_output(model::AbstractSpectralModel, domain::AbstractVector)
