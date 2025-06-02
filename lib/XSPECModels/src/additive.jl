@@ -235,7 +235,7 @@ invokemodel(energy, XS_KerrDisk())
     index1::T
     "Emissivity index for outer disk."
     index2::T
-    "Break radius seperating inner and outer disk (gᵣ)."
+    "Break radius separating inner and outer disk (gᵣ)."
     break_r::T
     "Dimensionless black hole spin."
     a::T
@@ -381,7 +381,7 @@ invokemodel(energy, XS_Laor())
     K::T
     "Rest frame line energy (keV)."
     lineE::T
-    "Power law dependence of emissitivy. Scales R⁻ᵅ."
+    "Power law dependence of emissivity. Scales R⁻ᵅ."
     a::T
     "Inner radius of the accretion disk (GM/c)."
     inner_r::T
@@ -441,7 +441,7 @@ invokemodel(energy, XS_DiskLine())
     K::T
     "Rest frame line energy (keV)."
     lineE::T
-    "Power law dependence of emissitivy. If < 10, scales Rᵅ."
+    "Power law dependence of emissivity. If < 10, scales Rᵅ."
     β::T
     "Inner radius of the accretion disk (GM/c)."
     inner_r::T
@@ -499,9 +499,9 @@ invokemodel(energy, XS_Gaussian())
 @xspecmodel :C_gaussian struct XS_Gaussian{T} <: AbstractSpectralModel{T,Additive}
     "Normalisation"
     K::T
-    "Line wavelength in Angstrom."
+    "Line energy in keV."
     E::T
-    "Line width in Angstrom."
+    "Line width in keV."
     σ::T
 end
 function XS_Gaussian(;
