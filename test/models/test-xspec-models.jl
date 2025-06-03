@@ -2,16 +2,14 @@ using Test
 using SpectralFitting
 using XSPECModels
 
-
-
 ALL_XSPEC_MODELS = [
     XS_PowerLaw,
     XS_BlackBody,
     XS_BremsStrahlung,
     XS_Laor,
     XS_DiskLine,
-    XS_KerrDisk, # data file it needs is big
-    XS_KyrLine, # # data file it needs is huge
+    # XS_KerrDisk, # data file it needs is big
+    # XS_KyrLine, # data file it needs is huge
     XS_Gaussian,
     XS_PhotoelectricAbsorption,
     XS_WarmAbsorption,

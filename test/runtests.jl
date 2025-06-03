@@ -44,10 +44,8 @@ end
 
     # only test XSPEC models when not using CI
     # since model data access is annoying
-    @ciskip begin
-        include("models/test-xspec-models.jl")
-        include("models/test-general-xspec-models.jl")
-    end
+    include("models/test-xspec-models.jl")
+    include("models/test-general-xspec-models.jl")
 end
 
 @testset "io" verbose = true begin
