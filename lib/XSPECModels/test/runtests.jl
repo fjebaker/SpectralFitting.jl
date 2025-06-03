@@ -17,6 +17,24 @@ if !has_test_dir && get(ENV, "CI", "false") != "false"
     error("Missing test dir on CI")
 end
 
+# download requisite model data
+ALL_XSPEC_MODELS = [
+    XS_PowerLaw,
+    XS_BlackBody,
+    XS_BremsStrahlung,
+    XS_Laor,
+    XS_DiskLine,
+    # XS_KerrDisk, # data file it needs is big
+    # XS_KyrLine, # data file it needs is huge
+    XS_Gaussian,
+    XS_PhotoelectricAbsorption,
+    XS_WarmAbsorption,
+]
+
+for M in ALL_XSPEC_MODELS
+    SpectralFitting.download_model_data(M)
+end
+
 @testset "Main" begin
     include("test-general-xspec-models.jl")
     include("test-xspec.jl")
