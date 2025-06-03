@@ -1,4 +1,4 @@
-using Test, SpectralFitting, XSPECModels
+using Test, SpectralFitting
 
 testdir = get(
     ENV,
@@ -23,10 +23,6 @@ include("utils.jl")
     include("models/test-model-api.jl")
 end
 
-@testset "macro" verbose = true begin
-    include("macros/test-xspec.jl")
-end
-
 @testset "composite-algebra" verbose = true begin
     include("composite/test-algebra.jl")
     include("composite/test-invocation.jl")
@@ -35,17 +31,11 @@ end
 @testset "model-library" verbose = true begin
     include("models/test-julia-models.jl")
     include("models/test-general-models.jl")
-    include("models/test-model-consistency.jl")
     include("models/test-table-models.jl")
     include("models/test-surrogate-models.jl")
     # include("models/test-auto-cache.jl")
     include("models/test-as-convolution.jl")
     include("models/test-copy.jl")
-
-    # only test XSPEC models when not using CI
-    # since model data access is annoying
-    include("models/test-xspec-models.jl")
-    include("models/test-general-xspec-models.jl")
 end
 
 @testset "io" verbose = true begin
@@ -74,11 +64,6 @@ end
     @time include("fitting/test-fit-multi.jl")
     @time include("fitting/test-fit-optim.jl")
 
-    @ciskip if has_test_dir
-        @time include("fitting/test-sample-data.jl")
-    else
-        @warn "Skipping dataset tests."
-    end
 end
 
 @testset "simulation" verbose = true begin
