@@ -13,7 +13,7 @@ if !has_test_dir
     @warn "No test data found. Skipping some tests."
 end
 
-if !has_test_dir && get(ENV, "CI", false)
+if !has_test_dir && get(ENV, "CI", "false") != "false"
     error("Missing test dir on CI")
 end
 

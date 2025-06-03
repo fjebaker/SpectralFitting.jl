@@ -123,7 +123,7 @@ jobs:
           import Pkg
           Pkg.test("XSPECModels"; coverage=true)
         env:
-          SF_TEST_SUITE_DATA: "../data/sample-data"
+          SF_TEST_SUITE_DATA: "../../../data/sample-data"
 
       - uses: julia-actions/julia-processcoverage@v1
         with:
