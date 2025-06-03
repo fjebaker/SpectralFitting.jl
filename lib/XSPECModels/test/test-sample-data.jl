@@ -1,6 +1,6 @@
+using Test
 using SpectralFitting
 using XSPECModels
-using Test
 
 # might have to download the model data first
 SpectralFitting.download_model_data(XS_Laor)
