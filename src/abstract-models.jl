@@ -113,7 +113,7 @@ The following query functions exist:
 - [`parameter_names`](@ref) to obtain a vector of symbols for each parameter.
 - [`objective_cache_count`](@ref) how many output arrays this model needs to be
   invoked (only used for [`CompositeModel`](@ref)).
-- [`supports`](@ref) what [`AbstractLayout`](@ref) are supported by this model.
+- [`supports`](@ref) what [`AbstractDataLayout`](@ref) are supported by this model.
 
 Conversion functions include:
 - [`remake_with_parameters`](@ref) for converting a model from

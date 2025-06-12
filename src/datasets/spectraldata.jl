@@ -185,12 +185,12 @@ function _objective_to_units(dataset::SpectralData, obj, units)
     adj[dataset.data_mask]
 end
 
-function make_objective(layout::AbstractLayout, dataset::SpectralData)
+function make_objective(layout::AbstractDataLayout, dataset::SpectralData)
     obj = make_objective(layout, dataset.spectrum)
     _objective_to_units(dataset, obj, support_units(layout))
 end
 
-function make_objective_variance(layout::AbstractLayout, dataset::SpectralData)
+function make_objective_variance(layout::AbstractDataLayout, dataset::SpectralData)
     var = make_objective_variance(layout, dataset.spectrum)
     _objective_to_units(dataset, var, support_units(layout))
 end
@@ -215,7 +215,7 @@ function restrict_domain!(dataset::SpectralData, condition)
     dataset
 end
 
-function _fold_transformer(T::Type, exposure_time, layout::AbstractLayout, R, ΔE, E)
+function _fold_transformer(T::Type, exposure_time, layout::AbstractDataLayout, R, ΔE, E)
     cache = DiffCache(construct_objective_cache(layout, T, length(E), 1))
     units = support_units(layout)
     function _transformer!!(energy, flux)
