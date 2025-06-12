@@ -22,7 +22,7 @@ function _make_free_mask(params::AbstractArray{<:FitParam})
     free_mask
 end
 
-function ParameterCache(params::AbstractArray{<:FitParam})
+function ParameterCache( params::AbstractArray{<:FitParam})
     free_mask = _make_free_mask(params)
     frozen = params[.!free_mask]
     ParameterCache(free_mask, map(get_value, params), map(get_value, frozen))
@@ -33,7 +33,7 @@ _get_parameters(cache::ParameterCache{M,V}, params) where {M<:AbstractArray,V<:D
     get_tmp(cache.parameters, params)
 
 function update_free_parameters!(cache::ParameterCache, params)
-    @assert count(cache.free_mask) == length(params)
+    @assert count(cache.free_mask) == length(params) "$(count(cache.free_mask)) != $(length(params))"
 
     _params = _get_parameters(cache, zero(eltype(params)))
     # copy over the frozen parameters as well

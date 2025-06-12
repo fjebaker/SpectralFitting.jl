@@ -17,6 +17,11 @@ output = invokemodel(domain, model)
 
 invokemodel!(output, domain, model)
 allocated = @allocated invokemodel!(output, domain, model)
+@test allocated <= 209
+
+params = get_value.(SpectralFitting.parameter_vector(model))
+invokemodel!(output, domain, model, params)
+allocated = @allocated invokemodel!(output, domain, model, params)
 @test allocated <= 48
 
 @test modelkind(model) == Additive()
@@ -30,7 +35,11 @@ output = @inferred allocate_model_output(model, domain)
 invokemodel!(output, domain, model)
 @test all(i -> isapprox(i, 12.0), output[:, 1])
 
-allocated = @allocated invokemodel!(output, domain, model)
+invokemodel!(output, domain, model)
+
+params = get_value.(SpectralFitting.parameter_vector(model))
+invokemodel!(output, domain, model, params)
+allocated = @allocated invokemodel!(output, domain, model, params)
 @test allocated <= 48
 
 output = invokemodel(domain, model)

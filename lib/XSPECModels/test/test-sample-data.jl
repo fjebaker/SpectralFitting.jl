@@ -23,8 +23,6 @@ model = PhotoelectricAbsorption() * XS_PowerLaw() + XS_Laor()
 # construct the model and data problem
 prob = FittingProblem(model, data1)
 
-SpectralFitting.parameter_vector_and_bindings(prob)
-
 result = fit(prob, LevenbergMarquadt())
 
 result[1].u

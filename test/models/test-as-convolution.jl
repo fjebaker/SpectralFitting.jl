@@ -1,5 +1,5 @@
-using SpectralFitting
 using Test
+using SpectralFitting
 
 include("../dummies.jl")
 
@@ -35,6 +35,8 @@ model.c1.σ.value = 0.1
 model
 
 prob = FittingProblem(model => sim)
+conf = FittingConfig(prob)
+SpectralFitting.calculate_objective!(conf, get_value.(conf.u0))
 result = fit(prob, LevenbergMarquadt(), verbose = true)
 
 @test sum(result.stats) ≈ 76.71272868245076 atol = 1e-3

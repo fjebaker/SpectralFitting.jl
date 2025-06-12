@@ -110,20 +110,15 @@ The following query functions exist:
   total number of parameters in the model.
 - [`parameter_vector`](@ref) to obtain a vector where every element is a
   [`FitParam`](@ref) in the same order as the struct fields.
+- [`parameter_names`](@ref) to obtain a vector of symbols for each parameter.
 - [`objective_cache_count`](@ref) how many output arrays this model needs to be
   invoked (only used for [`CompositeModel`](@ref)).
 - [`supports`](@ref) what [`AbstractLayout`](@ref) are supported by this model.
 
-Model introspection exists via the following functions::
-
-- [`unpack_as_named_tuple`](@ref) return the model fields as a named tuple.
-- [`unpack_parameters_as_named_tuple`](@ref) similar, but ignores any closure fields.
-
 Conversion functions include:
-- [`remake_with_number_type`](@ref) for converting a model with
-  [`FitParam`](@ref) type parameters to a primitive type (e.g. `Float64`).
-- [`remake_with_parameters`](@ref) for rebuilding a model with all parameters
-  replaced with the passed new values.
+- [`remake_with_parameters`](@ref) for converting a model from
+  [`FitParam`](@ref) type parameters to a primitive type (e.g. `Float64`), or
+  for rebuilding models with new values.
 
 The parametric type parameter `T` is the number type of the model and `K`
 defines the [`AbstractSpectralModelKind`](@ref).
@@ -168,17 +163,6 @@ numbers.
 """
 implementation(::Type{<:AbstractSpectralModel}) = JuliaImplementation()
 implementation(model::AbstractSpectralModel) = implementation(typeof(model))
-
-# interface for ConstructionBase.jl
-function ConstructionBase.setproperties(
-    model::M,
-    patch::NamedTuple{names},
-) where {M<:AbstractSpectralModel,names}
-    symbols = keys(parameter_named_tuple(model))
-    args = (s in names ? getproperty(patch, s) : getproperty(model, s) for s in symbols)
-    M(args...)
-end
-ConstructionBase.constructorof(::Type{M}) where {M<:AbstractSpectralModel} = M
 
 # implementation interface
 # never to be called directly
@@ -238,9 +222,9 @@ invokemodel(domain, model)
 ```
 """
 function invokemodel(domain, m::AbstractSpectralModel)
-    output = allocate_model_output(m, domain) |> vec
+    output = allocate_model_output(m, domain)
     invokemodel!(output, domain, m)
-    output
+    view(output, :, 1)
 end
 
 """
@@ -264,43 +248,38 @@ output = allocate_model_output(model, domain)
 invokemodel!(output, domain, model)
 ```
 """
-@inline function invokemodel!(f, e, m::AbstractSpectralModel{<:FitParam})
+function invokemodel!(f, e, m::AbstractSpectralModel{<:FitParam})
     # need to extract the parameter values
-    model = remake_with_number_type(m)
-    invokemodel!(view(f, :, 1), e, model)
+    parameters = get_value.(parameter_vector(m))
+    invokemodel!(f, e, m, parameters)
 end
-@inline function invokemodel!(f, e, m::AbstractSpectralModel, cache::ParameterCache)
+function invokemodel!(f, e, m::AbstractSpectralModel)
+    invokemodel!(f, e, m, parameter_vector(m))
+end
+function invokemodel!(f, e, m::AbstractSpectralModel, cache::ParameterCache)
     invokemodel!(f, e, m, cache.parameters)
 end
-@inline function invokemodel!(f, e, m::AbstractSpectralModel, parameters::AbstractArray)
-    invokemodel!(f, e, remake_with_parameters(m, parameters))
+function invokemodel!(f, e, m::AbstractSpectralModel, parameters::AbstractArray)
+    _inner_invokemodel!(f, e, remake_with_parameters(m, parameters))
 end
-@inline function invokemodel!(
-    output,
-    domain,
-    m::AbstractSpectralModel{<:Number,K},
-) where {K}
-    invokemodel!(output, domain, K(), m)
+function _inner_invokemodel!(output, domain, model::AbstractSpectralModel)
+    _invoke_guard!(output, domain, model)
 end
-@inline function invokemodel!(output, domain, ::Additive, model::AbstractSpectralModel)
-    invoke!(vec(output), domain, model)
+function _invoke_guard!(output, domain, model::AbstractSpectralModel{<:Number,Additive})
+    invoke!(output, domain, model)
     # perform additive normalisation
     K = normalisation(model)
     @. output *= K
     output
 end
-@inline function invokemodel!(
-    output,
-    domain,
-    ::AbstractSpectralModelKind,
-    model::AbstractSpectralModel,
-)
-    invoke!(vec(output), domain, model)
+function _invoke_guard!(output, domain, model::AbstractSpectralModel{<:Number})
+    invoke!(output, domain, model)
     output
 end
 
 normalisationfield(::Type{<:AbstractSpectralModel{T,Additive}}) where {T} = :K
-normalisation(model::AbstractSpectralModel{T,Additive}) where {T} = getfield(model, normalisationfield(typeof(model)))
+normalisation(model::AbstractSpectralModel{T,Additive}) where {T} =
+    getfield(model, normalisationfield(typeof(model)))
 
 """
     allocate_model_output(model::AbstractSpectralModel, domain::AbstractVector)
@@ -336,8 +315,9 @@ function _printinfo(
     m::M;
     bindings = nothing,
 ) where {M<:AbstractSpectralModel{<:FitParam}}
-    param_tuple = unpack_parameters_as_named_tuple(m)
-    params = [s => p for (s, p) in zip(keys(param_tuple), param_tuple)]
+    pvec = parameter_vector(m)
+    psym = parameter_names(m)
+    params = [s => p for (s, p) in zip(psym, pvec)]
     basename = _model_name(m)
     print(io, "$(basename)\n")
 
@@ -398,44 +378,13 @@ end
 Return the total number of parameters of the model (i.e. how many fields are
 [`FitParam`](@ref).
 """
-function parameter_count(model::M) where {M<:AbstractSpectralModel{<:FitParam}}
+function parameter_count(::M) where {M<:AbstractSpectralModel{<:FitParam}}
     _, P = closure_and_parameter_types(M)
     length(P)
 end
 
 function _unpack_as_tuple(model::M) where {M<:AbstractSpectralModel}
     ((getfield(model, f) for f in fieldnames(M))...,)
-end
-
-"""
-    unpack_as_named_tuple(m::AbstractSpectralModel)
-
-Return every field of the model (whether parameter or not) in a named tuple.
-"""
-function unpack_as_named_tuple(model::M) where {M<:AbstractSpectralModel}
-    NamedTuple{fieldnames(M)}(_unpack_as_tuple(model))
-end
-
-"""
-    unpack_parameters_as_named_tuple(m::AbstractSpectralModel)
-
-Similar to [`unpack_as_named_tuple`](@ref) but only for the [`FitParam`](@ref) field types.
-"""
-function unpack_parameters_as_named_tuple(model::M) where {M<:AbstractSpectralModel}
-    _, ps = closure_and_parameter(model)
-    names = fieldnames(M)[(end-length(ps)+1):end]
-    NamedTuple{names}(ps)
-end
-
-"""
-    remake_with_number_type(model::AbstractSpectralModel{<:FitParam{T}})
-
-Remake the model with all [`FitParam`](@ref) unpacked into their backing type
-`T`.
-"""
-function remake_with_number_type(model::AbstractSpectralModel{<:FitParam})
-    closures, parameters = closure_and_parameter(model)
-    remake_with_parameters(model, ((get_value(f) for f in parameters)...,))
 end
 
 """
@@ -454,14 +403,29 @@ function remake_with_parameters(model::AbstractSpectralModel, parameters::Tuple)
     Base.typename(typeof(model)).wrapper(closures..., parameters...)
 end
 
-parameter_vector(model::AbstractSpectralModel) =
-    collect(unpack_parameters_as_named_tuple(model))
+function parameter_vector(model::AbstractSpectralModel{<:FitParam})
+    _, params = closure_and_parameter(model)
+    collect(params)
+end
+
+# TODO: docstring
+parameter_names(m::AbstractSpectralModel) = parameter_names(typeof(m))
+function parameter_names(M::Type{<:AbstractSpectralModel{<:FitParam}})
+    C, P = closure_and_parameter_types(M)
+    fieldnames(M)[(length(C)+1):end]
+end
 
 make_parameter_cache(model::AbstractSpectralModel) = ParameterCache(parameter_vector(model))
 
 function _all_parameters_with_symbols(model::AbstractSpectralModel)
-    ps = unpack_parameters_as_named_tuple(model)
-    [values(ps)...], [String.(keys(ps))...]
+    psym = parameter_names(model)
+    pvec = parameter_vector(model)
+    pvec, [:m => s for s in psym]
+end
+
+function _all_parameters_with_names(model::AbstractSpectralModel)
+    ps, syms = _all_parameters_with_symbols(model)
+    ps, ["$(i[1]).$(i[2])" for i in syms]
 end
 
 paramtype(::Type{<:AbstractSpectralModel{T}}) where {T} = paramtype(T)

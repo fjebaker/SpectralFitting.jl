@@ -13,6 +13,7 @@ config = SpectralFitting.FittingConfig(FittingProblem(model => dummy_data))
 params = get_value.(config.u0)
 
 result = @inferred SpectralFitting.calculate_objective!(config, params)
+@test sum(result[1]) ≈ 34.3 atol = 0.01
 allocated_bytes = @allocated SpectralFitting.calculate_objective!(config, params)
 
 # TODO: this should be zero

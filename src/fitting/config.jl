@@ -29,7 +29,7 @@ function calculate_objective!(
     model_output = get_tmp(cache.model_output, zero(T))
     objective_output = get_tmp(cache.objective_output, zero(T))
 
-    output = invokemodel!(model_output, domain, model)
+    output = _inner_invokemodel!(model_output, domain, model)
     transformer!!(objective_output, domain, output)
 
     @views objective_output[:, 1]
@@ -67,7 +67,7 @@ fit_statistic(cfg::FittingConfig) = cfg.stat
 
 function FittingConfig(prob::FittingProblem; stat = ChiSquared())
     # TODO: remove the bound parameters
-    p_vector, bindings = parameter_vector_and_bindings(prob)
+    p_vector, _, bindings = parameter_vector_symbols_and_bindings(prob)
 
     free_mask = _make_free_mask(p_vector)
     v_vector = get_value.(p_vector)
@@ -118,9 +118,9 @@ function FittingConfig(prob::FittingProblem; stat = ChiSquared())
     )
 end
 
-function calculate_objective!(config::FittingConfig, parameters, i::Int)
-    parameters = @views parameters[config.parameter_bindings[i]]
-    model = remake_with_parameters(config.prob.model.m[i], parameters)
+function calculate_objective!(config::FittingConfig, all_parameters, i::Int)
+    params = @views all_parameters[config.parameter_bindings[i]]
+    model = remake_with_parameters(config.prob.model.m[i], params)
     calculate_objective!(
         config.model_cache[i],
         config.data_cache[i].model_domain,
