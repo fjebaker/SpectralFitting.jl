@@ -273,7 +273,7 @@ function _invoke_guard!(output, domain, model::AbstractSpectralModel{<:Number,Ad
     output
 end
 function _invoke_guard!(output, domain, model::AbstractSpectralModel{<:Number})
-    invoke!(output, domain, model)
+    invoke!(view(output, :, 1), domain, model)
     output
 end
 

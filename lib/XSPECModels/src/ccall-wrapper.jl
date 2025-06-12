@@ -242,7 +242,7 @@ macro xspecmodel(args...)
             # allocate the model
             alloc_model = [model]
             params = XSPECModels.unsafe_parameter_vector_conditioned(alloc_model)
-            XSPECModels._safe_ffi_invoke!(output, input, params, typeof(model))
+            XSPECModels._safe_ffi_invoke!(vec(output), input, params, typeof(model))
         end
 
         $(_ffi_type_guard)
