@@ -36,6 +36,7 @@ end
     include("models/test-copy.jl")
     include("models/test-general-models.jl")
     include("models/test-julia-models.jl")
+    include("models/test-wrappers.jl")
 end
 
 @testset "io" verbose = true begin
