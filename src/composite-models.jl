@@ -124,6 +124,10 @@ function Base.copy(m::CompositeModel{T,K,Op}) where {T,K,Op}
     CompositeModel(getfield(m, :left), getfield(m, :right), Op())
 end
 
+is_composite(::M) where {M<:AbstractSpectralModel} = is_composite(M)
+is_composite(::Type{<:CompositeModel}) = true
+is_composite(::Type{<:AbstractSpectralModel}) = false
+
 function implementation(::Type{<:CompositeModel{T,K,Op,M1,M2}}) where {T,K,Op,M1,M2}
     if (implementation(M1) isa XSPECImplementation) ||
        (implementation(M2) isa XSPECImplementation)
@@ -146,14 +150,6 @@ parameter_vector(model::CompositeModel) = vcat(
 parameter_count(model::CompositeModel) =
     parameter_count(getfield(model, :left)) + parameter_count(getfield(model, :right))
 
-function remake_with_number_type(model::CompositeModel{T,K,Op}) where {T,K,Op}
-    CompositeModel(
-        remake_with_number_type(getfield(model, :left)),
-        remake_with_number_type(getfield(model, :right)),
-        Op(),
-    )
-end
-
 function remake_with_parameters(model::CompositeModel{T,K,Op}, params::Tuple) where {T,K,Op}
     P_left = parameter_count(getfield(model, :left))
     CompositeModel(
@@ -163,44 +159,37 @@ function remake_with_parameters(model::CompositeModel{T,K,Op}, params::Tuple) wh
     )
 end
 
-# invocation wrappers
-function invokemodel(e, m::CompositeModel)
-    fluxes = allocate_model_output(m, e)
-    invokemodel!(fluxes, e, m)
-    view(fluxes, :, 1)
-end
-
-function invokemodel!(
+function _inner_invokemodel!(
     outputs,
     domain,
-    model::CompositeModel{T,K,Op,M1,M2},
-) where {T,K,Op,M1,M2}
+    model::CompositeModel{<:Number,K,Op,M1,M2},
+) where {K,Op,M1,M2}
     @assert size(outputs, 2) >= objective_cache_count(model) "Too few flux arrays allocated for this model ($(size(outputs)))."
     RetType = typeof(@views(outputs[:, 1]))
 
     @views begin
-        _out_right = if M2 <: CompositeModel
+        _out_right = if is_composite(M2)
             outputs[:, 1:end]
         else
             outputs[:, 1:1]
         end
 
-        invokemodel!(_out_right, domain, getfield(model, :right))
+        _inner_invokemodel!(_out_right, domain, getfield(model, :right))
         if Op <: ConvolutionOperator
             # Use the same principle output as the right hand side
-            _out_left = if M1 <: CompositeModel
+            _out_left = if is_composite(M1)
                 outputs[:, 1:end]
             else
                 outputs[:, 1:1]
             end
-            invokemodel!(_out_left, domain, getfield(model, :left))
+            _inner_invokemodel!(_out_left, domain, getfield(model, :left))
         else
-            _out_left = if M1 <: CompositeModel
+            _out_left = if is_composite(M1)
                 outputs[:, 2:end]
             else
                 outputs[:, 2:2]
             end
-            invokemodel!(_out_left, domain, getfield(model, :left))
+            _inner_invokemodel!(_out_left, domain, getfield(model, :left))
             combine_components!(Op, outputs[:, 2], outputs[:, 1])
         end
     end
@@ -292,13 +281,18 @@ function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
 end
 
 
-function _printinfo(io::IO, @nospecialize(model::CompositeModel); bindings = nothing)
+function _printinfo(
+    io::IO,
+    @nospecialize(model::CompositeModel);
+    bindings = nothing,
+    name = "CompositeModel",
+)
     expr_buffer = 3
     sym_buffer = 6
 
     dis = destructure(model)
 
-    println(io, "CompositeModel with $(length(dis.models)) model components:")
+    println(io, "$name with $(length(dis.models)) model components:")
     print(io, " "^expr_buffer)
     printstyled(io, dis.expr, color = :cyan)
     println(io)
@@ -343,15 +337,18 @@ function Base.getproperty(model::CompositeModel, symb::Symbol)
     end
 end
 
+function parameter_names(::Type{<:CompositeModel{T,K,O,M1,M2}}) where {T,K,O,M1,M2}
+    (parameter_names(M1)..., parameter_names(M2)...)
+end
+
 function _all_parameters_with_symbols(model::CompositeModel{T}) where {T}
     dis = destructure(model)
-
     all_params = T[]
-    all_syms = String[]
+    all_syms = Pair{Symbol,Symbol}[]
     for (model_sym, model) in dis.models
         params, syms = _all_parameters_with_symbols(model)
-        all_params = vcat(all_params, params)
-        all_syms = vcat(all_syms, map(i -> "$(model_sym).$(i)", syms))
+        append!(all_params, params)
+        append!(all_syms, [model_sym => i[2] for i in syms])
     end
     all_params, all_syms
 end

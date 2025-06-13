@@ -90,19 +90,17 @@ function ParameterTriple(t::Tuple)
     end
 end
 
-_parameter_symbols(model) = keys(unpack_parameters_as_named_tuple(model))
-
 function _build_triples(model::AbstractSpectralModel, model_index::Int)
     if model isa CompositeModel
         out = ParameterTriple[]
         for m in propertynames(model)
-            for s in _parameter_symbols(getproperty(model, m))
+            for s in parameter_names(getproperty(model, m))
                 push!(out, ParameterTriple(model_index, m, s))
             end
         end
         out
     else
-        [ParameterTriple(model_index, nothing, s) for s in _parameter_symbols(model)]
+        [ParameterTriple(model_index, nothing, s) for s in parameter_names(model)]
     end
 end
 
@@ -112,13 +110,13 @@ function _build_parameter_lookup(m::FittableMultiModel)
     for (model_index, model) in enumerate(m.m)
         if model isa CompositeModel
             for component in propertynames(model)
-                for sym in _parameter_symbols(getproperty(model, component))
+                for sym in parameter_names(getproperty(model, component))
                     lookup[ParameterTriple(model_index, component, sym)] = i
                     i += 1
                 end
             end
         else
-            for sym in _parameter_symbols(model)
+            for sym in parameter_names(model)
                 lookup[ParameterTriple(model_index, nothing, sym)] = i
                 i += 1
             end
@@ -246,8 +244,8 @@ function _build_parameter_mapping(prob::FittingProblem{M}) where {M<:FittableMul
     end
 end
 
-function parameter_vector_and_bindings(prob::FittingProblem)
-    pvec = parameter_vector(prob)
+function parameter_vector_symbols_and_bindings(prob::FittingProblem)
+    pvec, syms = _all_parameters_with_symbols(prob)
     bindings = _build_parameter_mapping(prob)
 
     non_bound_parameters = Set(1:length(pvec))
@@ -258,11 +256,22 @@ function parameter_vector_and_bindings(prob::FittingProblem)
 
     I = sort!(collect(non_bound_parameters))
 
-    pvec[I], bindings
+    # unpack and rework the parameter symbols
+    symbols = Vector{Pair{Symbol,Symbol}}[]
+    pvec[I], syms[I], bindings
 end
 
-function parameter_vector(prob::FittingProblem)
-    reduce(vcat, parameter_vector(m) for m in prob.model.m)
+function _all_parameters_with_symbols(prob::FittingProblem)
+    # TODO: I don't like that this has a different return type
+    symbol_mappings = Pair{Symbol,Symbol}[]
+    params = map(prob.model.m) do m
+        ps, syms = _all_parameters_with_symbols(m)
+        for pair in syms
+            push!(symbol_mappings, pair)
+        end
+        ps
+    end
+    reduce(vcat, params), symbol_mappings
 end
 
 function FittingProblem(m, d)
@@ -416,8 +425,7 @@ function _construct_bound_mapping(bindings, parameter_count)
 end
 
 function _get_index_of_symbol(model::AbstractSpectralModel, symbol)::Int
-    pnt = unpack_parameters_as_named_tuple(model)
-    symbols = keys(pnt)
+    symbols = parameter_names(model)
     i = findfirst(==(symbol), symbols)
     if isnothing(i)
         error("Could not match symbol $symbol !")

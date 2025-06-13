@@ -42,15 +42,16 @@ function SurrogateSpectralModel(
     SurrogateSpectralModel{T,K,N,S,symbols}(surrogate, params)
 end
 
-unpack_parameters_as_named_tuple(
-    model::SurrogateSpectralModel{T,K,N,S,Symbols},
-) where {T,K,N,S,Symbols} = NamedTuple{Symbols}(model.params)
-remake_with_number_type(
+parameter_count(::SurrogateSpectralModel{T,K,N}) where {T,K,N} = N
+parameter_names(::SurrogateSpectralModel{T,K,N,S,Symbols}) where {T,K,N,S,Symbols} = Symbols
+parameter_vector(model::SurrogateSpectralModel) = collect(model.params)
+
+function remake_with_parameters(
     model::SurrogateSpectralModel{<:FitParam{T},K,N,S,Symbols},
-) where {T,K,N,S,Symbols} = SurrogateSpectralModel{T,K,N,S,Symbols}(
-    model.surrogate,
-    ((get_value(f) for f in model.params)...,),
-)
+    parameters::Tuple,
+) where {T,K,N,S,Symbols}
+    SurrogateSpectralModel{T,K,N,S,Symbols}(model.surrogate, parameters)
+end
 
 @fastmath function invoke!(output, domain, model::SurrogateSpectralModel{T}) where {T}
     # TODO: rebin if different domains
@@ -200,13 +201,17 @@ function make_surrogate_harness(
 end
 
 function make_model(harness::SurrogateHarness)
-    params = unpack_parameters_as_named_tuple(harness.model)
-    SurrogateSpectralModel(
-        modelkind(harness.model),
-        harness.surrogate,
-        Tuple(params),
-        keys(params),
-    )
+    N = parameter_count(harness.model)
+    I = (1:N...,)
+    parameters = parameter_vector(harness.model)
+    params = map(I) do i
+        parameters[i]
+    end
+    symbols = parameter_names(harness.model)
+    syms = map(I) do i
+        symbols[i]
+    end
+    SurrogateSpectralModel(modelkind(harness.model), harness.surrogate, params, syms)
 end
 
 export SurrogateSpectralModel,

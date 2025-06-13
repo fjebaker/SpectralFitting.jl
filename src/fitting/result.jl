@@ -66,7 +66,7 @@ function _pretty_print_result(io::IO, slice::FitResultSlice)
     println(io)
     print(io, " . Name : ")
 
-    params, syms = _all_parameters_with_symbols(model)
+    params, syms = _all_parameters_with_names(model)
     free_syms = syms[isfree.(params)]
 
     param_padding = max(10, maximum(length, free_syms) + 1)

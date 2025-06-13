@@ -29,13 +29,13 @@ end
 end
 
 @testset "model-library" verbose = true begin
-    include("models/test-julia-models.jl")
-    include("models/test-general-models.jl")
     include("models/test-table-models.jl")
     include("models/test-surrogate-models.jl")
     # include("models/test-auto-cache.jl")
     include("models/test-as-convolution.jl")
     include("models/test-copy.jl")
+    include("models/test-general-models.jl")
+    include("models/test-julia-models.jl")
 end
 
 @testset "io" verbose = true begin
