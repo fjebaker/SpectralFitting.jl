@@ -138,5 +138,29 @@ function Base.show(io::IO, ::MIME"text/plain", @nospecialize(f::FitParam))
     print_info(io, f)
 end
 
+function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
+    print(io, lpad("$name", q0), " ->")
+    if val isa FitParam
+        info = get_info_tuple(val)
+        print(io, lpad(info[1], q1 + 1))
+        if free
+            print(io, " ± ", rpad(info[2], q2))
+            print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
+        end
+
+        if free
+            printstyled(io, lpad("FREE", 7), color = :green)
+        else
+            print(io, "  ")
+            printstyled(io, lpad("FROZEN", 15 + q1 + q2 + q3 + q4), color = :cyan)
+        end
+    else
+        print(io, val)
+    end
+    println(io)
+end
+
+
+
 export FitParam,
     FitParam, set_value!, set_error!, get_value, get_error, get_upperlimit, get_lowerlimit
