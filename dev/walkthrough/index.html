@@ -290,8 +290,8 @@ mm = mcmc_model(
 Iterations        = 1001:1:6000
 Number of chains  = 1
 Samples per chain = 5000
-Wall duration     = 13.99 seconds
-Compute duration  = 13.99 seconds
+Wall duration     = 15.7 seconds
+Compute duration  = 15.7 seconds
 parameters        = K, a, ηH
 internals         = lp, n_steps, is_accept, acceptance_rate, log_density, hamiltonian_energy, hamiltonian_energy_error, max_hamiltonian_energy_error, tree_depth, numerical_error, step_size, nom_step_size
 
@@ -299,19 +299,19 @@ Summary Statistics
  <span class="sgr1"> parameters </span> <span class="sgr1">    mean </span> <span class="sgr1">     std </span> <span class="sgr1">    mcse </span> <span class="sgr1">  ess_bulk </span> <span class="sgr1">  ess_tail </span> <span class="sgr1">    rhat </span>  ⋯
  <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90">   Float64 </span> <span class="sgr90">   Float64 </span> <span class="sgr90"> Float64 </span>  ⋯
 
-           K   -1.4743    0.0860    0.0020   1838.1078   2331.1757    1.0001   ⋯
-           a    3.7689    0.2107    0.0059   1283.0951   1696.3780    1.0002   ⋯
-          ηH    1.1266    0.0361    0.0010   1339.5614   1787.8445    1.0002   ⋯
+           K   -1.4728    0.0901    0.0022   1710.9730   1896.9310    1.0007   ⋯
+           a    3.7697    0.2135    0.0060   1265.4725   1513.0683    0.9999   ⋯
+          ηH    1.1261    0.0359    0.0010   1382.4285   1779.0933    0.9999   ⋯
 <span class="sgr36">                                                                1 column omitted</span>
 
 Quantiles
  <span class="sgr1"> parameters </span> <span class="sgr1">    2.5% </span> <span class="sgr1">   25.0% </span> <span class="sgr1">   50.0% </span> <span class="sgr1">   75.0% </span> <span class="sgr1">   97.5% </span>
  <span class="sgr90">     Symbol </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span> <span class="sgr90"> Float64 </span>
 
-           K   -1.6396   -1.5321   -1.4766   -1.4143   -1.3095
-           a    3.3597    3.6284    3.7709    3.9125    4.1828
-          ηH    1.0538    1.1021    1.1277    1.1508    1.1967
-</code></pre><p>In the printout we see summary statistics about or model, in this case that it has converged well (<code>rhat</code> close to 1 for all parameters), better estimates of the standard deviation, and various quantiles. We can plot our chains to make sure the caterpillers are healthy and fuzzy, making use of StatsPlots.jl recipes:</p><pre><code class="language-julia hljs">plot(chain)</code></pre><img src="4d2d53c4.svg" alt="Example block output"/><p>Using PairPlots.jl to create corner plots:</p><pre><code class="language-julia hljs">import PairPlots, Makie, CairoMakie
+           K   -1.6423   -1.5345   -1.4743   -1.4131   -1.2923
+           a    3.3597    3.6288    3.7645    3.9127    4.2091
+          ηH    1.0531    1.1033    1.1266    1.1500    1.1954
+</code></pre><p>In the printout we see summary statistics about or model, in this case that it has converged well (<code>rhat</code> close to 1 for all parameters), better estimates of the standard deviation, and various quantiles. We can plot our chains to make sure the caterpillers are healthy and fuzzy, making use of StatsPlots.jl recipes:</p><pre><code class="language-julia hljs">plot(chain)</code></pre><img src="b81a465a.svg" alt="Example block output"/><p>Using PairPlots.jl to create corner plots:</p><pre><code class="language-julia hljs">import PairPlots, Makie, CairoMakie
 
 table = (; # named tuple syntax
     K = vec(chain[&quot;K&quot;]),
@@ -319,4 +319,4 @@ table = (; # named tuple syntax
     ηH = vec(chain[&quot;ηH&quot;])
 )
 
-PairPlots.pairplot(table)</code></pre><img src="084e714d.png" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../examples/examples/">Diverse examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.11.4 on <span class="colophon-date" title="Wednesday 4 June 2025 14:58">Wednesday 4 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+PairPlots.pairplot(table)</code></pre><img src="860390dd.png" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../examples/examples/">Diverse examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.12.0 on <span class="colophon-date" title="Friday 13 June 2025 00:30">Friday 13 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
