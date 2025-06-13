@@ -1,5 +1,5 @@
 """
-    AsConvolution
+    AsConvolution(model; domain = collect(range(0, 2, 100)))
 
 Turn an additive model into a convolutional model.
 
@@ -11,6 +11,11 @@ convolution_model = AsConvolution(GaussianLine())
 
 The above model will now convolve the [`GaussianLine`](@ref) model onto whatever
 it is applied to.
+
+The `domain` keyword can be used to pass the domain on which to evaluate the
+wrapped model before convolution. The domain is such that `x = 1` corresponds to
+no domain shift in the convolution (e.g., if the domain is energy, this would be
+the rest energy of a line).
 """
 struct AsConvolution{M,T,V,P} <: AbstractModelWrapper{M,T,Convolutional}
     model::M

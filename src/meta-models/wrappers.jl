@@ -1,7 +1,8 @@
 """
     abstract type AbstractModelWrapper{M,T,K} <: AbstractSpectralModel{T,K} end
 
-First field of the struct must be `model`.
+Used to implement wrapper models that take existing models as their argument and
+modify their behaviour.
 """
 abstract type AbstractModelWrapper{M<:AbstractSpectralModel,T,K} <:
               AbstractSpectralModel{T,K} end
@@ -65,3 +66,5 @@ function Base.getproperty(m::AbstractModelWrapper{<:Any,<:FitParam}, symb::Symbo
         getfield(m, symb)
     end
 end
+
+export AbstractModelWrapper

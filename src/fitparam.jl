@@ -6,11 +6,44 @@ end
 """
     FitParam(
         value;
+        # default error is 10%
         error = 0.1 * value,
         frozen = false,
         lower_limit = 0,
         upper_limit = Inf
     )
+
+A parameter of an [`AbstractSpectralModel`](@ref). The fittable parameter can
+be used to control how a model will be invoked during fit, e.g. what rangers a
+parameter can take, whether they should be fronze, and so forth.
+
+!!! note
+
+    Be aware, not all fitting algorithms support "boxed" parameters, where the
+    lower and upper limits are taken into account.
+
+To link parameters together, see [`bind!`](@ref) or [`ParameterPatch`](@ref).
+
+Parameters can be modified in a model in the conventional way:
+
+```julia
+model = PowerLaw()
+
+# set the value
+model.K = 2.0
+# set the error
+model.K.error = 0.3
+# set the lower bound
+model.K.lower_limit = 1.0
+```
+
+Accessing the values in a generic function should use [`get_value`](@ref).
+
+To iterate over all parameters of a model, use [`parameter_vector`](@ref).
+
+# Fields
+
+$(FIELDS)
 
 A `FitParam` is a fittable (or frozen) parameter of an
 [`AbstractSpectralModel`](@ref). Every model will instantiate with `FitParam`
@@ -28,14 +61,16 @@ The following methods should be preferred over direct field access for a
 - [`isfree`](@ref)
 """
 mutable struct FitParam{T<:Number}
+    "The value (i.e. mean) of the parameter."
     value::T
+    "The absolute (±, or standard deviation) error on the parameter."
     error::T
-
+    "The lower limit the parameter can take."
     lower_limit::T
+    "The upper limit the parameter can take."
     upper_limit::T
-
+    "Is this a frozen parameter during fits?"
     frozen::Bool
-
     FitParam(
         val::T;
         frozen = false,
