@@ -55,6 +55,13 @@ result_check = fit(prob_check, LevenbergMarquadt())
 @test result.u ≈ result_check.u rtol = 1e-1
 @test result.stats ≈ result_check.stats rtol = 1e-1
 
+# do frozen parameters work also?
+model.a1.a.frozen = true
+prob = FittingProblem(model => dataset)
+result = fit(prob, LevenbergMarquadt())
+
+@test result.u ≈ [5.114, 0.51301, 3.0971] atol = 1e-2
+
 # composite wrapper but as part of another composite model
 model = TestModelWrapper(PowerLaw() + PowerLaw()) + PowerLaw()
 domain = collect(range(0.1, 10.0, 100))
