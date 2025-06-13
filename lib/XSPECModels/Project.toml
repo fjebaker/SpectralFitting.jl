@@ -1,7 +1,7 @@
 name = "XSPECModels"
 uuid = "e051c099-9e89-4e1f-aad2-39a4611ecf4d"
 authors = ["fjebaker <fergusbkr@gmail.com>"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
