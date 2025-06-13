@@ -32,19 +32,30 @@ backing_output = invokemodel(domain, SpectralFitting.backing_model(model))
 @inferred SpectralFitting.parameter_names(typeof(model))
 
 prob = FittingProblem(model => dataset)
+prob_check = FittingProblem(SpectralFitting.backing_model(model) => dataset)
+
+@test length(prob.lookup) == length(prob_check.lookup)
 
 conf = @inferred FittingConfig(prob)
+conf_check = @inferred FittingConfig(prob)
+
+a1 = SpectralFitting.calculate_objective!(conf, [1.0, 4.0, 3.0, 2.0]) |> first
+a2 = SpectralFitting.calculate_objective!(conf_check, [1.0, 4.0, 3.0, 2.0]) |> first
+
+@test a1 ≈ a2 rtol=1e-4
+@test SpectralFitting._get_parameters(conf.parameter_cache, 1) ≈
+      SpectralFitting._get_parameters(conf_check.parameter_cache, 1) atol = 1e-3
 
 # some smoke tests
 @inferred SpectralFitting.calculate_objective!(conf, [1.0, 1.0, 1.0, 1.0])
 
-fit(prob, LevenbergMarquadt())
+result = fit(prob, LevenbergMarquadt())
+result_check = fit(prob_check, LevenbergMarquadt())
+
+@test result.u ≈ result_check.u rtol = 1e-1
+@test result.stats ≈ result_check.stats rtol = 1e-1
 
 # composite wrapper but as part of another composite model
 model = TestModelWrapper(PowerLaw() + PowerLaw()) + PowerLaw()
 domain = collect(range(0.1, 10.0, 100))
 @inferred invokemodel(domain, model)
-
-prob = FittingProblem(model => dataset)
-
-fit(prob, LevenbergMarquadt())
