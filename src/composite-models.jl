@@ -283,11 +283,16 @@ function _printinfo(
         print(io, " => ")
 
         buff = IOBuffer()
-        _printinfo(IOContext(buff, io), m; bindings = if isnothing(bindings)
-            nothing
-        else
-            get(bindings, sym, nothing)
-        end)
+        _printinfo(
+            IOContext(buff, io),
+            m;
+            parameter_indent = 3,
+            bindings = if isnothing(bindings)
+                nothing
+            else
+                get(bindings, sym, nothing)
+            end,
+        )
         s = String(take!(buff))
         println(io, strip(indent(s, 4)))
     end

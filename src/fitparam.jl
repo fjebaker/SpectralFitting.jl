@@ -124,35 +124,48 @@ function get_info_tuple(f::FitParam)
     (s1, s2, s3, s4)
 end
 
-function print_info(io::IO, f::FitParam)
-    v, e, lb, ub = get_info_tuple(f)
-    print(io, v, " ± ", e, " ∈ [", lb, ", ", ub, "]")
-end
-
 function Base.show(io::IO, @nospecialize(f::FitParam))
     s = Printf.@sprintf "(%.3g ± %.3g)" get_value(f) get_error(f)
     print(io, s)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", @nospecialize(f::FitParam))
-    print_info(io, f)
+    _print_param(io, f)
 end
 
-function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
-    print(io, lpad("$name", q0), " ->")
+function _print_param(
+    io::IO,
+    @nospecialize(val::FitParam);
+    name::Union{<:AbstractString,Nothing} = nothing,
+    name_padding::Int = 0,
+    pm_padding::Int = 0,
+    err_padding::Int = 0,
+    range_padding::Int = 0,
+    show_state::Bool = true,
+)
+    total_padding = err_padding + range_padding
+    if total_padding > 0
+        # for all the missing characters in the formatting
+        total_padding += 12
+    end
+
+    if !isnothing(name)
+        print(io, lpad("$name", name_padding), " -> ")
+    end
     if val isa FitParam
         info = get_info_tuple(val)
-        print(io, lpad(info[1], q1 + 1))
-        if free
-            print(io, " ± ", rpad(info[2], q2))
-            print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
+        print(io, rpad(info[1], pm_padding))
+        if isfree(val)
+            print(io, " ± ", lpad(info[2], err_padding))
+            print(io, rpad(" ∈ [ $(info[3]), $(info[4]) ] ", range_padding + 10))
         end
-
-        if free
-            printstyled(io, lpad("FREE", 7), color = :green)
-        else
-            print(io, "  ")
-            printstyled(io, lpad("FROZEN", 15 + q1 + q2 + q3 + q4), color = :cyan)
+        if show_state
+            if isfree(val)
+                printstyled(io, "FREE", color = :green)
+            else
+                print(io, " "^(total_padding + 1))
+                printstyled(io, "FROZEN", color = :cyan)
+            end
         end
     else
         print(io, val)

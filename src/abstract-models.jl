@@ -314,6 +314,7 @@ function _printinfo(
     io::IO,
     m::M;
     bindings = nothing,
+    parameter_indent = 0,
 ) where {M<:AbstractSpectralModel{<:FitParam}}
     pvec = parameter_vector(m)
     psym = parameter_names(m)
@@ -322,23 +323,33 @@ function _printinfo(
     print(io, "$(basename)\n")
 
     info_tuples = [get_info_tuple(val) for (_, val) in params]
-    q1, q2, q3, q4 = map(1:4) do i
-        maximum(j -> length("$(j[i])"), info_tuples) + 1
+    # just those of free parameters
+    free_infos = [info_tuples[i] for i in eachindex(params) if isfree(last(params[i]))]
+    q1 = maximum(j -> length("$(j[1])"), info_tuples)
+    # only work out these paddings on free parameters
+    q2, q3, q4 = map(2:4) do i
+        maximum(j -> length("$(j[i])"), free_infos)
     end
 
-    param_offset = 5 + maximum(params) do (s, _)
+    name_padding = parameter_indent + maximum(params) do (s, _)
         length("$s")
     end
 
-    for (i, (s, param)) in enumerate(params)
-        free = param isa FitParam ? !isfrozen(param) : true
+    for (s, param) in params
         if !isnothing(bindings) && !isnothing(get(bindings, s, nothing))
-            print(io, lpad(s, param_offset), " -> ")
+            print(io, lpad(s, name_padding), " -> ")
             printstyled(io, bindings[s], color = :magenta)
             println(io)
         else
-            param, nothing
-            _print_param(io, free, String(s), param, param_offset, q1, q2, q3, q4)
+            _print_param(
+                io,
+                param;
+                name = String(s),
+                name_padding = name_padding,
+                pm_padding = q1,
+                err_padding = q2,
+                range_padding = q3 + q4,
+            )
         end
     end
 end
