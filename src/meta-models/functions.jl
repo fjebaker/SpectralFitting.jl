@@ -55,6 +55,14 @@ function parameter_vector(
     parameter_vector(backing_model(model))[2:end]
 end
 
+# tie in dispatches
+function _all_parameters_with_symbols(
+    model::AsConvolution{<:AbstractSpectralModel{T,Additive}},
+) where {T}
+    ps, syms = _all_parameters_with_symbols(backing_model(model))
+    ps[2:end], syms[2:end]
+end
+
 function remake_with_parameters(
     model::AsConvolution{<:AbstractSpectralModel{T,K}},
     params::Tuple,

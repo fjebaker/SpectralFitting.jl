@@ -12,6 +12,9 @@ conv = AsConvolution(base_model)
 
 model = conv(lines)
 
+@test length(SpectralFitting.parameter_vector(model)) == 6
+@test SpectralFitting.parameter_names(model) == (:μ, :σ, :K, :E, :K, :E)
+
 domain = collect(range(0.0, 10.0, 150))
 
 output = invokemodel(domain, model)
@@ -23,6 +26,14 @@ output = invokemodel(domain, model)
 # simulate a model spectrum
 dummy_data = make_dummy_dataset((E) -> (E^(-3.0)); units = u"counts / (s * keV)")
 sim = simulate(model, dummy_data; seed = 42)
+
+prob = FittingProblem(model => dummy_data)
+
+ps, _, bs = SpectralFitting.parameter_vector_symbols_and_bindings(prob)
+@test length(ps) == 6
+
+conf = FittingConfig(prob)
+output = @inferred SpectralFitting.calculate_objective!(conf, get_value.(conf.u0))
 
 model.c1.μ.frozen = true
 model.a1.K.frozen = true
@@ -36,7 +47,11 @@ model
 
 prob = FittingProblem(model => sim)
 conf = FittingConfig(prob)
-SpectralFitting.calculate_objective!(conf, get_value.(conf.u0))
+
+@test length(prob.lookup) == 6
+
+@inferred SpectralFitting.calculate_objective!(conf, [2.0])
+
 result = fit(prob, LevenbergMarquadt(), verbose = true)
 
 @test sum(result.stats) ≈ 76.71272868245076 atol = 1e-3
