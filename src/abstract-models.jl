@@ -429,3 +429,6 @@ function _all_parameters_with_names(model::AbstractSpectralModel)
 end
 
 paramtype(::Type{<:AbstractSpectralModel{T}}) where {T} = paramtype(T)
+
+Base.setproperty!(model::AbstractSpectralModel{<:FitParam}, s::Symbol, v::Number) =
+    getfield(model, s).value = v

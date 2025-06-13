@@ -17,6 +17,9 @@ function _inner_invokemodel!(output, domain, model::AbstractModelWrapper)
 end
 
 # tie in dispatches
+_all_parameters_with_symbols(model::AbstractModelWrapper) =
+    _all_parameters_with_symbols(backing_model(model))
+
 backing_model(model::AbstractModelWrapper) = getfield(model, :model)
 
 closure_and_parameter(model::AbstractModelWrapper) =

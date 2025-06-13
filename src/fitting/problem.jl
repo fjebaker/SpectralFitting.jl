@@ -91,7 +91,7 @@ function ParameterTriple(t::Tuple)
 end
 
 function _build_triples(model::AbstractSpectralModel, model_index::Int)
-    if model isa CompositeModel
+    if is_composite(model)
         out = ParameterTriple[]
         for m in propertynames(model)
             for s in parameter_names(getproperty(model, m))
@@ -108,7 +108,7 @@ function _build_parameter_lookup(m::FittableMultiModel)
     lookup = Dict{ParameterTriple,Int}()
     i = 1
     for (model_index, model) in enumerate(m.m)
-        if model isa CompositeModel
+        if is_composite(model)
             for component in propertynames(model)
                 for sym in parameter_names(getproperty(model, component))
                     lookup[ParameterTriple(model_index, component, sym)] = i
@@ -357,7 +357,7 @@ function details(prob::FittingProblem; color = true)
         print(buf_ctx, ": ")
 
 
-        _bindings = if m isa CompositeModel
+        _bindings = if is_composite(m)
             get(t_binds, i, nothing)
         else
             t_model = get(t_binds, i, nothing)

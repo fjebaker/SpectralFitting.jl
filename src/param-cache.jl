@@ -22,7 +22,7 @@ function _make_free_mask(params::AbstractArray{<:FitParam})
     free_mask
 end
 
-function ParameterCache( params::AbstractArray{<:FitParam})
+function ParameterCache(params::AbstractArray{<:FitParam})
     free_mask = _make_free_mask(params)
     frozen = params[.!free_mask]
     ParameterCache(free_mask, map(get_value, params), map(get_value, frozen))
