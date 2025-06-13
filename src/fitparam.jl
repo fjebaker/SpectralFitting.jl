@@ -173,7 +173,5 @@ function _print_param(
     println(io)
 end
 
-
-
 export FitParam,
     FitParam, set_value!, set_error!, get_value, get_error, get_upperlimit, get_lowerlimit

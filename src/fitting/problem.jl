@@ -155,8 +155,7 @@ function translate_bindings(prob::FittingProblem)
 
     for (root, targets) in prob.bindings
         main = revlookup(root)
-        main_str =
-        if isnothing(main.component)
+        main_str = if isnothing(main.component)
             "Bound to Model $(main.model_index) -> $(main.parameter)"
         else
             "Bound to Model $(main.model_index) => $(main.component) -> $(main.parameter)"
