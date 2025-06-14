@@ -53,9 +53,6 @@ include("composite-models.jl")
 include("meta-models/wrappers.jl")
 include("meta-models/table-models.jl")
 include("meta-models/surrogate-models.jl")
-include("meta-models/caching.jl")
-include("meta-models/functions.jl")
-include("meta-models/parameter-patch.jl")
 
 include("datasets/ogip.jl")
 include("datasets/datasets.jl")
@@ -80,6 +77,11 @@ include("julia-models/model-utilities.jl")
 include("julia-models/additive.jl")
 include("julia-models/multiplicative.jl")
 include("julia-models/convolutional.jl")
+
+# wrapper models
+include("meta-models/caching.jl")
+include("meta-models/functions.jl")
+include("meta-models/parameter-patch.jl")
 
 include("plots-recipes.jl")
 
