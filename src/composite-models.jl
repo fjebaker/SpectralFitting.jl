@@ -258,29 +258,6 @@ function destructure(@nospecialize(m::CompositeModel))
     )
 end
 
-function _print_param(io, free, name, val, q0, q1, q2, q3, q4)
-    print(io, lpad("$name", q0), " ->")
-    if val isa FitParam
-        info = get_info_tuple(val)
-        print(io, lpad(info[1], q1 + 1))
-        if free
-            print(io, " ± ", rpad(info[2], q2))
-            print(io, " ∈ [", lpad(info[3], q3), ", ", rpad(info[4], q4), "]")
-        end
-
-        if free
-            printstyled(io, lpad("FREE", 7), color = :green)
-        else
-            print(io, "  ")
-            printstyled(io, lpad("FROZEN", 15 + q1 + q2 + q3 + q4), color = :cyan)
-        end
-    else
-        print(io, val)
-    end
-    println(io)
-end
-
-
 function _printinfo(
     io::IO,
     @nospecialize(model::CompositeModel);
@@ -306,11 +283,16 @@ function _printinfo(
         print(io, " => ")
 
         buff = IOBuffer()
-        _printinfo(IOContext(buff, io), m; bindings = if isnothing(bindings)
-            nothing
-        else
-            get(bindings, sym, nothing)
-        end)
+        _printinfo(
+            IOContext(buff, io),
+            m;
+            parameter_indent = 3,
+            bindings = if isnothing(bindings)
+                nothing
+            else
+                get(bindings, sym, nothing)
+            end,
+        )
         s = String(take!(buff))
         println(io, strip(indent(s, 4)))
     end
