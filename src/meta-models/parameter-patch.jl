@@ -19,9 +19,15 @@ Every "model" accessed this way will return a view on the parameters via
 struct ParameterPatchView{V<:AbstractVector}
     _values::V
     _symbols::Vector{Pair{Symbol,Symbol}}
-    function ParameterPatchView(values::V, symbols) where {V<:AbstractVector}
+    _access::Union{Nothing,BitVector}
+    function ParameterPatchView(values::V, symbols; track = false) where {V<:AbstractVector}
         @assert size(values) == size(symbols)
-        new{V}(values, symbols)
+        access = if track
+            BitArray([false for i in symbols])
+        else
+            nothing
+        end
+        new{V}(values, symbols, access)
     end
 end
 
@@ -59,6 +65,9 @@ function Base.setproperty!(pv::ModelPatchView, s::Symbol, value)
     syms = getfield(parent, :_symbols)
     for (i, pair) in enumerate(syms)
         if (first(pair) == getfield(pv, :_model)) && (last(pair) == s)
+            if !isnothing(getfield(parent, :_access))
+                getfield(parent, :_access)[i] = true
+            end
             return getfield(parent, :_values)[i] = value
         end
     end
@@ -130,7 +139,18 @@ end
 
 function ParameterPatch(model::AbstractSpectralModel{T,K}; patch::Function) where {T,K}
     _, syms = _all_parameters_with_symbols(model)
-    ParameterPatch(copy(model), syms, patch)
+    model_copy = copy(model)
+    # work out which parameters are being patched
+    pp = ParameterPatch(model_copy, syms, patch)
+    pvec, symbols = _all_parameters_with_symbols(model_copy)
+    patch_view = ParameterPatchView(get_value.(pvec), symbols; track = true)
+    pp.patch!(patch_view)
+    for (i, patched) in enumerate(getfield(patch_view, :_access))
+        if patched
+            pvec[i].patched = true
+        end
+    end
+    pp
 end
 
 """
@@ -147,6 +167,11 @@ function apply_patch!(model::ParameterPatch)
         set_value!(p, v)
     end
     model
+end
+
+function update_model!(model::ParameterPatch, result::FitResultSlice)
+    update_model!(backing_model(model), result)
+    apply_patch!(model)
 end
 
 export ParameterPatch, ParameterPatchView, apply_patch!

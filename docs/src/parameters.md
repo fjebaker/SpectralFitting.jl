@@ -114,7 +114,7 @@ model = GaussianLine() + GaussianLine(μ = FitParam(3.0))
 
 # Wrap the model with a parameter patch
 patched_model = ParameterPatch(model; patch = my_patch!)
-# be sure to freeze any parameter you are planning to patch
+# be sure to freeze any parameter you are planning to overwrite in a patch
 patched_model.a2.K.frozen = true
 
 patched_model
@@ -129,11 +129,9 @@ result = fit(prob, LevenbergMarquadt())
 plot!(result)
 ```
 
-To apply the result with a parameter patch back on a model, use [`apply_patch!`](@ref)
+To apply the result with a parameter patch back on a model, use [`update_model!`](@ref) or [`apply_patch!`](@ref)
 
 ```@example bind
 update_model!(patched_model, result)
-apply_patch!(patched_model)
-
 patched_model
 ```

@@ -71,13 +71,16 @@ mutable struct FitParam{T<:Number}
     upper_limit::T
     "Is this a frozen parameter during fits?"
     frozen::Bool
+    "Is this parameter patched in some way?"
+    patched::Bool
     FitParam(
         val::T;
         frozen = false,
         lower_limit = T(0.0),
         upper_limit = T(Inf),
         error = fit_param_default_error(val),
-    ) where {T} = new{T}(val, error, lower_limit, upper_limit, frozen)
+        patched = false,
+    ) where {T} = new{T}(val, error, lower_limit, upper_limit, frozen, patched)
 end
 
 # interface
@@ -86,6 +89,7 @@ set_error!(f::FitParam{T}, val::T) where {T} = f.error = val
 get_value(f::FitParam) = f.value
 isfrozen(f::FitParam) = f.frozen
 isfree(f::FitParam) = !isfrozen(f)
+ispatched(f::FitParam) = f.patched
 function set!(f::FitParam, o::FitParam)
     f.value = o.value
     f.lower_limit = o.lower_limit
@@ -165,6 +169,10 @@ function _print_param(
             else
                 print(io, " "^(total_padding + 1))
                 printstyled(io, "FROZEN", color = :cyan)
+            end
+
+            if ispatched(val)
+                printstyled(io, "/PATCHED", color = :yellow)
             end
         end
     else
