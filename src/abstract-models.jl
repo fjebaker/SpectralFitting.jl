@@ -327,8 +327,12 @@ function _printinfo(
     free_infos = [info_tuples[i] for i in eachindex(params) if isfree(last(params[i]))]
     q1 = maximum(j -> length("$(j[1])"), info_tuples)
     # only work out these paddings on free parameters
-    q2, q3, q4 = map(2:4) do i
-        maximum(j -> length("$(j[i])"), free_infos)
+    q2, q3, q4 = if length(free_infos) > 0
+            map(2:4) do i
+            maximum(j -> length("$(j[i])"), free_infos)
+        end
+    else
+        (0, 0, 0)
     end
 
     name_padding = parameter_indent + maximum(params) do (s, _)
