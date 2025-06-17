@@ -328,7 +328,7 @@ function _printinfo(
     q1 = maximum(j -> length("$(j[1])"), info_tuples)
     # only work out these paddings on free parameters
     q2, q3, q4 = if length(free_infos) > 0
-            map(2:4) do i
+        map(2:4) do i
             maximum(j -> length("$(j[i])"), free_infos)
         end
     else
