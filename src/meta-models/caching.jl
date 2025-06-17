@@ -141,7 +141,7 @@ function _inner_invokemodel!(
         within_tolerance = all(start:length(p_syms)) do i
             new_value = getproperty(backing_model(model), p_syms[i])
             old_value = param_cache[i]
-            abs((new_value - old_value) / old_value) < getfield(model, :abstol)
+            isapprox(new_value, old_value; rtol = getfield(model, :abstol))
         end
 
         if within_tolerance
