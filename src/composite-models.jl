@@ -115,9 +115,14 @@ end
 function CompositeModel(
     left::AbstractSpectralModel{T},
     right::AbstractSpectralModel{T,K},
-    ::Operator,
+    ::Operator;
+    make_copies = true,
 ) where {T,K,Operator}
-    CompositeModel{T,K,Operator,typeof(left),typeof(right)}(copy(left), copy(right))
+    if make_copies
+        CompositeModel{T,K,Operator,typeof(left),typeof(right)}(copy(left), copy(right))
+    else
+        CompositeModel{T,K,Operator,typeof(left),typeof(right)}(left, right)
+    end
 end
 
 function Base.copy(m::CompositeModel{T,K,Op}) where {T,K,Op}
@@ -155,7 +160,8 @@ function remake_with_parameters(model::CompositeModel{T,K,Op}, params::Tuple) wh
     CompositeModel(
         remake_with_parameters(getfield(model, :left), params[1:P_left]),
         remake_with_parameters(getfield(model, :right), params[(P_left+1):end]),
-        Op(),
+        Op();
+        make_copies = false,
     )
 end
 
