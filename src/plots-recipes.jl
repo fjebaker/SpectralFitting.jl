@@ -19,7 +19,6 @@ end
 @recipe function _plotting_func(
     dataset::AbstractDataset;
     data_layout = ContiguouslyBinned(),
-    xscale = :linear,
 )
     seriestype --> :scatter
     markersize --> 0.5
@@ -32,21 +31,12 @@ end
     yerr --> _yerr
     _xerr = SpectralFitting.bin_widths(dataset) ./ 2
     xerr --> _xerr
-    yscale --> :identity
     markerstrokecolor --> :auto
     xlabel --> "Energy (keV)"
     ylabel --> SpectralFitting.objective_units(dataset)
     label --> SpectralFitting.make_label(dataset)
     minorgrid --> true
     x = plotting_domain(dataset)
-
-    if xscale == :log10
-        x = plotting_domain(dataset)
-        _xerr = SpectralFitting.bin_widths(dataset) ./ 2
-        min_x = x[1] - _xerr[1]
-        max_x = x[end] + _xerr[end]
-    end
-
     I = @. !isinf(x) && !isinf(rate)
     @views (x[I], rate[I])
 end
