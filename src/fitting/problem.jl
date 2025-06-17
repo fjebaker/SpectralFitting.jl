@@ -23,7 +23,8 @@ A thin wrapper representing multiple models.
 """
 struct FittableMultiModel{M}
     m::M
-    FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
+    FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) =
+        new{typeof(model)}(map(copy, model))
 end
 
 function Base.getindex(multimodel::FittableMultiModel, i)
