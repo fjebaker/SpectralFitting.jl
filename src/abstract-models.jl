@@ -262,11 +262,11 @@ end
 function invokemodel!(f, e, m::AbstractSpectralModel, parameters::AbstractArray)
     _inner_invokemodel!(f, e, remake_with_parameters(m, parameters))
 end
-function _inner_invokemodel!(output, domain, model::AbstractSpectralModel)
+function _inner_invokemodel!(output, domain, model::AbstractSpectralModel{<:Number})
     _invoke_guard!(output, domain, model)
 end
 function _invoke_guard!(output, domain, model::AbstractSpectralModel{<:Number,Additive})
-    invoke!(output, domain, model)
+    invoke!(view(output, :, 1), domain, model)
     # perform additive normalisation
     K = normalisation(model)
     @. output *= K
