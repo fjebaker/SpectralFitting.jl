@@ -16,7 +16,7 @@ mapping = SpectralFitting._build_parameter_mapping(prob)
 bind!(prob, (1, :a1, :K) => (2, :a1, :K))
 
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 2, 3, 4], [1, 5, 6, 7, 8, 9])
+@test mapping == ([1, 2, 3, 4], [1, 6, 7, 8, 9, 10])
 
 model1 = PowerLaw()
 model2 = PowerLaw() + PowerLaw()
@@ -26,7 +26,7 @@ prob = FittingProblem(model1 => dummy_data1, model2 => dummy_data1)
 bind!(prob, (1, :K) => (2, :a2, :K))
 
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 2], [3, 4, 1, 5])
+@test mapping == ([1, 2], [3, 4, 1, 6])
 
 model1 =
     PowerLaw(K = FitParam(3.0), a = FitParam(4.0)) +
@@ -41,7 +41,7 @@ bind!(prob, (1, :a1, :K) => (2, :a1, :K))
 bind!(prob, (1, :a2, :K) => (2, :a2, :K))
 
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 2, 3, 4], [1, 5, 3, 6, 7, 8])
+@test mapping == ([1, 2, 3, 4], [1, 6, 3, 8, 9, 10])
 
 model1 = PowerLaw()
 model2 = PowerLaw() + PowerLaw()
@@ -63,13 +63,13 @@ mapping = SpectralFitting._build_parameter_mapping(prob)
 prob = FittingProblem(model1 => dummy_data1, model1 => dummy_data1, model1 => dummy_data1)
 bindall!(prob, :a)
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 2], [3, 2], [4, 2])
+@test mapping == ([1, 2], [3, 2], [5, 2])
 
 # 3 models (2 the same, 1 different), bind one parameter between the two
 prob = FittingProblem(model1 => dummy_data1, model2 => dummy_data1, model1 => dummy_data1)
 bind!(prob, (1, :a) => (2, :a2, :a) => (3, :a))
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 2], [3, 4, 5, 2], [6, 2])
+@test mapping == ([1, 2], [3, 4, 5, 2], [7, 2])
 
 # 3 models, 1 frozen parameter (that needs to be skipped), 1 bound parameter
 model1 = PowerLaw() + PowerLaw()
@@ -79,7 +79,7 @@ bindall!(prob, (:a1, :a), (:a2, :a))
 
 # check that the free parameter binding adjustment works okay
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 2, 3, 4], [5, 2, 6, 4], [7, 2, 8, 4])
+@test mapping == ([1, 2, 3, 4], [5, 2, 7, 4], [9, 2, 11, 4])
 
 # does this construct the correct parameter cache
 
@@ -91,13 +91,13 @@ bindall!(prob, (:a1, :K), (:a1, :a))
 
 
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 2, 3, 4], [1, 2, 5, 6], [1, 2, 7, 8])
+@test mapping == ([1, 2, 3, 4], [1, 2, 7, 8], [1, 2, 11, 12])
 
 # can we bind parameters within the same model
 prob = FittingProblem(model1 => dummy_data1)
 bind!(prob, (1, :a1, :K) => (1, :a1, :a))
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 1, 2, 3],)
+@test mapping == ([1, 1, 3, 4],)
 
 # can we bind parameters within the same model
 model1.a2.a.frozen = false
@@ -110,4 +110,4 @@ bind!(prob, (1, :a1, :a) => (2, :a1, :a))
 bind!(prob, (1, :a2, :a) => (2, :a2, :K))
 SpectralFitting.simplify!(prob)
 mapping = SpectralFitting._build_parameter_mapping(prob)
-@test mapping == ([1, 1, 2, 3], [1, 1, 3, 4])
+@test mapping == ([1, 1, 3, 4], [1, 1, 4, 8])

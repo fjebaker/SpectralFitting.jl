@@ -162,9 +162,8 @@ function residuals(slice::FitResultSlice)
 end
 
 function update_model!(model::AbstractSpectralModel, result::FitResultSlice)
-    ps = filter!(isfree, parameter_vector(model))
-    @assert size(ps) == size(result.u) "Bad number of parameters"
-    for (p, r) in zip(ps, result.u)
+    all_params = update_free_parameters!(result.parent.config.parameter_cache, result.u)
+    for (p, r) in zip(parameter_vector(model), result.u)
         set_value!(p, r)
     end
     model
