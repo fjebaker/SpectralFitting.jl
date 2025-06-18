@@ -229,12 +229,13 @@ function _build_parameter_mapping(prob::FittingProblem{M}) where {M<:FittableMul
     end
 
     I = (1:length(M.parameters[1].parameters)...,)
-    start = 1
+    _start = Ref{Int}(1)
     map(I) do model_index
+        start = _start[]
         model = prob.model.m[model_index]
         N = length(parameter_vector(model))
         b = parameter_bindings[start:(start+N-1)]
-        start += N
+        _start[] += N
         b
     end
 end
