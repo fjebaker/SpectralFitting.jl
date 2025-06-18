@@ -23,7 +23,8 @@ A thin wrapper representing multiple models.
 """
 struct FittableMultiModel{M}
     m::M
-    FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) = new{typeof(model)}(model)
+    FittableMultiModel(model::Vararg{<:AbstractSpectralModel}) =
+        new{typeof(model)}(model)
 end
 
 function Base.getindex(multimodel::FittableMultiModel, i)
@@ -209,60 +210,40 @@ function _simplify_bindings!(bindings::Dict{Int,Vector{Int}})
 end
 
 function _build_parameter_mapping(prob::FittingProblem{M}) where {M<:FittableMultiModel}
-    # this function is idempotent, so doesn't matter if it's called many times
     simplify!(prob)
-    revlookup(param_index) = only([k for (k, v) in prob.lookup if v == param_index])
+    pvec, _ = _all_parameters_with_symbols(prob)
+    total_params = length(pvec)
 
-    reverse_bindings = Dict{ParameterTriple,Int}()
-    for (root, targets) in prob.bindings
-        for target in targets
-            t = revlookup(target)
-            reverse_bindings[t] = root
+    reverse_bindings = Dict{Int64,Int64}()
+    for i in prob.bindings
+        for j in prob.bindings[i[1]]
+            reverse_bindings[j] = i[1]
         end
     end
 
-    Models = M.parameters[1]
-    T = paramtype(Models.parameters[1])
+    bound_parameters = keys(reverse_bindings)
+    parameter_bindings = collect(1:total_params)
 
-    # use the tuple hack to enforce type stability and unroll the loop
-    correction::Int = 0
-    I = (1:length(Models.parameters)...,)
-    intra_correction = Int[]
-    map(I) do i
-        m = prob.model.m[i]
-        map(_build_triples(m, i)) do t
-            if haskey(reverse_bindings, t)
-                correction += 1
-                b = reverse_bindings[t]
-                if revlookup(b).model_index == i
-                    # this parameter is bound to another in the same model
-                    push!(intra_correction, b)
-                end
-                # intra-model bound parameter corrections
-                corr = sum(1 for ic in intra_correction if b > ic; init = 0)
-                b - corr
-            else
-                prob.lookup[t] - correction
-            end
-        end
+    for i in bound_parameters
+        parameter_bindings[i] = reverse_bindings[i]
+    end
+
+    I = (1:length(M.parameters[1].parameters)...,)
+    _start = Ref{Int}(1)
+    map(I) do model_index
+        start = _start[]
+        model = prob.model.m[model_index]
+        N = length(parameter_vector(model))
+        b = parameter_bindings[start:(start+N-1)]
+        _start[] += N
+        b
     end
 end
 
 function parameter_vector_symbols_and_bindings(prob::FittingProblem)
     pvec, syms = _all_parameters_with_symbols(prob)
     bindings = _build_parameter_mapping(prob)
-
-    non_bound_parameters = Set(1:length(pvec))
-    if !isempty(prob.bindings)
-        bound_parameters = Set(reduce(vcat, (v for (k, v) in prob.bindings)))
-        setdiff!(non_bound_parameters, bound_parameters)
-    end
-
-    I = sort!(collect(non_bound_parameters))
-
-    # unpack and rework the parameter symbols
-    symbols = Vector{Pair{Symbol,Symbol}}[]
-    pvec[I], syms[I], bindings
+    pvec, syms, bindings
 end
 
 function _all_parameters_with_symbols(prob::FittingProblem)

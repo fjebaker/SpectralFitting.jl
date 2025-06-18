@@ -66,12 +66,22 @@ end
 fit_statistic(cfg::FittingConfig) = cfg.stat
 
 function FittingConfig(prob::FittingProblem; stat = ChiSquared())
-    # TODO: remove the bound parameters
     p_vector, _, bindings = parameter_vector_symbols_and_bindings(prob)
 
+    # find those parameters that are bound and make them appear as frozen
+    # so that the update function to ParameterCache doesn't fall out of sync
     free_mask = _make_free_mask(p_vector)
-    v_vector = get_value.(p_vector)
+    i::Int = 1
+    for binds in bindings
+        for p in binds
+            if i != p
+                free_mask[i] = false
+            end
+            i += 1
+        end
+    end
 
+    v_vector = get_value.(p_vector)
     p_cache = ParameterCache(free_mask, DiffCache(v_vector), v_vector[.!free_mask])
 
     I = ((1:model_count(prob))...,)
