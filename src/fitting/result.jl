@@ -163,7 +163,11 @@ end
 
 function update_model!(model::AbstractSpectralModel, result::FitResultSlice)
     all_params = update_free_parameters!(result.parent.config.parameter_cache, result.u)
-    for (p, r) in zip(parameter_vector(model), result.u)
+    for (p, r) in @views zip(
+        parameter_vector(model),
+        all_params[result.parent.config.parameter_bindings[result.index]],
+    )
+
         set_value!(p, r)
     end
     model
