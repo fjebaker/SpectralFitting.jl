@@ -59,6 +59,7 @@ end
     @time include("fitting/test-cache.jl")
     @time include("fitting/test-binding.jl")
     @time include("fitting/test-results.jl")
+    @time include("fitting/test-update-model.jl")
 
     @time include("fitting/test-fit-powerlaw.jl")
     @time include("fitting/test-models.jl")
