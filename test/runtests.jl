@@ -67,6 +67,7 @@ end
     @time include("fitting/test-fit-multi.jl")
     @time include("fitting/test-fit-optim.jl")
 
+    @time include("fitting/test-domain-extension.jl")
 end
 
 @testset "simulation" verbose = true begin

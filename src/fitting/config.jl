@@ -25,12 +25,18 @@ function calculate_objective!(
     domain,
     model::AbstractSpectralModel{T},
     transformer!!,
+    ext::DomainExtension,
 ) where {T<:Number}
     model_output = get_tmp(cache.model_output, zero(T))
     objective_output = get_tmp(cache.objective_output, zero(T))
 
     output = _inner_invokemodel!(model_output, domain, model)
-    transformer!!(objective_output, domain, output)
+
+    # pull out the original domain from the extensions
+    transformable_output = @views output[(length(ext.low)+1):(end-length(ext.high))]
+    transformable_domain = @views domain[(length(ext.low)+1):(end-length(ext.high))]
+
+    transformer!!(objective_output, transformable_domain, transformable_output)
 
     @views objective_output[:, 1]
 end
@@ -89,11 +95,15 @@ function FittingConfig(prob::FittingProblem; stat = ChiSquared())
     _res = map(I) do i
         model = prob.model.m[i]
         dataset = prob.data.d[i]
+        ext = prob.data.extension[i]
 
         layout =
             with_units(common_support(model, dataset), preferred_units(dataset, stat))
 
-        model_domain = make_model_domain(layout, dataset)
+        # here apply model domain extensions
+        _model_domain = make_model_domain(layout, dataset)
+        model_domain = vcat(ext.low, _model_domain, ext.high)
+
         objective_domain = make_output_domain(layout, dataset)
         objective = make_objective(layout, dataset)
         objective_variance = make_objective_variance(layout, dataset)
@@ -136,6 +146,7 @@ function calculate_objective!(config::FittingConfig, all_parameters, i::Int)
         config.data_cache[i].model_domain,
         model,
         config.transformers[i],
+        config.prob.data.extension[i],
     )
 end
 
