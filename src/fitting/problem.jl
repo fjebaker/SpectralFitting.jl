@@ -1,11 +1,23 @@
+struct DomainExtension{T}
+    low::Vector{T}
+    high::Vector{T}
+end
+
+function DomainExtension(T::Type)
+    DomainExtension(T[], T[])
+end
+
 """
     FittableMultiDataset(d1, d2...)
 
 A thin wrapper representing multiple datasets.
 """
-struct FittableMultiDataset{D}
+struct FittableMultiDataset{D,T}
     d::D
-    FittableMultiDataset(data::Vararg{<:AbstractDataset}) = new{typeof(data)}(data)
+    extension::Vector{DomainExtension{T}}
+    function FittableMultiDataset(data::Vararg{<:AbstractDataset}; T::Type = Float64)
+        new{typeof(data),T}(data, [DomainExtension(T) for _ in data])
+    end
 end
 
 function Base.getindex(multidata::FittableMultiDataset, i)
