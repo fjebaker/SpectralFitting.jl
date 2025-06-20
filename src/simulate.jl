@@ -91,7 +91,6 @@ function _make_simulation_fitting_config(
     layout = ContiguouslyBinned(),
     input_domain = response_energy(response),
     output_domain = folded_energy(response),
-    stat = ChiSquared(),
     kwargs...,
 ) where {T}
     if !supports(layout, model)
@@ -109,29 +108,20 @@ function _make_simulation_fitting_config(
     objective = zeros(eltype(output_domain), length(output_domain) - 1)
     variance = ones(eltype(objective), size(objective))
 
-
-
-    cache = SpectralCache(
-        layout,
-        model,
-        input_domain,
-        objective,
-        _fold_transformer(T, one(eltype(ΔE)), layout, R, ΔE, input_domain),
-    )
-
-    free_params = collect(filter(isfree, parameter_tuple(model)))
-
-    conf = FittingConfig(
-        implementation(model),
-        cache,
-        stat,
-        nothing,
-        free_params,
+    # TODO: there should be a simpler wrapper for the dataset
+    data = SimulatedSpectrum(
         input_domain,
         output_domain,
         objective,
         variance,
+        u"counts / (s * keV)",
+        _fold_transformer(T, one(eltype(ΔE)), layout, R, ΔE, input_domain),
+        42,
     )
+
+    prob = FittingProblem(model => data)
+    conf = FittingConfig(prob)
+
     kwargs, conf
 end
 
