@@ -818,6 +818,19 @@ function XS_Optxagnf(;
     XS_Optxagnf(K, mass, Dco, logLoLEdd, astar, rcor, logrout, kT_e, τ, Gamma, fpl, z)
 end
 
+"""
+- https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/XSmodelDiskbb.html
+"""
+@xspecmodel :C_diskbb struct XS_DiskBlackBody{T} <: AbstractSpectralModel{T,Additive}
+    "Normalisation."
+    K::T
+    "Inner disc temperature in keV."
+    T::T
+end
+function XS_DiskBlackBody(; K = FitParam(1.0), T = FitParam(0.25))
+    XS_DiskBlackBody(K, T)
+end
+
 export XS_PowerLaw,
     XS_CutOffPowerLaw,
     XS_BlackBody,
@@ -828,4 +841,5 @@ export XS_PowerLaw,
     XS_KyrLine,
     XS_Gaussian,
     XS_Jet,
-    XS_Optxagnf
+    XS_Optxagnf,
+    XS_DiskBlackBody
