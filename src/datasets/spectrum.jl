@@ -19,6 +19,25 @@ mutable struct Spectrum{T} <: AbstractDataset
     instrument::String
 end
 
+# TODO: make this work with any fields
+function remake_spectrum(spec::Spectrum; data::Vector, errors = nothing)
+    @assert length(data) == length(spec.data)
+    s = deepcopy(spec)
+    s.data = data
+    s.errors = errors
+    s
+end
+
+function mask!(spectrum::Spectrum, mask)
+    spectrum.channels = spectrum.channels[mask]
+    spectrum.quality = spectrum.quality[mask]
+    spectrum.data = spectrum.data[mask]
+    if !isnothing(spectrum.errors)
+        spectrum.errors = spectrum.errors[mask]
+    end
+    spectrum
+end
+
 function normalize!(spectrum::Spectrum)
     if spectrum.units == u"counts"
         @. spectrum.data /= spectrum.exposure_time

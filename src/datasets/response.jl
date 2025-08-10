@@ -135,4 +135,21 @@ function Base.show(
     _printinfo(io, resp)
 end
 
+function unfold(resp::ResponseMatrix, ancillary::AncillaryResponse, data)
+    mat = fold_ancillary(resp, ancillary)
+    _unfold(resp, mat, data)
+end
+
+unfold(resp::ResponseMatrix, data) = _unfold(resp, resp.matrix, data)
+
+function _unfold(resp::ResponseMatrix, matrix::AbstractMatrix, data)
+    energy_width = (resp.bins_high .- resp.bins_low)
+    bin_width = (resp.channel_bins_high .- resp.channel_bins_low)
+
+    R = matrix * energy_width
+    R_vector = vec(sum(R, dims = 2))
+
+    @. bin_width * (data / R_vector)
+end
+
 export ResponseMatrix
