@@ -427,6 +427,7 @@ function rebin_if_different_domains!(output, data_domain, model_domain, input)
     if length(data_domain) == length(model_domain)
         @. output = input
     else
+        @warn "Model and data domains differ"
         interpolated_rebin!(output, data_domain, input, model_domain)
     end
     output

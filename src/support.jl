@@ -89,7 +89,7 @@ const DEFAULT_SUPPORT_ORDERING = (ContiguouslyBinned(), OneToOne())
 """
     preferred_support(x)
 
-Get the preferred [`AbstractDataLayout`](@ref) of `x`. If multiple supports are available, 
+Get the preferred [`AbstractDataLayout`](@ref) of `x`. If multiple supports are available,
 the `DEFAULT_SUPPORT_ORDERING` is followed:
 
 ```
@@ -149,7 +149,7 @@ common_support(args::Vararg) = reduce(_support_reducer, args)
 
 Used to define whether a given type has support for a specific
 [`AbstractDataLayout`](@ref). Should return a tuple of the supported layouts. This
-method should be implemented to express new support, not the query method. 
+method should be implemented to express new support, not the query method.
 
 To query, there is
 
