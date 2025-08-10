@@ -5,7 +5,7 @@ mutable struct Spectrum{T} <: AbstractDataset
 
     # this could be counts or flux
     data::Vector{T}
-    units::SpectralUnits.RateOrCount
+    units::SpectralUnits.Unitful.FreeUnits
 
     exposure_time::T
     background_scale::T
