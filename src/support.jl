@@ -42,6 +42,11 @@ if the layout does not care about units, see [`support_units`](@ref).
 """
 with_units(layout::AbstractDataLayout, units) = layout
 
+default_layout(data) =
+    with_units(preferred_support(data), preferred_units(data, ChiSquared()))
+default_layout(model, data) =
+    with_units(preferred_support(model), preferred_units(data, ChiSquared()))
+
 """
     struct OneToOne <: AbstractDataLayout end
 
