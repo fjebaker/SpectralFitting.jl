@@ -168,6 +168,10 @@ end
 
 error_statistic(spec::Spectrum) = spec.error_statistics
 
+function subtract_background(spectrum::Spectrum, background::Spectrum)
+    subtract_background!(deepcopy(spectrum), background)
+end
+
 function subtract_background!(spectrum::Spectrum, background::Spectrum)
     @assert spectrum.units == u"counts"
     # errors added in quadrature
