@@ -34,11 +34,8 @@ struct Constant{T} <: AbstractSpectralModel{T,Multiplicative}
     value::T
 end
 Constant(; value=FitParam(1.0)) = Constant(value)
-@inline @fastmath function invoke!(flux, energy, model::Constant)
-    let value = model.value
-        E = @views energy[1:(end-1)]
-        @. flux = value
-    end
+@fastmath function invoke!(flux, energy, model::Constant)
+    flux .= model.value
 end
 
 export PhotoelectricAbsorption, Constant
