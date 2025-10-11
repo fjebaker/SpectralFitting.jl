@@ -139,3 +139,63 @@ Special care must be taken if new XSPEC models are wrapped to ensure the data is
 
 Model data may also alternatively be copied in _by-hand_ from a HEASoft XSPEC source directory. In this case, the location to copy the data to may be determined via `joinpath(SpectralFitting.LibXSPEC_jll.artifact_dir, "spectral", "modelData")`.
 
+## Writing XSPEC table models
+
+SpectralFitting.jl provides functionality to create XSPEC-compatible table models and write them to FITS files following the OGIP 92-009 specification. This allows you to generate custom table models that can be used both in SpectralFitting.jl and in XSPEC.
+
+```@docs
+write_table_model
+```
+
+### Example: Creating a custom table model
+
+Here's an example of creating a simple power law table model:
+
+```julia
+using SpectralFitting
+
+# Define energy grid (101 edges = 100 bins)
+energy_bins = collect(range(0.1, 10.0, length=101))
+
+# Define parameter grids
+normalization_grid = [0.1, 1.0, 10.0, 100.0]
+index_grid = [1.5, 2.0, 2.5, 3.0]
+param_grids = (normalization_grid, index_grid)
+
+# Calculate spectra for each parameter combination
+n_energy_bins = length(energy_bins) - 1
+n_spectra = length(normalization_grid) * length(index_grid)
+spectra = zeros(Float64, n_energy_bins, n_spectra)
+
+# Compute mid-point energies
+E_mid = (energy_bins[1:end-1] .+ energy_bins[2:end]) ./ 2
+
+# Fill spectra array (first parameter varies fastest)
+idx = 1
+for index in index_grid
+    for norm in normalization_grid
+        spectra[:, idx] = norm .* E_mid .^ (-index)
+        idx += 1
+    end
+end
+
+# Write to FITS file
+write_table_model(
+    "powerlaw_table.fits",
+    energy_bins,
+    param_grids,
+    spectra;
+    model_name = "POWLAW",
+    param_names = ["norm", "PhoIndex"],
+    param_units = ["", ""],
+    model_units = "photons/cm^2/s",
+    additive = true
+)
+```
+
+The resulting FITS file can then be loaded as a table model:
+
+```julia
+tmd = TableModelData(Val(2), "powerlaw_table.fits")
+```
+
