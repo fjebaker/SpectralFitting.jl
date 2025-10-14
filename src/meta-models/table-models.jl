@@ -250,11 +250,8 @@ function write_table_model(
     @assert length(param_names) == N "Number of parameter names must match number of parameter grids"
     @assert length(param_units) == N "Number of parameter units must match number of parameter grids"
     
-    # Create or overwrite FITS file
-    isfile(path) && rm(path)
-    f = FITS(path, "w")
-    
-    try
+    # Create FITS file
+    FITS(path, "w") do f   
         # HDU 1: Primary (empty but with key headers)
         write(f, Int[])
         
@@ -356,10 +353,8 @@ function write_table_model(
         write_key(hdu, "HDUVERS", "1.0.0", "Version of format")
         write_key(hdu, "MODLNAME", model_name, "Model name")
         write_key(hdu, "MODLUNIT", model_units, "Model units")
-        write_key(hdu, "REDSHIFT", redshift, "If true then redshift will be a par")
+        write_key(hdu, "REDSHIFT", redshift, "If true then redshift will be a parameter")
         write_key(hdu, "ADDMODEL", additive, "If true then this is additive table model")
-    finally
-        close(f)
     end
     
     return path
