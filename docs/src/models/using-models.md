@@ -149,53 +149,67 @@ write_table_model
 
 ### Example: Creating a custom table model
 
-Here's an example of creating a simple power law table model:
+Here's an example of creating a broken power law table model:
 
 ```julia
 using SpectralFitting
 
-# Define energy grid (101 edges = 100 bins)
-energy_bins = collect(range(0.1, 10.0, length=101))
+# Define energy grid (200 bins with 0.1 keV spacing)
+energy_bins = collect(range(0.1, 20.0, step=0.1))
 
 # Define parameter grids
-normalization_grid = [0.1, 1.0, 10.0, 100.0]
-index_grid = [1.5, 2.0, 2.5, 3.0]
-param_grids = (normalization_grid, index_grid)
+index1_grid = collect(range(1.5, 2.5, step=0.1))  # 11 values
+break_energy_grid = exp.(range(log(1.0), log(10.0), length=10))  # 10 values, log-spaced
+index2_grid = collect(range(1.5, 2.5, step=0.1))  # 11 values
+param_grids = (index1_grid, break_energy_grid, index2_grid)
 
 # Calculate spectra for each parameter combination
 n_energy_bins = length(energy_bins) - 1
-n_spectra = length(normalization_grid) * length(index_grid)
+n_spectra = length(index1_grid) * length(break_energy_grid) * length(index2_grid)
 spectra = zeros(Float64, n_energy_bins, n_spectra)
 
-# Compute mid-point energies
+# Compute mid-point energies and bin widths
 E_mid = (energy_bins[1:end-1] .+ energy_bins[2:end]) ./ 2
+dE = energy_bins[2:end] .- energy_bins[1:end-1]
 
 # Fill spectra array (first parameter varies fastest)
 idx = 1
-for index in index_grid
-    for norm in normalization_grid
-        spectra[:, idx] = norm .* E_mid .^ (-index)
-        idx += 1
+for index2 in index2_grid
+    for E_break in break_energy_grid
+        for index1 in index1_grid
+            # Broken power law: E^(-index1) below break, E^(-index2) above
+            # with continuity at the break energy
+            norm_factor = E_break^(index2 - index1)
+            # Evaluate at bin center and integrate over bin width
+            spectra[:, idx] = [(E < E_break ? E^(-index1) : norm_factor * E^(-index2)) * width
+                               for (E, width) in zip(E_mid, dE)]
+            idx += 1
+        end
     end
 end
 
+# Specify interpolation method for each parameter
+# 0 = linear interpolation, 1 = logarithmic interpolation
+param_method = [Int32(0), Int32(1), Int32(0)]  # log interpolation for break energy
+
 # Write to FITS file
 write_table_model(
-    "powerlaw_table.fits",
+    "bknpowerlaw_table.fits",
     energy_bins,
     param_grids,
     spectra;
-    model_name = "POWLAW",
-    param_names = ["norm", "PhoIndex"],
-    param_units = ["", ""],
-    model_units = "photons/cm^2/s",
-    additive = true
+    model_name = "BKNPOW",
+    param_names = ["PhoIndex1", "BreakE", "PhoIndex2"],
+    param_units = ["", "keV", ""],
+    model_units = "photons/cm^2/s/keV",
+    additive = true,
+    param_method = param_method
 )
 ```
 
 The resulting FITS file can then be loaded as a table model:
 
 ```julia
-tmd = TableModelData(Val(2), "powerlaw_table.fits")
+tmd = TableModelData(Val(3), "bknpowerlaw_table.fits")
 ```
 
