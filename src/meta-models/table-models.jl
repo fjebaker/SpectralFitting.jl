@@ -344,22 +344,33 @@ function write_table_model(
         write_key(hdu, "HDUVERS", "1.0.0", "Version of format")
         
         # HDU 4: SPECTRA extension
-        # Create the parameter value mesh
-        # We need to expand the grid to match each spectrum
-        # Note: XSPEC table models store parameters in reverse order
-        reversed_param_grids = reverse(param_grids)
+        # Create the parameter value mesh and reorder spectra for XSPEC
+        # XSPEC expects last parameter to vary fastest, but input has first parameter fastest
+        # So we need to reverse the parameter order
         param_mesh = zeros(T, N, n_spectra)
-        indices = CartesianIndices(Tuple(length.(param_grids)))
+        reordered_spectra = zeros(T, size(spectra_array))
         
-        for (spec_idx, cart_idx) in enumerate(indices)
-            for (param_idx, grid_idx) in enumerate(Tuple(cart_idx))
-                # Store in reversed order (XSPEC convention)
-                param_mesh[N - param_idx + 1, spec_idx] = param_grids[param_idx][grid_idx]
+        # Create mapping from input order (first param fastest) to XSPEC order (last param fastest)
+        input_indices = CartesianIndices(Tuple(length.(param_grids)))
+        reversed_lengths = Tuple(reverse([length(pg) for pg in param_grids]))
+        output_indices = CartesianIndices(reversed_lengths)
+        
+        for (input_idx, input_cart) in enumerate(input_indices)
+            # Reverse the multi-dimensional index for output
+            reversed_cart = reverse(Tuple(input_cart))
+            output_idx = LinearIndices(reversed_lengths)[CartesianIndex(reversed_cart)]
+            
+            # Copy spectrum to new position
+            reordered_spectra[:, output_idx] = spectra_array[:, input_idx]
+            
+            # Store parameters in reversed order (last parameter in first row, etc.)
+            for (param_idx, grid_idx) in enumerate(Tuple(input_cart))
+                param_mesh[N - param_idx + 1, output_idx] = param_grids[param_idx][grid_idx]
             end
         end
         
         write(f, ["PARAMVAL", "INTPSPEC"],
-              [param_mesh, collect(spectra_array)];
+              [param_mesh, reordered_spectra];
               units = Dict("INTPSPEC" => model_units),
               name = "SPECTRA")
         
