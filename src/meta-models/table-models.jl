@@ -264,7 +264,7 @@ function write_table_model(
         write_key(primary, "HDUCLAS1", "XSPEC TABLE MODEL", "Model spectra for XSPEC")
         write_key(primary, "MODLNAME", model_name, "Model name")
         write_key(primary, "MODLUNIT", model_units, "Model units")
-        write_key(primary, "REDSHIFT", redshift, "If true then redshift will be a par")
+        write_key(primary, "REDSHIFT", redshift, "If true then redshift will be a parameter")
         write_key(primary, "ADDMODEL", additive, "If true then this is additive table model")
         write_key(primary, "HDUVERS", "1.0.0", "Version of format")
         write_key(primary, "NINTPARM", Int32(N), "Number of interpolation parameters")
