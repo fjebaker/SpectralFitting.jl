@@ -164,6 +164,7 @@ end
         additive::Bool = true,
         param_names::Vector{String} = String["par\$i" for i in 1:N],
         param_units::Vector{String} = fill("", N),
+        param_method::Vector{Int32} = fill(Int32(0), N),
         lowE_units::String = "keV",
         highE_units::String = "keV"
     ) where {T,N}
@@ -189,6 +190,8 @@ This is the inverse operation of reading a table model with [`TableModelData`](@
 - `additive::Bool = true`: Whether this is an additive (true) or multiplicative (false) model
 - `param_names::Vector{String}`: Names for each parameter (length N)
 - `param_units::Vector{String}`: Units for each parameter (length N)
+- `param_method::Vector{Int32}`: Interpolation method for each parameter (length N). 
+  Use 0 for linear interpolation, 1 for logarithmic interpolation. Defaults to linear (0) for all parameters.
 - `lowE_units::String = "keV"`: Units for low energy bin edges
 - `highE_units::String = "keV"`: Units for high energy bin edges
 
@@ -215,13 +218,25 @@ for p2 in param2_grid
     end
 end
 
+# Write with default linear interpolation for all parameters
 write_table_model(
     "my_table_model.fits",
     energy_bins,
     param_grids,
     spectra;
     model_name = "MYTABLE",
-    param_names = ["norm", "index"]
+    param_names = ["index", "xi"]
+)
+
+# Or specify interpolation method: linear for index, logarithmic for xi
+write_table_model(
+    "my_table_model.fits",
+    energy_bins,
+    param_grids,
+    spectra;
+    model_name = "MYTABLE",
+    param_names = ["index", "xi"],
+    param_method = Int32[0, 1]  # 0=linear, 1=logarithmic
 )
 ```
 """
@@ -236,6 +251,7 @@ function write_table_model(
     additive::Bool = true,
     param_names::Vector{String} = String["par$i" for i in 1:N],
     param_units::Vector{String} = fill("", N),
+    param_method::Vector{Int32} = fill(Int32(0), N),
     lowE_units::String = "keV",
     highE_units::String = "keV"
 ) where {T,N}
@@ -249,6 +265,8 @@ function write_table_model(
     @assert size(spectra_array, 2) == n_spectra "Spectra array second dimension must match total number of parameter combinations"
     @assert length(param_names) == N "Number of parameter names must match number of parameter grids"
     @assert length(param_units) == N "Number of parameter units must match number of parameter grids"
+    @assert length(param_method) == N "Number of parameter methods must match number of parameter grids"
+    @assert all(m -> m == 0 || m == 1, param_method) "Parameter method values must be 0 (linear) or 1 (logarithmic)"
     
     # Create FITS file
     FITS(path, "w") do f   
@@ -291,7 +309,7 @@ function write_table_model(
         param_values = [collect(pg) for pg in param_grids]
         
         write(f, ["NAME", "METHOD", "INITIAL", "DELTA", "MINIMUM", "BOTTOM", "TOP", "MAXIMUM", "NUMBVALS", "VALUE"],
-              [param_names_arr, fill(Int32(0), N), param_initial, param_delta, 
+              [param_names_arr, param_method, param_initial, param_delta, 
                param_bottom, param_bottom, param_top, param_top, 
                Int32.(param_numbvals), param_values];
               units = param_col_units,
