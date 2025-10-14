@@ -154,13 +154,13 @@ Here's an example of creating a broken power law table model:
 ```julia
 using SpectralFitting
 
-# Define energy grid (200 bins with 0.1 keV spacing)
-energy_bins = collect(range(0.1, 20.0, step=0.1))
+# Define energy grid (500 bins, logarithmically spaced)
+energy_bins = exp.(range(log(0.1), log(20.0), length=501))
 
 # Define parameter grids
-index1_grid = collect(range(1.5, 2.5, step=0.1))  # 11 values
-break_energy_grid = exp.(range(log(1.0), log(10.0), length=10))  # 10 values, log-spaced
-index2_grid = collect(range(1.5, 2.5, step=0.1))  # 11 values
+index1_grid = collect(range(1.5, 2.5, step=0.1))  # 11 values (lower energy index)
+break_energy_grid = exp.(range(log(0.5), log(10.0), length=20))  # 20 values, log-spaced
+index2_grid = collect(range(1.5, 2.5, step=0.1))  # 11 values (upper energy index)
 param_grids = (index1_grid, break_energy_grid, index2_grid)
 
 # Calculate spectra for each parameter combination
@@ -173,11 +173,13 @@ E_mid = (energy_bins[1:end-1] .+ energy_bins[2:end]) ./ 2
 dE = energy_bins[2:end] .- energy_bins[1:end-1]
 
 # Fill spectra array (first parameter varies fastest)
+# Loop structure: index1 (fastest) -> E_break (middle) -> index2 (slowest)
+# This matches XSPEC parameter order: PhoIndex1, BreakE, PhoIndex2
 idx = 1
 for index2 in index2_grid
     for E_break in break_energy_grid
         for index1 in index1_grid
-            # Broken power law: E^(-index1) below break, E^(-index2) above
+            # Broken power law: E^(-index1) at low energies, E^(-index2) at high energies
             # with continuity at the break energy
             norm_factor = E_break^(index2 - index1)
             # Evaluate at bin center and integrate over bin width
@@ -187,6 +189,10 @@ for index2 in index2_grid
         end
     end
 end
+
+# Specify interpolation method for each parameter
+# 0 = linear interpolation, 1 = logarithmic interpolation
+param_method = [Int32(0), Int32(1), Int32(0)]  # log interpolation for break energy
 
 # Specify interpolation method for each parameter
 # 0 = linear interpolation, 1 = logarithmic interpolation
