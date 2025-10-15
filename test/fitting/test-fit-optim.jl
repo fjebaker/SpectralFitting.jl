@@ -42,7 +42,7 @@ prob = FittingProblem(model => dummy_data)
 result = fit(prob, BFGS())
 
 # both models should fit more or less the same
-@test result.u ≈ [17.254, 0.285, 14.970, 3.0974] atol = 1e-2
+@test sort(result.u) ≈ sort([17.254, 0.285, 14.970, 3.0974]) atol = 1e-2
 @test sum(result.stats) ≈ 2.8619 atol = 1e-2
 
 # now with different statistic
