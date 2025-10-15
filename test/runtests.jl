@@ -3,7 +3,7 @@ using Test, SpectralFitting
 testdir = get(
     ENV,
     "SF_TEST_SUITE_DATA",
-    "/home/lilith/developer/jl/spectral-fitting-test-suite/sample-data",
+    expanduser("~/.julia/dev/spectral-fitting-test-suite/sample-data"),
 )
 @show testdir
 
